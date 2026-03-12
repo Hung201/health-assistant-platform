@@ -11,7 +11,7 @@ import { User } from './user.entity';
 
 @Entity('booking_status_logs')
 export class BookingStatusLog {
-  @PrimaryGeneratedColumn('bigint')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ name: 'booking_id', type: 'uuid' })

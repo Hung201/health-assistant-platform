@@ -8,7 +8,7 @@ import {
 
 @Entity('specialties')
 export class Specialty {
-  @PrimaryGeneratedColumn('bigint')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ type: 'varchar', length: 150, unique: true })

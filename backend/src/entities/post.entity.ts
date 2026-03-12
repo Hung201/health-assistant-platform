@@ -12,7 +12,7 @@ import { User } from './user.entity';
 
 @Entity('posts')
 export class Post {
-  @PrimaryGeneratedColumn('bigint')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ name: 'author_user_id', type: 'uuid' })

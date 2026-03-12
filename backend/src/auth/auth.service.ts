@@ -6,6 +6,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import type { SignOptions } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
@@ -109,9 +110,9 @@ export class AuthService {
   }
 
   private generateToken(userId: string, email: string): string {
-    return this.jwtService.sign(
-      { sub: userId, email },
-      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' },
-    );
+    const signOptions: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'],
+    };
+    return this.jwtService.sign({ sub: userId, email }, signOptions);
   }
 }

@@ -6,8 +6,6 @@ import {
   UpdateDateColumn,
   OneToOne,
   OneToMany,
-  ManyToMany,
-  JoinTable,
 } from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { UserRole } from './user-role.entity';
@@ -65,14 +63,6 @@ export class User {
 
   @OneToMany(() => UserRole, (ur) => ur.user)
   userRoles: UserRole[];
-
-  @ManyToMany(() => Role, (role) => role.users, { through: () => UserRole })
-  @JoinTable({
-    name: 'user_roles',
-    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
-  })
-  roles: Role[];
 
   @OneToOne(() => PatientProfile, (p) => p.user)
   patientProfile?: PatientProfile | null;

@@ -11,7 +11,7 @@ import { ChronicCondition } from './chronic-condition.entity';
 
 @Entity('patient_chronic_conditions')
 export class PatientChronicCondition {
-  @PrimaryGeneratedColumn('bigint')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ name: 'patient_user_id', type: 'uuid' })

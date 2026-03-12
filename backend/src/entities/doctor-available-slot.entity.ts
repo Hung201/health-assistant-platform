@@ -12,7 +12,7 @@ import { Specialty } from './specialty.entity';
 
 @Entity('doctor_available_slots')
 export class DoctorAvailableSlot {
-  @PrimaryGeneratedColumn('bigint')
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column({ name: 'doctor_user_id', type: 'uuid' })

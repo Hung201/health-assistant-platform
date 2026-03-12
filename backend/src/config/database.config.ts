@@ -11,4 +11,6 @@ export const getDatabaseConfig = (): TypeOrmModuleOptions => ({
   entities: [join(__dirname, '..', 'entities', '*.entity{.ts,.js}')],
   synchronize: process.env.NODE_ENV !== 'production',
   logging: process.env.DB_LOGGING === 'true',
+  retryAttempts: 2,
+  retryDelay: 2000,
 });
