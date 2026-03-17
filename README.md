@@ -1,11 +1,12 @@
 # Health Assistant Platform
 
-MVP đặt lịch khám bác sĩ: **Next.js** (frontend) + **NestJS** (backend) + **PostgreSQL** + **JWT**.
+MVP Sàng lọc Thông minh & Đặt lịch khám bác sĩ: **Next.js** (frontend) + **NestJS** (backend) + **Python/FastAPI/LangChain** (AI Service) + **PostgreSQL** + **JWT**.
 
 ## Cấu trúc thư mục
 
 ```
 health-assistant-platform/
+├── ai service/       # Python FastAPI + LangChain AI Agent
 ├── backend/          # NestJS API
 ├── frontend/         # Next.js app
 └── backend/database/ # SQL schema PostgreSQL
@@ -48,6 +49,21 @@ npm run dev
 ```
 
 - App chạy tại: **http://localhost:3001**
+
+## 4. AI Service (Python / FastAPI / LangChain)
+
+Dịch vụ lõi AI chịu trách nhiệm sàng lọc bệnh lý sơ bộ, giao tiếp tự nhiên với bệnh nhân và gợi ý chuyên khoa cần khám.
+
+```bash
+cd "ai service"
+# Cài đặt thư viện (nếu dùng uv thì uv add ...)
+pip install fastapi uvicorn langchain ...
+# Khởi chạy server
+uvicorn src.main:app --reload
+```
+
+- API AI dự kiến chạy tại: **http://localhost:8000**
+- Module: Diagnotic Agent, RAG. (Xem chi tiết thêm ở file `ai service/README.md`)
 
 ## Bảng database (MVP)
 
