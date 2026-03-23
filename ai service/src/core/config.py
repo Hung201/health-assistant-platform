@@ -12,4 +12,12 @@ class Settings(BaseSettings):
     # Path to processed Data
     PROCESSED_DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "processed")
 
+    # LLM Config (Google Gemini)
+    GEMINI_API_KEY: str = ""
+    LLM_MODEL: str = "gemini-2.0-flash"
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
 settings = Settings()
