@@ -163,6 +163,7 @@ cython_debug/
 .vscode/
 
 # AI models & Data
+models/
 *.pt
 *.pb
 *.h5
