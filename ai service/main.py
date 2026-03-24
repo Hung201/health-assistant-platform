@@ -15,12 +15,18 @@ from src.agents.diagnostic_agent import DiagnosticAgent
 from src.api.router import api_router
 
 # ─── Logging ────────────────────────────────────────────────────────────────
+# Cấu hình logging mức ROOT và áp dụng cho toàn bộ các module con
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
+    force=True,  # Quan trọng: Ghi đè mọi cấu hình logging đã tồn tại (của uvicorn)
 )
 logger = logging.getLogger(__name__)
+# Đảm bảo các logger con của uvicorn cũng dùng chung cấu hình này
+for name in ["uvicorn", "uvicorn.error", "fastapi"]:
+    logging.getLogger(name).handlers = []
+    logging.getLogger(name).propagate = True
 
 
 # ─── Lifespan (startup / shutdown) ──────────────────────────────────────────

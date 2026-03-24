@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     LLM_MODEL: str = "gemini-2.0-flash"
 
+    # Web Search (Tavily)
+    TAVILY_API_KEY: str = ""
+
+
     class Config:
         env_file = ".env"
         extra = "ignore"

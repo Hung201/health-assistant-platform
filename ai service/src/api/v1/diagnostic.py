@@ -43,7 +43,11 @@ async def analyze_symptoms(body: DiagnosticRequest, request: Request):
     try:
         logger.info(f"[Diagnostic] Analyzing query (len={len(query)}): {query[:80]}...")
         result: DiagnosticResult = agent.analyze(query)
-        logger.info(f"[Diagnostic] Done. Top disease: {result.top_diseases[0].disease if result.top_diseases else 'N/A'}")
+        
+        # Verbose output to terminal
+        print(f"\n{'='*20} FINAL DIAGNOSTIC RESULT {'='*20}", flush=True)
+        print(result.model_dump_json(indent=2), flush=True)
+        print(f"{'='*65}\n", flush=True)
 
         return APIResponse(
             success=True,
