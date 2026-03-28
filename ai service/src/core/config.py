@@ -19,6 +19,11 @@ class Settings(BaseSettings):
     # Web Search (Tavily)
     TAVILY_API_KEY: str = ""
 
+    # Hospital Search (Nominatim + Overpass)
+    HOSPITAL_SEARCH_RADIUS_M: int = 5000   # Bán kính tìm kiếm: 5km
+    HOSPITAL_SUGGESTION_CONFIDENCE_THRESHOLD: float = 0.70  # Score >= 70% → gợi ý
+    NOMINATIM_USER_AGENT: str = "AIHealthAssistantService/1.0 (contact@example.com)"
+
 
     class Config:
         env_file = ".env"

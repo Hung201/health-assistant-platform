@@ -26,6 +26,35 @@ class ChatRequest(BaseModel):
         default_factory=list,
         description="Lịch sử hội thoại trước đó (không kể message hiện tại)"
     )
+    user_location: Optional[str] = Field(
+        None,
+        description=(
+            "Địa chỉ / vị trí người dùng để gợi ý cơ sở y tế gần đó "
+            "(VD: 'Hoàn Kiếm, Hà Nội'). Nếu không có, tính năng gợi ý bệnh viện sẽ bị bỏ qua."
+        ),
+    )
+
+
+# ─── Hospital Suggestion Schemas ────────────────────────────────────────────
+
+class HospitalResult(BaseModel):
+    """Thông tin một cơ sở y tế."""
+    name: str = Field(..., description="Tên bệnh viện / phòng khám")
+    address: Optional[str] = Field(None, description="Địa chỉ")
+    phone: Optional[str] = Field(None, description="Số điện thoại")
+    specialty: Optional[str] = Field(None, description="Chuyên khoa (nếu có trong OSM)")
+    amenity_type: Optional[str] = Field(None, description="Loại: hospital | clinic | doctors")
+
+
+class HospitalSuggestion(BaseModel):
+    """Kết quả gợi ý cơ sở y tế – chỉ xuất hiện khi confidence ≥ ngưỡng."""
+    invitation_text: str = Field(
+        ...,
+        description="Câu mời thân thiện kèm số lượng cơ sở tìm thấy"
+    )
+    hospitals: List[HospitalResult] = Field(..., description="Danh sách cơ sở y tế gần đó")
+    search_radius_km: int = Field(..., description="Bán kính tìm kiếm (km)")
+    location_used: str = Field(..., description="Địa chỉ đã dùng để tìm kiếm")
 
 
 class ChatResponse(BaseModel):
@@ -39,4 +68,11 @@ class ChatResponse(BaseModel):
     final_result: Optional[DiagnosticResult] = Field(
         None,
         description="Kết quả chẩn đoán sơ bộ (chỉ có khi is_ready_to_diagnose=True)"
+    )
+    hospital_suggestion: Optional[HospitalSuggestion] = Field(
+        None,
+        description=(
+            "Gợi ý cơ sở y tế gần đó. Chỉ xuất hiện khi "
+            "is_ready_to_diagnose=True và confidence ≥ 70% và user_location được cung cấp."
+        ),
     )

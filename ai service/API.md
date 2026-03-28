@@ -78,7 +78,7 @@ Cấu trúc trả về được bọc trong `APIResponse` chuẩn (`success`, `d
 ---
 
 ## 3. Chat Đa Lượt (Chatbot)
-Agent hỏi-đáp để thu thập đầy đủ thông tin triệu chứng. Khi đã nhận đủ dữ liệu, AI tự động kích hoạt tiến trình chẩn đoán sơ bộ.
+Agent hỏi-đáp để thu thập đầy đủ thông tin triệu chứng. Khi đã nhận đủ dữ liệu, AI tự động kích hoạt tiến trình chẩn đoán. Nếu confidence ≥ 70% và có `user_location`, AI gợi ý cơ sở y tế gần đó.
 
 - **Endpoint**: `POST /api/v1/chat/`
 - **Method**: `POST`
@@ -90,46 +90,68 @@ Agent hỏi-đáp để thu thập đầy đủ thông tin triệu chứng. Khi 
   "session_id": "chuỗi-id-định-danh-phiên-chat",
   "message": "Chào bác sĩ, dạo này tôi hay bị đau đầu bên phải.",
   "history": [
-    {
-      "role": "user",
-      "content": "Tôi muốn tư vấn khám bệnh"
-    },
-    {
-      "role": "assistant",
-      "content": "Chào bạn, hãy mô tả chi tiết hơn triệu chứng hiện tại của bạn nhé!"
-    }
-  ]
+    { "role": "user", "content": "Tôi muốn tư vấn khám bệnh" },
+    { "role": "assistant", "content": "Chào bạn, hãy mô tả chi tiết hơn triệu chứng!" }
+  ],
+  "user_location": "Hoàn Kiếm, Hà Nội"
 }
 ```
+
 **Chi tiết Input**:
-- `session_id` (string, bắt buộc): ID phiên hội thoại (do Frontend hoặc Backend quản lý).
-- `message` (string, bắt buộc): Câu chat mới nhất của User (1-2000 ký tự).
-- `history` (array, bắt buộc/có thể rỗng): Lịch sử hội thoại trước đó để AI hiểu ngữ cảnh.
+| Trường | Kiểu | Bắt buộc | Mô tả |
+|---|---|---|---|
+| `session_id` | string | ✅ | ID phiên hội thoại (do Frontend/Backend quản lý) |
+| `message` | string | ✅ | Câu chat mới nhất (1–2000 ký tự) |
+| `history` | array | ✅ (có thể rỗng) | Lịch sử hội thoại trước đó |
+| `user_location` | string | ❌ tùy chọn | Địa chỉ người dùng – dùng để gợi ý bệnh viện/phòng khám gần đó |
 
 ### Phản hồi thành công (200 OK)
-**Khi AI đang trong quá trình hỏi thêm thông tin (Chưa đủ kết luận):**
+**Khi AI đang hỏi thêm (Chưa đủ dữ liệu):**
 ```json
 {
-  "session_id": "chuỗi-id-định-danh-phiên-chat",
+  "session_id": "...",
   "reply": "Bạn bị đau nhiều vào lúc nào trong ngày?",
   "is_ready_to_diagnose": false,
-  "final_result": null
+  "final_result": null,
+  "hospital_suggestion": null
 }
 ```
 
-**Khi AI thu thập đủ thông tin (Kết thúc tiến trình chat):**
+**Khi AI đủ thông tin + confidence ≥ 70% + có `user_location`:**
 ```json
 {
-  "session_id": "chuỗi-id-định-danh-phiên-chat",
-  "reply": "Dựa trên các triệu chứng bạn cung cấp, bộ phận phân tích đã đưa ra kết quả sau:",
+  "session_id": "...",
+  "reply": "Dựa trên các triệu chứng bạn cung cấp...",
   "is_ready_to_diagnose": true,
   "final_result": {
     "disclaimer": "Đây là kết quả sàng lọc AI...",
-    "top_diseases": [ ... ],
+    "top_diseases": [ { "rank": 1, "disease": "Đau nửa đầu Migraine", "match_score": 0.85, "suggested_specialty": "Nội thần kinh", "reasoning": "...", "treatment_direction": "..." } ],
     "emergency_warning": null,
     "general_advice": "...",
     "used_web_search": false
+  },
+  "hospital_suggestion": {
+    "invitation_text": "Dựa trên kết quả phân tích, tôi thấy bạn nên đến khám chuyên khoa Nội thần kinh sớm. Tôi đã tìm thấy 3 cơ sở y tế trong bán kính 5km gần Hoàn Kiếm, Hà Nội... 🏥",
+    "hospitals": [
+      {
+        "name": "Bệnh viện Bạch Mai",
+        "address": "78 Giải Phóng, Đống Đa, Hà Nội",
+        "phone": "+84-24-38694931",
+        "specialty": null,
+        "amenity_type": "hospital"
+      }
+    ],
+    "search_radius_km": 5,
+    "location_used": "Hoàn Kiếm, Hà Nội"
   }
 }
 ```
-*(Ghi chú: `final_result` có cấu trúc giống hệt object `data` của API `POST /api/v1/diagnostic/analyze`)*
+
+> **Ghi chú Adaptive Suggestion**: `hospital_suggestion` chỉ xuất hiện khi đồng thời:
+> 1. `is_ready_to_diagnose = true`
+> 2. `match_score` cao nhất ≥ **70%**
+> 3. `user_location` được cung cấp trong request
+>
+> Nếu confidence ≥ 70% nhưng thiếu `user_location`, AI sẽ tự thêm một câu nhắc nhẹ ở cuối `reply` để mời người dùng cung cấp vị trí.
+
+
