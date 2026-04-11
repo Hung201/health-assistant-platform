@@ -8,11 +8,36 @@ MVP Sàng lọc Thông minh & Đặt lịch khám bác sĩ: **Next.js** (fronten
 health-assistant-platform/
 ├── ai service/       # Python FastAPI + LangChain AI Agent
 ├── backend/          # NestJS API
+├── docker-compose.yml # PostgreSQL (dev) — tùy chọn
+├── docs/             # Tài liệu (changelog, …)
 ├── frontend/         # Next.js app
 └── backend/database/ # SQL schema PostgreSQL
 ```
 
 ## 1. Database (PostgreSQL)
+
+### Cách nhanh: Docker (khuyến nghị cho dev)
+
+Yêu cầu: [Docker](https://docs.docker.com/get-docker/) + Docker Compose.
+
+Từ **thư mục gốc** repo:
+
+```bash
+docker compose up -d
+```
+
+- Container: `health-assistant-db`, port **5432**, user/password/database khớp mặc định trong `backend/.env.example`.
+- Lần **đầu** tạo volume, file `backend/database/schema.sql` được chạy tự động (bảng + dữ liệu seed trong schema).
+
+Dừng / xoá (giữ dữ liệu trong volume):
+
+```bash
+docker compose down
+```
+
+Nếu port 5432 đã bị chiếm (PostgreSQL cài sẵn trên máy), sửa trong `docker-compose.yml` thành `"5433:5432"` và trong `backend/.env` đặt `DB_PORT=5433`.
+
+### Cài PostgreSQL trên máy (không dùng Docker)
 
 - Tạo database: `createdb health_assistant`
 - Chạy schema (đúng thứ tự bảng):
