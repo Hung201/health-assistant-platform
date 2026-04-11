@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +14,8 @@ import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
+import { Specialty } from '../entities/specialty.entity';
+import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -27,39 +30,80 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    const roleCode = dto.role ?? 'patient';
+    const role = await this.userRoleRepository.manager
+      .getRepository(Role)
+      .findOne({ where: { code: roleCode } });
+    if (!role) {
+      throw new BadRequestException(
+        `Không tìm thấy vai trò "${roleCode}" trong bảng roles. Chạy file database/schema.sql (phần INSERT roles).`,
+      );
+    }
+
     const existing = await this.userRepository.findOne({
       where: { email: dto.email.toLowerCase() },
     });
     if (existing) {
       throw new ConflictException('Email đã được sử dụng');
     }
+
+    let phone: string | null = null;
+    if (dto.phone != null && dto.phone.trim() !== '') {
+      const normalized = dto.phone.replace(/\s+/g, '').slice(0, 20);
+      if (normalized.length > 0) {
+        const phoneTaken = await this.userRepository.findOne({
+          where: { phone: normalized },
+        });
+        if (phoneTaken) {
+          throw new ConflictException('Số điện thoại đã được sử dụng');
+        }
+        phone = normalized;
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepository.create({
       email: dto.email.toLowerCase(),
       fullName: dto.fullName,
       passwordHash,
       status: 'active',
+      phone,
     });
     const savedUser = await this.userRepository.save(user);
 
-    const role = await this.userRoleRepository.manager
-      .getRepository(Role)
-      .findOne({ where: { code: dto.role || 'patient' } });
-    if (role) {
-      await this.userRoleRepository.save({
-        userId: savedUser.id,
-        roleId: role.id,
-      });
-    }
+    await this.userRoleRepository.save({
+      userId: savedUser.id,
+      roleId: role.id,
+    });
 
-    if (dto.role === 'patient') {
+    if (roleCode === 'patient') {
       await this.userRoleRepository.manager.getRepository(PatientProfile).save({
         userId: savedUser.id,
       });
-    } else if (dto.role === 'doctor') {
-      await this.userRoleRepository.manager.getRepository(DoctorProfile).save({
+    } else if (roleCode === 'doctor') {
+      const manager = this.userRoleRepository.manager;
+      const license =
+        dto.licenseNumber != null && dto.licenseNumber.trim() !== ''
+          ? dto.licenseNumber.trim()
+          : null;
+      await manager.getRepository(DoctorProfile).save({
         userId: savedUser.id,
+        licenseNumber: license,
       });
+      if (dto.specialtyId != null) {
+        const spec = await manager.getRepository(Specialty).findOne({
+          where: { id: dto.specialtyId, status: 'active' },
+        });
+        if (!spec) {
+          throw new BadRequestException('Chuyên khoa không hợp lệ hoặc đã ngưng hoạt động');
+        }
+        const sid = typeof spec.id === 'string' ? Number(spec.id) : spec.id;
+        await manager.getRepository(DoctorSpecialty).save({
+          doctorUserId: savedUser.id,
+          specialtyId: sid,
+          isPrimary: true,
+        });
+      }
     }
 
     const token = this.generateToken(savedUser.id, savedUser.email);
@@ -69,7 +113,7 @@ export class AuthService {
         id: savedUser.id,
         email: savedUser.email,
         fullName: savedUser.fullName,
-        role: dto.role || 'patient',
+        roles: [role.code],
       },
     };
   }
@@ -100,6 +144,19 @@ export class AuthService {
         roles,
       },
     };
+  }
+
+  async listActiveSpecialties(): Promise<{ id: number; name: string; slug: string }[]> {
+    const rows = await this.userRoleRepository.manager.getRepository(Specialty).find({
+      where: { status: 'active' },
+      select: ['id', 'name', 'slug'],
+      order: { name: 'ASC' },
+    });
+    return rows.map((s) => ({
+      id: typeof s.id === 'string' ? Number(s.id) : s.id,
+      name: s.name,
+      slug: s.slug,
+    }));
   }
 
   async validateUser(userId: string): Promise<User | null> {

@@ -1,32 +1,42 @@
 'use client';
 
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { adminApi } from '@/lib/api';
 import { getStoredUser, isAdminUser } from '@/lib/auth';
 
 const ADMIN_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDUMP08rYqsRC6ewEBgMsxpA7wgUXnnD0_tJeg2dhExPM2ln1Ca3iMmxnPBUW0UmmB3DEYtdNbJB1xAim7gPzNrVJU53gmTfuzIBL3S7OOTR42zSB5a1iGavXy8d-cQAVKTTb_uPOC5OTogepdSKi45wCd3XyTYt09oA2yneo4gz5dtjmRBrEbPorEN6XXxH-RbO5clcwFIn_ntipfYZgFS5BOFmjCt8mgzaOg6IYm-z1xnAhgNTWClY6c52k0uZZOqQhbD2IMGrgBu';
 
-const navItems: {
-  href: string | null;
-  icon: string;
-  label: string;
-  badge: string | null;
-}[] = [
-  { href: '/admin', icon: 'dashboard', label: 'Dashboard', badge: null },
-  { href: null, icon: 'article', label: 'Duyệt bài viết', badge: '12' },
-  { href: null, icon: 'stethoscope', label: 'Chuyên khoa', badge: null },
-  { href: null, icon: 'group', label: 'Người dùng', badge: null },
-  { href: null, icon: 'settings', label: 'Cài đặt', badge: null },
+const NAV: { href: string; icon: string; label: string; badgeFrom?: 'pendingPosts' | 'pendingDoctors' }[] = [
+  { href: '/admin', icon: 'dashboard', label: 'Dashboard' },
+  { href: '/admin/users', icon: 'group', label: 'Người dùng' },
+  { href: '/admin/doctors/pending', icon: 'stethoscope', label: 'Duyệt bác sĩ', badgeFrom: 'pendingDoctors' },
+  { href: '/admin/posts/pending', icon: 'article', label: 'Duyệt bài viết', badgeFrom: 'pendingPosts' },
+  { href: '/admin/specialties', icon: 'category', label: 'Chuyên khoa' },
+  { href: '/admin/settings', icon: 'settings', label: 'Cài đặt' },
 ];
+
+function navActive(pathname: string, href: string) {
+  if (href === '/admin') return pathname === '/admin';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<ReturnType<typeof getStoredUser>>(null);
   const [checked, setChecked] = useState(false);
+
+  const { data: summary } = useQuery({
+    queryKey: ['admin', 'dashboard', 'summary'],
+    queryFn: adminApi.dashboardSummary,
+    enabled: checked,
+    staleTime: 30_000,
+  });
 
   useEffect(() => {
     const u = getStoredUser();
@@ -55,41 +65,35 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <h1 className="text-lg font-bold leading-tight text-slate-900">MediAI</h1>
-            <p className="text-xs text-slate-500">Hệ thống Y tế AI</p>
+            <p className="text-xs text-slate-500">Quản trị</p>
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-4">
-          {navItems.map((item) => {
-            const active = Boolean(item.href && pathname === item.href);
+          {NAV.map((item) => {
+            const active = navActive(pathname, item.href);
+            const badge =
+              item.badgeFrom && summary
+                ? item.badgeFrom === 'pendingPosts'
+                  ? summary.pendingPosts
+                  : summary.pendingDoctors
+                : null;
             const className = `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               active ? 'bg-primary text-white' : 'text-slate-600 hover:bg-slate-100'
             }`;
-            const inner = (
-              <>
+            return (
+              <Link className={className} href={item.href} key={item.href}>
                 <span className="material-symbols-outlined">{item.icon}</span>
-                <span>{item.label}</span>
-                {item.badge ? (
+                <span className="flex-1">{item.label}</span>
+                {badge != null && badge > 0 ? (
                   <span
-                    className={`ml-auto rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                      active ? 'bg-white/20 text-white' : 'bg-red-100 text-red-600'
+                    className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                      active ? 'bg-white/25 text-white' : 'bg-red-100 text-red-600'
                     }`}
                   >
-                    {item.badge}
+                    {badge > 99 ? '99+' : badge}
                   </span>
                 ) : null}
-              </>
-            );
-            if (item.href) {
-              return (
-                <Link className={className} href={item.href} key={item.label}>
-                  {inner}
-                </Link>
-              );
-            }
-            return (
-              <button className={`${className} cursor-default text-left`} key={item.label} type="button">
-                {inner}
-              </button>
+              </Link>
             );
           })}
         </nav>

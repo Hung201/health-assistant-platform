@@ -8,6 +8,8 @@ import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
+import { Specialty } from '../entities/specialty.entity';
+import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -18,7 +20,15 @@ const jwtSignOptions: SignOptions = {
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, UserRole, Role, PatientProfile, DoctorProfile]),
+    TypeOrmModule.forFeature([
+      User,
+      UserRole,
+      Role,
+      PatientProfile,
+      DoctorProfile,
+      Specialty,
+      DoctorSpecialty,
+    ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
