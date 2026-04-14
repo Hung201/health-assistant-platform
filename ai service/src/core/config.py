@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     # LLM Config (Google Gemini)
     GEMINI_API_KEY: str = ""
     LLM_MODEL: str = "gemini-2.0-flash"
+    
+    # Database Config
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/health_assistant"
+    
+    # Chat Config
+    CHAT_TOKEN_LIMIT: int = 8000
 
     # Web Search (Tavily)
     TAVILY_API_KEY: str = ""
