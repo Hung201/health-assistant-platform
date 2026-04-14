@@ -223,21 +223,30 @@ export class AdminService {
     return { ok: true, id: u.id };
   }
 
-  async listPendingDoctors() {
-    const rows = await this.doctorRepo.find({
+  async listPendingDoctors(page = 1, limit = 20) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const [rows, total] = await this.doctorRepo.findAndCount({
       where: { verificationStatus: 'pending', isVerified: false },
       relations: ['user'],
       order: { createdAt: 'ASC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
     });
-    return rows.map((d) => ({
-      userId: d.userId,
-      email: d.user?.email,
-      fullName: d.user?.fullName,
-      professionalTitle: d.professionalTitle,
-      licenseNumber: d.licenseNumber,
-      workplaceName: d.workplaceName,
-      createdAt: d.createdAt,
-    }));
+    return {
+      items: rows.map((d) => ({
+        userId: d.userId,
+        email: d.user?.email,
+        fullName: d.user?.fullName,
+        professionalTitle: d.professionalTitle,
+        licenseNumber: d.licenseNumber,
+        workplaceName: d.workplaceName,
+        createdAt: d.createdAt,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
   }
 
   async approveDoctor(userId: string) {
@@ -258,24 +267,57 @@ export class AdminService {
     return { ok: true, userId, verificationStatus: profile.verificationStatus };
   }
 
-  async listPendingPosts() {
-    const posts = await this.postRepo.find({
+  async listPendingPosts(page = 1, limit = 20) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const [posts, total] = await this.postRepo.findAndCount({
       where: { status: POST_STATUS_PENDING_REVIEW },
       relations: ['author', 'author.user'],
       order: { createdAt: 'DESC' },
-      take: 100,
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
     });
-    return posts.map((p) => ({
+    return {
+      items: posts.map((p) => ({
+        id: String(p.id),
+        title: p.title,
+        slug: p.slug,
+        excerpt: p.excerpt,
+        postType: p.postType,
+        createdAt: p.createdAt,
+        authorUserId: p.authorUserId,
+        authorName: p.author?.user?.fullName ?? null,
+        authorEmail: p.author?.user?.email ?? null,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
+  async getPostDetail(postId: number) {
+    const p = await this.postRepo.findOne({
+      where: { id: postId },
+      relations: ['author', 'author.user'],
+    });
+    if (!p) throw new NotFoundException('Không tìm thấy bài viết');
+    return {
       id: String(p.id),
       title: p.title,
       slug: p.slug,
       excerpt: p.excerpt,
+      content: p.content,
+      thumbnailUrl: p.thumbnailUrl,
       postType: p.postType,
+      status: p.status,
       createdAt: p.createdAt,
+      reviewedAt: (p as unknown as { reviewedAt?: Date | null }).reviewedAt ?? null,
+      publishedAt: (p as unknown as { publishedAt?: Date | null }).publishedAt ?? null,
+      rejectionReason: (p as unknown as { rejectionReason?: string | null }).rejectionReason ?? null,
       authorUserId: p.authorUserId,
       authorName: p.author?.user?.fullName ?? null,
       authorEmail: p.author?.user?.email ?? null,
-    }));
+    };
   }
 
   async approvePost(postId: number, reviewerId: string) {
@@ -306,19 +348,28 @@ export class AdminService {
     return { ok: true, id: postId, status: post.status };
   }
 
-  async listSpecialties() {
-    const rows = await this.specialtyRepo.find({
+  async listSpecialties(page = 1, limit = 50) {
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
+    const safePage = Math.max(page, 1);
+    const [rows, total] = await this.specialtyRepo.findAndCount({
       order: { name: 'ASC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
     });
-    return rows.map((s) => ({
-      id: String(s.id),
-      slug: s.slug,
-      name: s.name,
-      description: s.description,
-      status: s.status,
-      iconUrl: s.iconUrl,
-      createdAt: s.createdAt,
-    }));
+    return {
+      items: rows.map((s) => ({
+        id: String(s.id),
+        slug: s.slug,
+        name: s.name,
+        description: s.description,
+        status: s.status,
+        iconUrl: s.iconUrl,
+        createdAt: s.createdAt,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
   }
 
   async createSpecialty(input: {

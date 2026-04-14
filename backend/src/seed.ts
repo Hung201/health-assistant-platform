@@ -224,6 +224,166 @@ async function seed() {
       }
     }
 
+    // ---- more pending doctors for admin review (idempotent)
+    const pendingDoctorCount = 8;
+    for (let i = 1; i <= pendingDoctorCount; i++) {
+      const n = String(i).padStart(2, '0');
+      // eslint-disable-next-line no-await-in-loop
+      const u = await ensureUser({
+        email: `doctor_pending_${n}@precision.vn`,
+        password: 'Doctor@123',
+        fullName: `BS Chờ duyệt ${n}`,
+        phone: `0900 002 ${n}`,
+      });
+      // eslint-disable-next-line no-await-in-loop
+      await ensureUserRole(u.id, 'doctor');
+      // eslint-disable-next-line no-await-in-loop
+      const p = await txDoctorRepo.findOne({ where: { userId: u.id } });
+      if (!p) {
+        // eslint-disable-next-line no-await-in-loop
+        await txDoctorRepo.save(
+          txDoctorRepo.create({
+            userId: u.id,
+            professionalTitle: 'Bác sĩ',
+            licenseNumber: `PENDING-${n}/CCHN`,
+            workplaceName: 'MediSmart Pending Clinic',
+            yearsOfExperience: 1 + (i % 8),
+            bio: 'Hồ sơ demo (pending) để test luồng duyệt bác sĩ trên admin.',
+            isVerified: false,
+            verificationStatus: 'pending',
+            consultationFee: String(180000 + (i % 4) * 20000),
+          }),
+        );
+      } else if (p.verificationStatus !== 'pending' || p.isVerified !== false) {
+        // keep seed idempotent but enforce "pending" for this demo set
+        p.verificationStatus = 'pending';
+        p.isVerified = false;
+        // eslint-disable-next-line no-await-in-loop
+        await txDoctorRepo.save(p);
+      }
+    }
+
+    // ---- demo doctor (approved) for patient discovery
+    const approvedDoctorUser = await ensureUser({
+      email: 'doctor2@precision.vn',
+      password: 'Doctor@123',
+      fullName: 'BS Trần Thị C',
+      phone: '0900 000 005',
+    });
+    await ensureUserRole(approvedDoctorUser.id, 'doctor');
+    const approvedProfile = await txDoctorRepo.findOne({ where: { userId: approvedDoctorUser.id } });
+    if (!approvedProfile) {
+      await txDoctorRepo.save(
+        txDoctorRepo.create({
+          userId: approvedDoctorUser.id,
+          professionalTitle: 'Bác sĩ Chuyên khoa',
+          licenseNumber: '789101/CCHN',
+          workplaceName: 'Precision Care Clinic',
+          yearsOfExperience: 10,
+          bio: 'Bác sĩ đã được duyệt (demo) để bệnh nhân có thể tìm và đặt lịch.',
+          isVerified: true,
+          verificationStatus: 'approved',
+          consultationFee: '250000',
+        }),
+      );
+    }
+    if (primarySpec) {
+      const specId = asNumberId(primarySpec.id);
+      const existingLink2 = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: approvedDoctorUser.id, specialtyId: specId },
+      });
+      if (!existingLink2) {
+        await txDoctorSpecialtyRepo.save(
+          txDoctorSpecialtyRepo.create({
+            doctorUserId: approvedDoctorUser.id,
+            specialtyId: specId,
+            isPrimary: true,
+          }),
+        );
+      }
+    }
+
+    // ---- bulk approved doctors for richer demo data (idempotent)
+    const demoDoctorCount = 20;
+    const safeSpecs = allSpecs.length > 0 ? allSpecs : primarySpec ? [primarySpec] : [];
+    const day = 24 * 60 * 60 * 1000;
+    const now = new Date();
+    const approvedDoctorIds: string[] = [approvedDoctorUser.id];
+
+    const ensureApprovedDoctor = async (idx: number) => {
+      const n = String(idx).padStart(2, '0');
+      const email = `doctor_demo_${n}@precision.vn`;
+      const u = await ensureUser({
+        email,
+        password: 'Doctor@123',
+        fullName: `BS Demo ${n}`,
+        phone: `0900 001 ${n}`,
+      });
+      await ensureUserRole(u.id, 'doctor');
+      approvedDoctorIds.push(u.id);
+
+      const profile = await txDoctorRepo.findOne({ where: { userId: u.id } });
+      if (!profile) {
+        await txDoctorRepo.save(
+          txDoctorRepo.create({
+            userId: u.id,
+            professionalTitle: 'Bác sĩ',
+            licenseNumber: `DEMO-${n}/CCHN`,
+            workplaceName: 'MediSmart Demo Clinic',
+            yearsOfExperience: 3 + (idx % 12),
+            bio: 'Hồ sơ demo (seed) để test tìm bác sĩ/đặt lịch.',
+            isVerified: true,
+            verificationStatus: 'approved',
+            consultationFee: String(150000 + (idx % 6) * 50000),
+          }),
+        );
+      }
+
+      const spec = safeSpecs.length > 0 ? safeSpecs[idx % safeSpecs.length] : null;
+      if (spec) {
+        const specId = asNumberId(spec.id);
+        const link = await txDoctorSpecialtyRepo.findOne({ where: { doctorUserId: u.id, specialtyId: specId } });
+        if (!link) {
+          await txDoctorSpecialtyRepo.save(
+            txDoctorSpecialtyRepo.create({
+              doctorUserId: u.id,
+              specialtyId: specId,
+              isPrimary: true,
+            }),
+          );
+        }
+      }
+
+      const slotCount = await txSlotRepo.count({ where: { doctorUserId: u.id } });
+      if (slotCount === 0 && spec) {
+        const makeSlot = async (offsetDays: number, hour: number) => {
+          const start = new Date(now.getTime() + offsetDays * day);
+          start.setHours(hour, 0, 0, 0);
+          const end = new Date(start.getTime() + 30 * 60 * 1000);
+          await txSlotRepo.save(
+            txSlotRepo.create({
+              doctorUserId: u.id,
+              specialtyId: asNumberId(spec.id),
+              slotDate: new Date(start.toISOString().slice(0, 10)),
+              startAt: start,
+              endAt: end,
+              maxBookings: 3,
+              bookedCount: 0,
+              status: 'available',
+              source: 'seed',
+            }),
+          );
+        };
+        await makeSlot(1 + (idx % 3), 9);
+        await makeSlot(1 + (idx % 3), 10);
+      }
+    };
+
+    for (let i = 1; i <= demoDoctorCount; i++) {
+      // eslint-disable-next-line no-await-in-loop
+      await ensureApprovedDoctor(i);
+    }
+
     // ---- demo patient
     const patientUser = await ensureUser({
       email: 'patient1@precision.vn',
@@ -289,6 +449,33 @@ async function seed() {
       );
     }
 
+    // ---- available slots for approved doctor (idempotent)
+    const existingSlots2 = await txSlotRepo.count({ where: { doctorUserId: approvedDoctorUser.id } });
+    if (existingSlots2 === 0 && primarySpec) {
+      const now = new Date();
+      const makeSlot = async (offsetDays: number, hour: number) => {
+        const start = new Date(now.getTime() + offsetDays * day);
+        start.setHours(hour, 0, 0, 0);
+        const end = new Date(start.getTime() + 30 * 60 * 1000);
+        await txSlotRepo.save(
+          txSlotRepo.create({
+            doctorUserId: approvedDoctorUser.id,
+            specialtyId: asNumberId(primarySpec.id),
+            slotDate: new Date(start.toISOString().slice(0, 10)),
+            startAt: start,
+            endAt: end,
+            maxBookings: 3,
+            bookedCount: 0,
+            status: 'available',
+            source: 'seed',
+          }),
+        );
+      };
+      await makeSlot(1, 9);
+      await makeSlot(1, 10);
+      await makeSlot(2, 14);
+    }
+
     // ---- one pending booking (idempotent by bookingCode)
     const bookingCode = 'BK-DEMO-0001';
     const existingBooking = await txBookingRepo.findOne({ where: { bookingCode } });
@@ -326,29 +513,70 @@ async function seed() {
       );
     }
 
-    // ---- one pending post for admin review (idempotent by slug)
-    const pendingSlug = 'loi-khuyen-suc-khoe-demo';
-    const existingPost = await txPostRepo.findOne({ where: { slug: pendingSlug } });
-    if (!existingPost) {
+    // ---- pending posts for admin review (professional-ish demo content, idempotent by slug)
+    const postSeeds: Array<{
+      slug: string;
+      title: string;
+      excerpt: string;
+      content: string;
+      postType: 'medical_article' | 'news' | 'faq';
+      thumbnailUrl?: string | null;
+    }> = [
+      {
+        slug: 'kien-thuc-huyet-ap-01',
+        title: 'Huyết áp cao: 7 dấu hiệu dễ bỏ qua',
+        excerpt: 'Một số biểu hiện của tăng huyết áp khá “im lặng”. Dưới đây là các dấu hiệu thường gặp và khi nào nên đi khám.',
+        content:
+          '## Tóm tắt\\n\\n- Tăng huyết áp có thể không có triệu chứng rõ ràng.\\n- Nên đo huyết áp định kỳ, đặc biệt nếu có yếu tố nguy cơ.\\n\\n## Dấu hiệu thường gặp\\n\\n1. Đau đầu âm ỉ vùng chẩm\\n2. Chóng mặt, ù tai\\n3. Hồi hộp, khó ngủ\\n4. Mệt mỏi không rõ nguyên nhân\\n\\n## Khi nào cần đi khám?\\n\\n- Huyết áp \\u2265 140/90 mmHg lặp lại nhiều lần\\n- Đau ngực, khó thở, yếu liệt\\n\\n> Lưu ý: Nội dung mang tính tham khảo, không thay thế chẩn đoán.',
+        postType: 'medical_article',
+        thumbnailUrl: null,
+      },
+      {
+        slug: 'tam-soat-tieu-duong-02',
+        title: 'Tầm soát đái tháo đường: ai nên làm và làm khi nào?',
+        excerpt: 'Tầm soát sớm giúp giảm biến chứng. Bài viết gợi ý nhóm nguy cơ và các xét nghiệm cơ bản.',
+        content:
+          '## Ai nên tầm soát?\\n\\n- BMI cao, ít vận động\\n- Gia đình có người mắc đái tháo đường\\n- Tăng huyết áp, rối loạn mỡ máu\\n\\n## Xét nghiệm phổ biến\\n\\n- Đường huyết đói\\n- HbA1c\\n- Nghiệm pháp dung nạp glucose\\n\\n## Chuẩn bị trước xét nghiệm\\n\\n- Nhịn ăn 8–10 giờ (nếu xét nghiệm đường huyết đói)\\n\\n> Nội dung tham khảo. Hãy trao đổi với bác sĩ nếu bạn có bệnh nền.',
+        postType: 'faq',
+        thumbnailUrl: null,
+      },
+      {
+        slug: 'meo-ngu-ngon-03',
+        title: 'Ngủ ngon hơn trong 14 ngày: checklist dễ áp dụng',
+        excerpt: 'Giấc ngủ ảnh hưởng trực tiếp tới miễn dịch và tim mạch. Thử checklist 14 ngày để cải thiện chất lượng ngủ.',
+        content:
+          '## Checklist 14 ngày\\n\\n- Cố định giờ ngủ/thức\\n- Giảm caffeine sau 14h\\n- Tắt màn hình trước ngủ 60 phút\\n- Phòng ngủ mát và tối\\n\\n## Khi nào cần gặp bác sĩ?\\n\\n- Mất ngủ \\u2265 3 lần/tuần kéo dài > 1 tháng\\n- Ngáy to, ngưng thở khi ngủ\\n\\n> Tham khảo; không thay thế tư vấn y khoa.',
+        postType: 'news',
+        thumbnailUrl: null,
+      },
+    ];
+
+    for (let i = 0; i < 12; i++) {
+      const seed = postSeeds[i % postSeeds.length];
+      const slug = `${seed.slug}-demo-${String(i + 1).padStart(2, '0')}`;
+      // eslint-disable-next-line no-await-in-loop
+      const exists = await txPostRepo.findOne({ where: { slug } });
+      if (exists) continue;
+      const authorUserId = approvedDoctorIds[i % approvedDoctorIds.length] ?? doctorUser.id;
+      // eslint-disable-next-line no-await-in-loop
       await txPostRepo.save(
         txPostRepo.create({
-          authorUserId: doctorUser.id,
-          title: 'Lời khuyên sức khỏe (Demo)',
-          slug: pendingSlug,
-          excerpt: 'Bài viết demo để admin duyệt.',
-          content:
-            '## Demo\\n\\nĐây là nội dung mẫu để kiểm tra luồng duyệt bài viết trên Admin Dashboard.',
-          thumbnailUrl: null,
-          postType: 'medical_article',
+          authorUserId,
+          title: seed.title,
+          slug,
+          excerpt: seed.excerpt,
+          content: seed.content,
+          thumbnailUrl: seed.thumbnailUrl ?? null,
+          postType: seed.postType,
           status: POST_STATUS_PENDING_REVIEW,
         }),
       );
     }
 
     // ---- one visible comment (idempotent by content + user + post)
-    const post = await txPostRepo.findOne({ where: { slug: pendingSlug } });
-    if (post) {
-      const postId = asNumberId(post.id);
+    const firstPending = await txPostRepo.findOne({ where: { status: POST_STATUS_PENDING_REVIEW } });
+    if (firstPending) {
+      const postId = asNumberId(firstPending.id);
       const existingComment = await txCommentRepo.findOne({
         where: { postId, userId: patientUser.id, content: 'Bài viết hay (demo).' },
       });

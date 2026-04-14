@@ -53,14 +53,21 @@ export class DoctorsService {
     return Boolean(user.userRoles?.some((ur) => ur.role?.code === code));
   }
 
-  async listPublicDoctors(specialtyId?: number): Promise<PublicDoctorCard[]> {
+  async listPublicDoctors(params: {
+    specialtyId?: number;
+    page?: number;
+    limit?: number;
+  }): Promise<{ items: PublicDoctorCard[]; total: number; page: number; limit: number }> {
+    const safeLimit = Math.min(Math.max(params.limit ?? 20, 1), 100);
+    const safePage = Math.max(params.page ?? 1, 1);
+    const specialtyId = params.specialtyId;
     const qb = this.doctorRepo
       .createQueryBuilder('d')
       .innerJoinAndSelect('d.user', 'u')
       .where('d.is_verified = TRUE')
       .andWhere('d.verification_status = :status', { status: 'approved' })
-      .orderBy('d.priority_score', 'DESC')
-      .addOrderBy('d.created_at', 'DESC');
+      .orderBy('d.priorityScore', 'DESC')
+      .addOrderBy('d.createdAt', 'DESC');
 
     if (specialtyId != null) {
       qb.innerJoin(
@@ -71,8 +78,11 @@ export class DoctorsService {
       );
     }
 
-    const doctors = await qb.getMany();
-    if (doctors.length === 0) return [];
+    const total = await qb.getCount();
+    const doctors = await qb.skip((safePage - 1) * safeLimit).take(safeLimit).getMany();
+    if (doctors.length === 0) {
+      return { items: [], total, page: safePage, limit: safeLimit };
+    }
 
     const doctorIds = doctors.map((d) => d.userId);
     const links = await this.doctorSpecialtyRepo.find({
@@ -99,7 +109,7 @@ export class DoctorsService {
       byDoctor.set(l.doctorUserId, arr);
     }
 
-    return doctors.map((d) => ({
+    const items = doctors.map((d) => ({
       userId: d.userId,
       fullName: d.user?.fullName ?? '',
       avatarUrl: d.user?.avatarUrl ?? null,
@@ -108,6 +118,7 @@ export class DoctorsService {
       consultationFee: d.consultationFee,
       specialties: byDoctor.get(d.userId) ?? [],
     }));
+    return { items, total, page: safePage, limit: safeLimit };
   }
 
   async getPublicDoctorDetail(doctorUserId: string): Promise<PublicDoctorDetail> {

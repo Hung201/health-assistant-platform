@@ -57,8 +57,11 @@ export class AdminController {
   }
 
   @Get('doctors/pending')
-  listPendingDoctors() {
-    return this.adminService.listPendingDoctors();
+  listPendingDoctors(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.adminService.listPendingDoctors(page, limit);
   }
 
   @Patch('doctors/:userId/approve')
@@ -72,8 +75,16 @@ export class AdminController {
   }
 
   @Get('posts/pending')
-  listPendingPosts() {
-    return this.adminService.listPendingPosts();
+  listPendingPosts(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.adminService.listPendingPosts(page, limit);
+  }
+
+  @Get('posts/:id')
+  getPost(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.getPostDetail(id);
   }
 
   @Patch('posts/:id/approve')
@@ -91,8 +102,11 @@ export class AdminController {
   }
 
   @Get('specialties')
-  listSpecialties() {
-    return this.adminService.listSpecialties();
+  listSpecialties(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
+  ) {
+    return this.adminService.listSpecialties(page, limit);
   }
 
   @Post('specialties')

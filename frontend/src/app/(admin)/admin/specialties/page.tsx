@@ -15,13 +15,17 @@ export default function AdminSpecialtiesPage() {
   const [description, setDescription] = useState('');
   const [iconUrl, setIconUrl] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['admin', 'specialties'],
-    queryFn: adminApi.listSpecialties,
+    queryKey: ['admin', 'specialties', page, limit],
+    queryFn: () => adminApi.listSpecialties(page, limit),
   });
 
-  const rows = data ?? [];
+  const rows = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   const current = useMemo(() => rows.find((x) => x.id === editingId) ?? null, [editingId, rows]);
 
@@ -229,6 +233,31 @@ export default function AdminSpecialtiesPage() {
         </div>
       ) : null}
 
+      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+        <p>
+          Tổng: <span className="font-semibold text-slate-900">{total}</span> • Trang{' '}
+          <span className="font-semibold text-slate-900">{page}</span>/{totalPages}
+        </p>
+        <div className="flex gap-2">
+          <button
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            type="button"
+          >
+            ← Trước
+          </button>
+          <button
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            disabled={page >= totalPages || isLoading}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            type="button"
+          >
+            Sau →
+          </button>
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
@@ -247,14 +276,14 @@ export default function AdminSpecialtiesPage() {
                 </td>
               </tr>
             ) : null}
-            {data?.length === 0 && !isLoading ? (
+            {rows.length === 0 && !isLoading ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-500" colSpan={4}>
                   Chưa có chuyên khoa trong DB. Thêm dữ liệu vào bảng <code className="text-xs">specialties</code>.
                 </td>
               </tr>
             ) : null}
-            {data?.map((s) => (
+            {rows.map((s) => (
               <tr className="hover:bg-slate-50" key={s.id}>
                 <td className="px-4 py-3 font-medium">{s.name}</td>
                 <td className="px-4 py-3 font-mono text-xs text-slate-600">{s.slug}</td>

@@ -10,6 +10,8 @@ export default function PatientFindDoctorsPage() {
   const [specialtyId, setSpecialtyId] = useState<number | null>(null);
   const [selectedDoctor, setSelectedDoctor] = useState<PublicDoctorCard | null>(null);
   const [patientNote, setPatientNote] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const { data: specialties, isLoading: isLoadingSpecialties } = useQuery({
     queryKey: ['public', 'specialties'],
@@ -18,8 +20,8 @@ export default function PatientFindDoctorsPage() {
   });
 
   const { data: doctors, isLoading: isLoadingDoctors, isError: isDoctorsError, error: doctorsError } = useQuery({
-    queryKey: ['public', 'doctors', { specialtyId }],
-    queryFn: () => doctorsApi.list({ specialtyId: specialtyId ?? undefined }),
+    queryKey: ['public', 'doctors', { specialtyId, page, limit }],
+    queryFn: () => doctorsApi.list({ specialtyId: specialtyId ?? undefined, page, limit }),
     staleTime: 30_000,
   });
 
@@ -67,6 +69,7 @@ export default function PatientFindDoctorsPage() {
                 const v = e.target.value ? Number(e.target.value) : null;
                 setSpecialtyId(v && !Number.isNaN(v) ? v : null);
                 setSelectedDoctor(null);
+                setPage(1);
               }}
               value={specialtyId ?? ''}
             >
@@ -101,7 +104,34 @@ export default function PatientFindDoctorsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-bold text-slate-900">Bác sĩ</h3>
-            <p className="text-sm text-slate-500">{isLoadingDoctors ? 'Đang tải…' : `${doctors?.length ?? 0} kết quả`}</p>
+            <p className="text-sm text-slate-500">
+              {isLoadingDoctors ? 'Đang tải…' : `${doctors?.total ?? 0} kết quả`}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between text-sm text-slate-600">
+            <p>
+              Trang <span className="font-semibold text-slate-900">{doctors?.page ?? page}</span>/
+              {Math.max(1, Math.ceil((doctors?.total ?? 0) / limit))}
+            </p>
+            <div className="flex gap-2">
+              <button
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                disabled={page <= 1 || isLoadingDoctors}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                type="button"
+              >
+                ← Trước
+              </button>
+              <button
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                disabled={page >= Math.max(1, Math.ceil((doctors?.total ?? 0) / limit)) || isLoadingDoctors}
+                onClick={() => setPage((p) => p + 1)}
+                type="button"
+              >
+                Sau →
+              </button>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -111,8 +141,8 @@ export default function PatientFindDoctorsPage() {
                 <div className="h-[92px] animate-pulse rounded-xl border border-slate-200 bg-white p-4" />
                 <div className="h-[92px] animate-pulse rounded-xl border border-slate-200 bg-white p-4" />
               </>
-            ) : (doctors ?? []).length > 0 ? (
-              (doctors ?? []).map((d) => {
+            ) : (doctors?.items ?? []).length > 0 ? (
+              (doctors?.items ?? []).map((d) => {
                 const active = selectedDoctor?.userId === d.userId;
                 return (
                   <div

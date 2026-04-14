@@ -1,9 +1,6 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UsePipes, ValidationPipe } from '@nestjs/common';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { Public } from '../auth/decorators/public.decorator';
-import { User } from '../entities/user.entity';
 import { DoctorsService } from './doctors.service';
-import { CreateSlotDto } from './dto/create-slot.dto';
 
 @Controller('doctors')
 export class DoctorsController {
@@ -12,11 +9,17 @@ export class DoctorsController {
   /** Danh sách bác sĩ công khai (chỉ bác sĩ đã được duyệt). */
   @Public()
   @Get()
-  list(@Query('specialtyId') specialtyId?: string) {
+  list(
+    @Query('specialtyId') specialtyId?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+  ) {
     const sid = specialtyId ? Number(specialtyId) : undefined;
-    return this.doctorsService.listPublicDoctors(
-      sid != null && !Number.isNaN(sid) ? sid : undefined,
-    );
+    return this.doctorsService.listPublicDoctors({
+      specialtyId: sid != null && !Number.isNaN(sid) ? sid : undefined,
+      page,
+      limit,
+    });
   }
 
   /** Chi tiết bác sĩ (public). */

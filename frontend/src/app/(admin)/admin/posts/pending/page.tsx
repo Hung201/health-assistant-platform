@@ -11,10 +11,19 @@ export default function AdminPendingPostsPage() {
   const [msg, setMsg] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ['admin', 'posts', 'pending'],
-    queryFn: adminApi.listPendingPosts,
+    queryKey: ['admin', 'posts', 'pending', page, limit],
+    queryFn: () => adminApi.listPendingPosts(page, limit),
+  });
+
+  const { data: selected, isLoading: isLoadingSelected } = useQuery({
+    queryKey: ['admin', 'posts', 'detail', selectedId],
+    queryFn: () => adminApi.getPost(selectedId as number),
+    enabled: selectedId != null,
   });
 
   const approve = useMutation({
@@ -23,6 +32,7 @@ export default function AdminPendingPostsPage() {
       setMsg('Đã xuất bản bài viết.');
       qc.invalidateQueries({ queryKey: ['admin', 'posts', 'pending'] });
       qc.invalidateQueries({ queryKey: ['admin', 'dashboard', 'summary'] });
+      if (selectedId != null) qc.invalidateQueries({ queryKey: ['admin', 'posts', 'detail', selectedId] });
     },
     onError: (e: Error) => setMsg(e.message),
   });
@@ -35,9 +45,14 @@ export default function AdminPendingPostsPage() {
       setReason('');
       qc.invalidateQueries({ queryKey: ['admin', 'posts', 'pending'] });
       qc.invalidateQueries({ queryKey: ['admin', 'dashboard', 'summary'] });
+      if (selectedId != null) qc.invalidateQueries({ queryKey: ['admin', 'posts', 'detail', selectedId] });
     },
     onError: (e: Error) => setMsg(e.message),
   });
+
+  const rows = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
     <>
@@ -66,6 +81,93 @@ export default function AdminPendingPostsPage() {
         </div>
       ) : null}
 
+      {selectedId != null ? (
+        <div className="sticky top-4 z-10 mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Chi tiết bài viết</p>
+              <h3 className="mt-1 text-lg font-bold text-slate-900">
+                {isLoadingSelected ? 'Đang tải…' : selected?.title ?? '—'}
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                {selected?.authorName ?? '—'} • {selected?.authorEmail ?? '—'} •{' '}
+                {selected?.createdAt ? new Date(selected.createdAt).toLocaleString() : '—'}
+              </p>
+            </div>
+            <button
+              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+              onClick={() => setSelectedId(null)}
+              type="button"
+            >
+              Đóng
+            </button>
+          </div>
+
+          {selected?.excerpt ? <p className="mb-4 text-sm text-slate-700">{selected.excerpt}</p> : null}
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+                  {selected?.content ?? (isLoadingSelected ? 'Đang tải…' : '')}
+                </pre>
+              </div>
+            </div>
+            <div className="lg:col-span-2">
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Thông tin</p>
+                <div className="mt-2 space-y-2 text-sm text-slate-700">
+                  <p>
+                    <span className="font-semibold">Trạng thái:</span> {selected?.status ?? '—'}
+                  </p>
+                  <p>
+                    <span className="font-semibold">Loại:</span> {selected?.postType ?? '—'}
+                  </p>
+                  <p className="break-all text-xs text-slate-500">
+                    <span className="font-semibold text-slate-600">Slug:</span> {selected?.slug ?? '—'}
+                  </p>
+                  {selected?.thumbnailUrl ? (
+                    <a className="text-primary hover:underline" href={selected.thumbnailUrl} target="_blank" rel="noreferrer">
+                      Xem thumbnail
+                    </a>
+                  ) : null}
+                  {selected?.rejectionReason ? (
+                    <p className="text-red-700">
+                      <span className="font-semibold">Lý do từ chối:</span> {selected.rejectionReason}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+        <p>
+          Tổng: <span className="font-semibold text-slate-900">{total}</span> • Trang{' '}
+          <span className="font-semibold text-slate-900">{page}</span>/{totalPages}
+        </p>
+        <div className="flex gap-2">
+          <button
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            disabled={page <= 1 || isLoading}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            type="button"
+          >
+            ← Trước
+          </button>
+          <button
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            disabled={page >= totalPages || isLoading}
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            type="button"
+          >
+            Sau →
+          </button>
+        </div>
+      </div>
+
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
@@ -84,17 +186,23 @@ export default function AdminPendingPostsPage() {
                 </td>
               </tr>
             ) : null}
-            {data?.length === 0 && !isLoading ? (
+            {rows.length === 0 && !isLoading ? (
               <tr>
                 <td className="px-4 py-8 text-center text-slate-500" colSpan={4}>
                   Chưa có bài ở trạng thái chờ duyệt. (Bác sĩ cần gửi bài với status pending_review.)
                 </td>
               </tr>
             ) : null}
-            {data?.map((p) => {
+            {rows.map((p) => {
               const idNum = Number(p.id);
               return (
-                <tr className="hover:bg-slate-50" key={p.id}>
+                <tr
+                  className={selectedId === idNum ? 'bg-primary/5' : 'hover:bg-slate-50'}
+                  key={p.id}
+                  onClick={() => setSelectedId(idNum)}
+                  role="button"
+                  tabIndex={0}
+                >
                   <td className="px-4 py-3">
                     <p className="font-medium">{p.title}</p>
                     <p className="text-xs text-slate-400">{p.slug}</p>
@@ -138,7 +246,10 @@ export default function AdminPendingPostsPage() {
                         <button
                           className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-50"
                           disabled={approve.isPending || reject.isPending}
-                          onClick={() => approve.mutate(idNum)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            approve.mutate(idNum);
+                          }}
                           type="button"
                         >
                           Duyệt
@@ -146,7 +257,10 @@ export default function AdminPendingPostsPage() {
                         <button
                           className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                           disabled={approve.isPending || reject.isPending}
-                          onClick={() => setRejectId(idNum)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRejectId(idNum);
+                          }}
                           type="button"
                         >
                           Từ chối

@@ -115,9 +115,13 @@ export type PublicDoctorSlot = {
 };
 
 export const doctorsApi = {
-  list: (params?: { specialtyId?: number }) => {
-    const q = params?.specialtyId ? `?specialtyId=${encodeURIComponent(String(params.specialtyId))}` : '';
-    return apiPublic<PublicDoctorCard[]>(`/doctors${q}`);
+  list: (params?: { specialtyId?: number; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
+    if (params?.page != null) q.set('page', String(params.page));
+    if (params?.limit != null) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return apiPublic<Paginated<PublicDoctorCard>>(`/doctors${qs ? `?${qs}` : ''}`);
   },
   detail: (doctorUserId: string) =>
     apiPublic<PublicDoctorDetail>(`/doctors/${encodeURIComponent(doctorUserId)}`),
@@ -220,6 +224,15 @@ export type AdminPendingPost = {
   authorEmail: string | null;
 };
 
+export type AdminPostDetail = AdminPendingPost & {
+  content: string;
+  thumbnailUrl: string | null;
+  status: string;
+  reviewedAt: string | null;
+  publishedAt: string | null;
+  rejectionReason: string | null;
+};
+
 export type AdminSpecialtyRow = {
   id: string;
   slug: string;
@@ -228,6 +241,13 @@ export type AdminSpecialtyRow = {
   status: string;
   iconUrl: string | null;
   createdAt: string;
+};
+
+export type Paginated<T> = {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
 };
 
 export const adminApi = {
@@ -285,7 +305,8 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  listPendingDoctors: () => api<AdminPendingDoctor[]>('/admin/doctors/pending'),
+  listPendingDoctors: (page = 1, limit = 20) =>
+    api<Paginated<AdminPendingDoctor>>(`/admin/doctors/pending?page=${page}&limit=${limit}`),
 
   approveDoctor: (userId: string) =>
     api<{ ok: boolean }>(`/admin/doctors/${userId}/approve`, {
@@ -299,7 +320,10 @@ export const adminApi = {
       body: '{}',
     }),
 
-  listPendingPosts: () => api<AdminPendingPost[]>('/admin/posts/pending'),
+  listPendingPosts: (page = 1, limit = 20) =>
+    api<Paginated<AdminPendingPost>>(`/admin/posts/pending?page=${page}&limit=${limit}`),
+
+  getPost: (id: number) => api<AdminPostDetail>(`/admin/posts/${id}`),
 
   approvePost: (id: number) =>
     api<{ ok: boolean }>(`/admin/posts/${id}/approve`, {
@@ -313,7 +337,8 @@ export const adminApi = {
       body: JSON.stringify({ reason: reason ?? undefined }),
     }),
 
-  listSpecialties: () => api<AdminSpecialtyRow[]>('/admin/specialties'),
+  listSpecialties: (page = 1, limit = 50) =>
+    api<Paginated<AdminSpecialtyRow>>(`/admin/specialties?page=${page}&limit=${limit}`),
 
   createSpecialty: (data: { name: string; slug: string; description?: string; iconUrl?: string; status?: 'active' | 'inactive' }) =>
     api<{ ok: boolean; id: string }>('/admin/specialties', {
