@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth.store';
 
 const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/patient', icon: 'home', label: 'Tổng quan' },
+  { href: '/patient/ai-assistant', icon: 'smart_toy', label: 'Trợ lý sức khỏe AI' },
   { href: '/patient/doctors', icon: 'search', label: 'Tìm bác sĩ' },
   { href: '/patient/bookings', icon: 'event', label: 'Lịch hẹn của tôi' },
   { href: '/patient/profile', icon: 'person', label: 'Hồ sơ' },

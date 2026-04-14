@@ -11,10 +11,9 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     """Request body cho endpoint chat đa lượt."""
-    session_id: str = Field(
-        ...,
-        min_length=1,
-        description="ID phiên hội thoại (do frontend quản lý)"
+    session_id: Optional[str] = Field(
+        None,
+        description="ID phiên hội thoại (do frontend quản lý, có thể để trống ở lần đầu)"
     )
     message: str = Field(
         ...,
