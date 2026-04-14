@@ -6,17 +6,25 @@ import {
   Param,
   ParseIntPipe,
   Patch,
+  Post,
   Query,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { RejectPostDto } from './dto/reject-post.dto';
+import { CreateSpecialtyDto } from './dto/create-specialty.dto';
+import { UpdateSpecialtyDto } from './dto/update-specialty.dto';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
+@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -31,6 +39,21 @@ export class AdminController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.adminService.listUsers(page, limit);
+  }
+
+  @Get('users/:id')
+  getUser(@Param('id') id: string) {
+    return this.adminService.getUserDetail(id);
+  }
+
+  @Post('users')
+  createUser(@Body() dto: CreateUserDto) {
+    return this.adminService.createUser(dto);
+  }
+
+  @Patch('users/:id')
+  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+    return this.adminService.updateUser(id, dto);
   }
 
   @Get('doctors/pending')
@@ -70,5 +93,23 @@ export class AdminController {
   @Get('specialties')
   listSpecialties() {
     return this.adminService.listSpecialties();
+  }
+
+  @Post('specialties')
+  createSpecialty(@Body() dto: CreateSpecialtyDto) {
+    return this.adminService.createSpecialty(dto);
+  }
+
+  @Patch('specialties/:id')
+  updateSpecialty(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateSpecialtyDto) {
+    return this.adminService.updateSpecialty(id, dto);
+  }
+
+  @Patch('specialties/:id/status')
+  setSpecialtyStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: { status: 'active' | 'inactive' },
+  ) {
+    return this.adminService.setSpecialtyStatus(id, dto.status);
   }
 }

@@ -2,28 +2,54 @@
 
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-import { authApi } from '@/lib/api';
+import { authApi, usersApi } from '@/lib/api';
 import { isAdminUser } from '@/lib/auth';
+import { syncAuthToLegacyStorage, useAuthStore } from '@/stores/auth.store';
 
 const HERO_IMAGE =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuC-wsAzrANdti2F347u__dOveI66sI4mBuOdZo7Ru6Sj273HhkwAhBBO66ANG3vpXXetlM_wWSis_Uk6EyDXkK3GSef947upzxP6FVTlzzltSy3FZqJ-t9e2v8D-fgb_vkRA0JkvHy7_u_IUXGov9G80MRtaJf8xSOWSsyKWVrHGVXpO3Z0AQfU9Wqak_RdRtUfScAlQGTenX_vDraSsLfzqqVEkdqzABGiGd3S-jYEiUY6CUFFqHGCZeMU8eD9mIAHRc1Zkv6ntwFR';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get('next');
+  const setSession = useAuthStore((s) => s.setSession);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const pickRedirect = (roles: string[], next: string | null) => {
+    const canGo =
+      typeof next === 'string' &&
+      next.startsWith('/') &&
+      !next.startsWith('//') &&
+      (() => {
+        if (next.startsWith('/admin')) return roles.includes('admin');
+        if (next.startsWith('/doctor')) return roles.includes('doctor');
+        if (next.startsWith('/patient')) return roles.includes('patient');
+        if (next.startsWith('/app')) return roles.some((r) => ['admin', 'doctor', 'patient'].includes(r));
+        return true; // public pages
+      })();
+
+    if (canGo && next) return next;
+    if (roles.includes('admin')) return '/admin';
+    if (roles.includes('doctor')) return '/doctor';
+    if (roles.includes('patient')) return '/patient';
+    return '/';
+  };
+
   const loginMutation = useMutation({
     mutationFn: ({ email: e, password: p }: { email: string; password: string }) =>
       authApi.login(e, p),
-    onSuccess: (data) => {
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      router.push(isAdminUser(data.user) ? '/admin' : '/');
+    onSuccess: async () => {
+      const me = await usersApi.me();
+      setSession({ user: me });
+      syncAuthToLegacyStorage({ accessToken: null, user: me });
+      const dest = pickRedirect(me.roles ?? [], nextParam);
+      router.push(dest);
       router.refresh();
     },
   });
@@ -43,7 +69,9 @@ export default function LoginPage() {
             <div className="rounded-lg bg-primary/10 p-2 text-primary">
               <span className="material-symbols-outlined text-3xl">medical_services</span>
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-primary">MediSmart AI</h1>
+            <Link className="text-xl font-bold tracking-tight text-primary" href="/">
+              MediSmart AI
+            </Link>
           </div>
 
           <div className="mb-8">

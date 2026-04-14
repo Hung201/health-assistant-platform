@@ -1,4 +1,12 @@
+/* eslint-disable react-hooks/rules-of-hooks */
+'use client';
+
 import Link from 'next/link';
+import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+
+import { authApi } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth.store';
 
 const doctors = [
   {
@@ -66,14 +74,34 @@ const articles = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSettled: () => {
+      logout();
+      router.refresh();
+    },
+  });
+
+  const appHref = user?.roles?.includes('admin')
+    ? '/admin'
+    : user?.roles?.includes('doctor')
+      ? '/doctor'
+      : user
+        ? '/patient'
+        : '/login';
+
   return (
     <div className="min-h-screen bg-[#f5f7f8] text-slate-900">
       <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2">
+          <Link className="flex items-center gap-2" href="/">
             <div className="rounded-lg bg-[#0066cc] p-1.5 text-white">+</div>
             <h1 className="text-xl font-bold tracking-tight">MediAI</h1>
-          </div>
+          </Link>
           <nav className="hidden items-center gap-8 md:flex">
             <a className="text-sm font-medium text-slate-600 transition-colors hover:text-[#0066cc]" href="#">
               Features
@@ -86,18 +114,39 @@ export default function Home() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-              href="/login"
-            >
-              Login
-            </Link>
-            <Link
-              className="rounded-lg bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#005cb8]"
-              href="/register"
-            >
-              Sign Up
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  href={appHref}
+                >
+                  Vào ứng dụng
+                </Link>
+                <button
+                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={logoutMutation.isPending}
+                  onClick={() => logoutMutation.mutate()}
+                  type="button"
+                >
+                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  href="/login"
+                >
+                  Login
+                </Link>
+                <Link
+                  className="rounded-lg bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#005cb8]"
+                  href="/register"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

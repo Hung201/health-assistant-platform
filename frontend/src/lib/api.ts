@@ -1,8 +1,12 @@
+import { useAuthStore } from '@/stores/auth.store';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('access_token');
+  const s = useAuthStore.getState();
+  // Token is stored in HttpOnly cookie; we intentionally avoid exposing it to JS.
+  return s.accessToken;
 }
 
 async function parseApiError(res: Response): Promise<string> {
@@ -28,7 +32,7 @@ export async function api<T>(
   if (token) {
     (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
   }
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   if (!res.ok) {
     throw new Error(await parseApiError(res));
   }
@@ -41,7 +45,7 @@ export async function apiPublic<T>(path: string, options: RequestInit = {}): Pro
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string>),
   };
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers, credentials: 'include' });
   if (!res.ok) {
     throw new Error(await parseApiError(res));
   }
@@ -57,7 +61,7 @@ export type AuthUser = {
 
 export const authApi = {
   login: (email: string, password: string) =>
-    apiPublic<{ access_token: string; user: AuthUser }>('/auth/login', {
+    apiPublic<{ ok: boolean }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
     }),
@@ -70,16 +74,101 @@ export const authApi = {
     licenseNumber?: string;
     specialtyId?: number;
   }) =>
-    apiPublic<{ access_token: string; user: AuthUser }>('/auth/register', {
+    apiPublic<{ ok: boolean }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ ...data, email: data.email.trim().toLowerCase() }),
     }),
   specialties: () =>
     apiPublic<{ id: number; name: string; slug: string }[]>('/auth/specialties'),
+  logout: () => api<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
 };
 
 export const usersApi = {
   me: () => api<{ id: string; email: string; fullName: string; roles: string[] }>('/users/me'),
+};
+
+export type PublicDoctorCard = {
+  userId: string;
+  fullName: string;
+  avatarUrl: string | null;
+  professionalTitle: string | null;
+  workplaceName: string | null;
+  consultationFee: string;
+  specialties: Array<{ id: number; name: string; isPrimary: boolean }>;
+};
+
+export type PublicDoctorDetail = PublicDoctorCard & {
+  bio: string | null;
+  yearsOfExperience: number | null;
+  licenseNumber: string | null;
+};
+
+export type PublicDoctorSlot = {
+  id: number;
+  specialtyId: number | null;
+  slotDate: string;
+  startAt: string;
+  endAt: string;
+  maxBookings: number;
+  bookedCount: number;
+  status: string;
+};
+
+export const doctorsApi = {
+  list: (params?: { specialtyId?: number }) => {
+    const q = params?.specialtyId ? `?specialtyId=${encodeURIComponent(String(params.specialtyId))}` : '';
+    return apiPublic<PublicDoctorCard[]>(`/doctors${q}`);
+  },
+  detail: (doctorUserId: string) =>
+    apiPublic<PublicDoctorDetail>(`/doctors/${encodeURIComponent(doctorUserId)}`),
+  slots: (doctorUserId: string, params?: { specialtyId?: number; from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
+    if (params?.from) q.set('from', params.from);
+    if (params?.to) q.set('to', params.to);
+    const qs = q.toString();
+    return apiPublic<PublicDoctorSlot[]>(
+      `/doctors/${encodeURIComponent(doctorUserId)}/slots${qs ? `?${qs}` : ''}`,
+    );
+  },
+};
+
+export type MyBookingRow = {
+  id: string;
+  bookingCode: string;
+  status: string;
+  appointmentDate: string;
+  appointmentStartAt: string;
+  appointmentEndAt: string;
+  doctorUserId: string;
+  doctorName: string;
+  specialtyId: number;
+  specialtyName: string;
+  patientNote: string | null;
+  consultationFee: string;
+  totalFee: string;
+  createdAt: string;
+};
+
+export const bookingsApi = {
+  my: () => api<MyBookingRow[]>('/bookings/me'),
+  create: (data: { availableSlotId: number; specialtyId?: number; patientNote?: string }) =>
+    api<{ ok: boolean; id: string; bookingCode: string; status: string }>('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export type DoctorSlotRow = PublicDoctorSlot;
+export type DoctorBookingRow = MyBookingRow & { patientUserId: string };
+
+export const doctorApi = {
+  mySlots: () => api<DoctorSlotRow[]>('/doctor/slots'),
+  createSlot: (data: { startAt: string; endAt: string; maxBookings: number; specialtyId?: number }) =>
+    api<{ ok: boolean; id: number }>('/doctor/slots', { method: 'POST', body: JSON.stringify(data) }),
+  cancelSlot: (id: number) =>
+    api<{ ok: boolean; id: number; status: string }>(`/doctor/slots/${id}/cancel`, { method: 'PATCH' }),
+  myBookings: () => api<DoctorBookingRow[]>('/doctor/bookings'),
 };
 
 export type AdminDashboardSummary = {
@@ -147,6 +236,55 @@ export const adminApi = {
   listUsers: (page = 1, limit = 20) =>
     api<AdminUsersResponse>(`/admin/users?page=${page}&limit=${limit}`),
 
+  getUser: (id: string) =>
+    api<{
+      id: string;
+      email: string;
+      phone: string | null;
+      fullName: string;
+      status: string;
+      avatarUrl: string | null;
+      dateOfBirth: string | null;
+      gender: string | null;
+      createdAt: string;
+      roles: string[];
+      patientProfile: null | {
+        emergencyContactName: string | null;
+        emergencyContactPhone: string | null;
+        addressLine: string | null;
+        occupation: string | null;
+        bloodType: string | null;
+      };
+      doctorProfile: null | {
+        professionalTitle: string | null;
+        licenseNumber: string | null;
+        yearsOfExperience: number | null;
+        bio: string | null;
+        workplaceName: string | null;
+        consultationFee: string;
+        isVerified: boolean;
+        verificationStatus: string;
+      };
+    }>(`/admin/users/${encodeURIComponent(id)}`),
+
+  createUser: (data: {
+    email: string;
+    fullName: string;
+    password: string;
+    phone?: string;
+    role: 'patient' | 'doctor' | 'admin';
+  }) =>
+    api<{ ok: boolean; id: string }>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateUser: (id: string, data: { fullName?: string; phone?: string | null; status?: 'active' | 'disabled' }) =>
+    api<{ ok: boolean; id: string }>(`/admin/users/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
   listPendingDoctors: () => api<AdminPendingDoctor[]>('/admin/doctors/pending'),
 
   approveDoctor: (userId: string) =>
@@ -176,4 +314,22 @@ export const adminApi = {
     }),
 
   listSpecialties: () => api<AdminSpecialtyRow[]>('/admin/specialties'),
+
+  createSpecialty: (data: { name: string; slug: string; description?: string; iconUrl?: string; status?: 'active' | 'inactive' }) =>
+    api<{ ok: boolean; id: string }>('/admin/specialties', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  updateSpecialty: (id: string, data: { name?: string; slug?: string; description?: string; iconUrl?: string; status?: 'active' | 'inactive' }) =>
+    api<{ ok: boolean; id: string }>(`/admin/specialties/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  setSpecialtyStatus: (id: string, status: 'active' | 'inactive') =>
+    api<{ ok: boolean; id: string; status: string }>(`/admin/specialties/${encodeURIComponent(id)}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
 };

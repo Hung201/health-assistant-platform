@@ -106,7 +106,7 @@ export class AuthService {
       }
     }
 
-    const token = this.generateToken(savedUser.id, savedUser.email);
+    const token = this.generateToken(savedUser.id, savedUser.email, [role.code]);
     return {
       access_token: token,
       user: {
@@ -134,7 +134,7 @@ export class AuthService {
       lastLoginAt: new Date(),
     });
     const roles = user.userRoles?.map((ur) => ur.role?.code) || [];
-    const token = this.generateToken(user.id, user.email);
+    const token = this.generateToken(user.id, user.email, roles.filter(Boolean) as string[]);
     return {
       access_token: token,
       user: {
@@ -166,10 +166,10 @@ export class AuthService {
     });
   }
 
-  private generateToken(userId: string, email: string): string {
+  private generateToken(userId: string, email: string, roles: string[]): string {
     const signOptions: SignOptions = {
       expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'],
     };
-    return this.jwtService.sign({ sub: userId, email }, signOptions);
+    return this.jwtService.sign({ sub: userId, email, roles }, signOptions);
   }
 }

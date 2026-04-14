@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState } from 'react';
 
-import { authApi } from '@/lib/api';
+import { authApi, usersApi } from '@/lib/api';
+import { syncAuthToLegacyStorage, useAuthStore } from '@/stores/auth.store';
 
 type AccountKind = 'patient' | 'doctor';
 
@@ -32,7 +33,9 @@ function RegisterSiteHeader() {
   return (
     <header className="fixed top-0 z-50 flex w-full max-w-full items-center justify-between border-b border-black/5 bg-white/80 px-6 py-4 shadow-sm backdrop-blur-md transition-colors duration-200">
       <div className="flex shrink-0 items-center gap-4">
-        <span className="text-xl font-bold tracking-tighter text-[#003f87]">Clinical Precision</span>
+        <Link className="text-xl font-bold tracking-tighter text-[#003f87]" href="/">
+          Clinical Precision
+        </Link>
       </div>
       <div className="flex shrink-0 items-center gap-4">
         <button
@@ -86,6 +89,7 @@ function TabBar({
 
 export default function RegisterPage() {
   const router = useRouter();
+  const setSession = useAuthStore((s) => s.setSession);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [kind, setKind] = useState<AccountKind>('doctor');
   const [fullName, setFullName] = useState('');
@@ -126,9 +130,10 @@ export default function RegisterPage() {
         phone: p ? p : undefined,
       });
     },
-    onSuccess: (data) => {
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('user', JSON.stringify(data.user));
+    onSuccess: async () => {
+      const me = await usersApi.me();
+      setSession({ user: me });
+      syncAuthToLegacyStorage({ accessToken: null, user: me });
       router.push('/');
       router.refresh();
     },

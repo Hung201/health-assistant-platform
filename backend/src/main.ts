@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 
 function isPostgresConnectionRefused(err: unknown): boolean {
@@ -41,6 +42,7 @@ async function bootstrap() {
         transform: true,
       }),
     );
+    app.use(cookieParser());
     app.enableCors({
       origin: process.env.FRONTEND_URL || 'http://localhost:3001',
       credentials: true,

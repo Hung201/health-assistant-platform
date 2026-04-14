@@ -6,6 +6,9 @@ import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
+import { DoctorsModule } from './doctors/doctors.module';
+import { BookingsModule } from './bookings/bookings.module';
+import { DoctorPortalModule } from './doctor-portal/doctor-portal.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -17,6 +20,9 @@ import { AppService } from './app.service';
     AuthModule,
     UsersModule,
     AdminModule,
+    DoctorsModule,
+    BookingsModule,
+    DoctorPortalModule,
   ],
   controllers: [AppController],
   providers: [

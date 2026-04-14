@@ -1,12 +1,11 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
-import { adminApi } from '@/lib/api';
-import { getStoredUser, isAdminUser } from '@/lib/auth';
+import { adminApi, authApi } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth.store';
 
 const ADMIN_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDUMP08rYqsRC6ewEBgMsxpA7wgUXnnD0_tJeg2dhExPM2ln1Ca3iMmxnPBUW0UmmB3DEYtdNbJB1xAim7gPzNrVJU53gmTfuzIBL3S7OOTR42zSB5a1iGavXy8d-cQAVKTTb_uPOC5OTogepdSKi45wCd3XyTYt09oA2yneo4gz5dtjmRBrEbPorEN6XXxH-RbO5clcwFIn_ntipfYZgFS5BOFmjCt8mgzaOg6IYm-z1xnAhgNTWClY6c52k0uZZOqQhbD2IMGrgBu';
@@ -28,33 +27,23 @@ function navActive(pathname: string, href: string) {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<ReturnType<typeof getStoredUser>>(null);
-  const [checked, setChecked] = useState(false);
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
 
   const { data: summary } = useQuery({
     queryKey: ['admin', 'dashboard', 'summary'],
     queryFn: adminApi.dashboardSummary,
-    enabled: checked,
+    enabled: true,
     staleTime: 30_000,
   });
 
-  useEffect(() => {
-    const u = getStoredUser();
-    setUser(u);
-    if (!u || !isAdminUser(u)) {
+  const logoutMutation = useMutation({
+    mutationFn: authApi.logout,
+    onSettled: () => {
+      logout();
       router.replace('/login');
-      return;
-    }
-    setChecked(true);
-  }, [router]);
-
-  if (!checked) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background-light text-slate-600">
-        Đang tải…
-      </div>
-    );
-  }
+    },
+  });
 
   return (
     <div className="flex min-h-screen bg-background-light text-slate-900">
@@ -64,7 +53,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <span className="material-symbols-outlined">health_and_safety</span>
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight text-slate-900">MediAI</h1>
+            <Link className="text-lg font-bold leading-tight text-slate-900" href="/">
+              MediAI
+            </Link>
             <p className="text-xs text-slate-500">Quản trị</p>
           </div>
         </div>
@@ -111,6 +102,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <span className="text-xs text-slate-500">Quản trị viên</span>
             </div>
           </div>
+          <button
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={logoutMutation.isPending}
+            onClick={() => logoutMutation.mutate()}
+            type="button"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+            {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
+          </button>
         </div>
       </aside>
 

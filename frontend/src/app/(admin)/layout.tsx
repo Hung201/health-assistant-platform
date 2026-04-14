@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import { AdminShell } from './admin-shell';
+import { AdminLayoutClient } from './admin-layout-client';
 
 export const metadata: Metadata = {
   title: 'Quản trị | MediAI',
@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function AdminGroupLayout({ children }: { children: ReactNode }) {
-  return <AdminShell>{children}</AdminShell>;
+  return <AdminLayoutClient>{children}</AdminLayoutClient>;
 }

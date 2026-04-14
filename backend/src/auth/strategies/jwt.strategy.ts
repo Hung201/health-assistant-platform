@@ -6,15 +6,24 @@ import { AuthService } from '../auth.service';
 export interface JwtPayload {
   sub: string;
   email: string;
+  roles?: string[];
   iat?: number;
   exp?: number;
+}
+
+function cookieAccessToken(req: unknown): string | null {
+  const r = req as { cookies?: Record<string, string | undefined> } | null;
+  return r?.cookies?.access_token ?? null;
 }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(private readonly authService: AuthService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        cookieAccessToken,
+      ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
     });

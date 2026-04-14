@@ -5,12 +5,15 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Post } from '../entities/post.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { Booking } from '../entities/booking.entity';
+import { Role } from '../entities/role.entity';
+import { UserRole } from '../entities/user-role.entity';
 
 /** Bài viết chờ admin duyệt (bác sĩ gửi từ luồng soạn thảo). */
 export const POST_STATUS_PENDING_REVIEW = 'pending_review';
@@ -31,6 +34,10 @@ export class AdminService {
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
   ) {}
+
+  private normalizePhone(input: string): string {
+    return input.replace(/\s+/g, '').slice(0, 20);
+  }
 
   async dashboardSummary() {
     const [
@@ -87,6 +94,133 @@ export class AdminService {
       page: safePage,
       limit: safeLimit,
     };
+  }
+
+  async getUserDetail(userId: string) {
+    const u = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['userRoles', 'userRoles.role', 'patientProfile', 'doctorProfile'],
+    });
+    if (!u) throw new NotFoundException('Không tìm thấy người dùng');
+    return {
+      id: u.id,
+      email: u.email,
+      phone: u.phone,
+      fullName: u.fullName,
+      status: u.status,
+      avatarUrl: u.avatarUrl,
+      dateOfBirth: u.dateOfBirth,
+      gender: u.gender,
+      createdAt: u.createdAt,
+      roles: u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) ?? [],
+      patientProfile: u.patientProfile
+        ? {
+            emergencyContactName: u.patientProfile.emergencyContactName,
+            emergencyContactPhone: u.patientProfile.emergencyContactPhone,
+            addressLine: u.patientProfile.addressLine,
+            occupation: u.patientProfile.occupation,
+            bloodType: u.patientProfile.bloodType,
+          }
+        : null,
+      doctorProfile: u.doctorProfile
+        ? {
+            professionalTitle: u.doctorProfile.professionalTitle,
+            licenseNumber: u.doctorProfile.licenseNumber,
+            yearsOfExperience: u.doctorProfile.yearsOfExperience,
+            bio: u.doctorProfile.bio,
+            workplaceName: u.doctorProfile.workplaceName,
+            consultationFee: u.doctorProfile.consultationFee,
+            isVerified: u.doctorProfile.isVerified,
+            verificationStatus: u.doctorProfile.verificationStatus,
+          }
+        : null,
+    };
+  }
+
+  async createUser(input: {
+    email: string;
+    fullName: string;
+    password: string;
+    phone?: string;
+    role: 'patient' | 'doctor' | 'admin';
+  }) {
+    const email = input.email.trim().toLowerCase();
+    const fullName = input.fullName.trim();
+    if (!email || !fullName) throw new BadRequestException('Thiếu email/fullName');
+
+    const exists = await this.userRepo.findOne({ where: { email } });
+    if (exists) throw new BadRequestException('Email đã tồn tại');
+
+    let phone: string | null = null;
+    if (input.phone != null && input.phone.trim() !== '') {
+      const normalized = this.normalizePhone(input.phone);
+      const taken = await this.userRepo.findOne({ where: { phone: normalized } });
+      if (taken) throw new BadRequestException('Số điện thoại đã tồn tại');
+      phone = normalized;
+    }
+
+    const role = await this.userRepo.manager.getRepository(Role).findOne({ where: { code: input.role } });
+    if (!role) throw new BadRequestException('Role không hợp lệ');
+
+    const passwordHash = await bcrypt.hash(input.password, 10);
+    return this.userRepo.manager.transaction(async (manager) => {
+      const user = await manager.getRepository(User).save(
+        manager.getRepository(User).create({
+          email,
+          fullName,
+          passwordHash,
+          status: 'active',
+          phone,
+        }),
+      );
+      await manager.getRepository(UserRole).save(
+        manager.getRepository(UserRole).create({
+          userId: user.id,
+          roleId: role.id,
+        }),
+      );
+      if (input.role === 'patient') {
+        await manager.getRepository(PatientProfile).save(
+          manager.getRepository(PatientProfile).create({ userId: user.id }),
+        );
+      }
+      if (input.role === 'doctor') {
+        await manager.getRepository(DoctorProfile).save(
+          manager.getRepository(DoctorProfile).create({
+            userId: user.id,
+            isVerified: false,
+            verificationStatus: 'pending',
+          }),
+        );
+      }
+      return { ok: true, id: user.id };
+    });
+  }
+
+  async updateUser(userId: string, input: { fullName?: string; phone?: string | null; status?: 'active' | 'disabled' }) {
+    const u = await this.userRepo.findOne({ where: { id: userId } });
+    if (!u) throw new NotFoundException('Không tìm thấy người dùng');
+
+    if (input.fullName != null) {
+      const fullName = input.fullName.trim();
+      if (!fullName) throw new BadRequestException('fullName không hợp lệ');
+      u.fullName = fullName;
+    }
+    if (input.phone !== undefined) {
+      if (input.phone == null || input.phone.trim() === '') {
+        u.phone = null;
+      } else {
+        const normalized = this.normalizePhone(input.phone);
+        const taken = await this.userRepo.findOne({ where: { phone: normalized } });
+        if (taken && taken.id !== u.id) throw new BadRequestException('Số điện thoại đã tồn tại');
+        u.phone = normalized;
+      }
+    }
+    if (input.status != null) {
+      u.status = input.status;
+    }
+    await this.userRepo.save(u);
+    return { ok: true, id: u.id };
   }
 
   async listPendingDoctors() {
@@ -185,5 +319,74 @@ export class AdminService {
       iconUrl: s.iconUrl,
       createdAt: s.createdAt,
     }));
+  }
+
+  async createSpecialty(input: {
+    name: string;
+    slug: string;
+    description?: string;
+    iconUrl?: string;
+    status?: 'active' | 'inactive';
+  }) {
+    const slug = input.slug.trim().toLowerCase();
+    const name = input.name.trim();
+    if (!slug || !name) throw new BadRequestException('Thiếu name/slug');
+
+    const exists = await this.specialtyRepo.findOne({ where: { slug } });
+    if (exists) throw new BadRequestException('Slug đã tồn tại');
+
+    const row = await this.specialtyRepo.save(
+      this.specialtyRepo.create({
+        slug,
+        name,
+        description: input.description?.trim() || null,
+        iconUrl: input.iconUrl?.trim() || null,
+        status: input.status ?? 'active',
+      }),
+    );
+    return { ok: true, id: String(row.id) };
+  }
+
+  async updateSpecialty(id: number, input: {
+    name?: string;
+    slug?: string;
+    description?: string;
+    iconUrl?: string;
+    status?: 'active' | 'inactive';
+  }) {
+    const row = await this.specialtyRepo.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Không tìm thấy chuyên khoa');
+
+    if (input.slug != null) {
+      const slug = input.slug.trim().toLowerCase();
+      if (!slug) throw new BadRequestException('slug không hợp lệ');
+      const exists = await this.specialtyRepo.findOne({ where: { slug } });
+      if (exists && String(exists.id) !== String(row.id)) throw new BadRequestException('Slug đã tồn tại');
+      row.slug = slug;
+    }
+    if (input.name != null) {
+      const name = input.name.trim();
+      if (!name) throw new BadRequestException('name không hợp lệ');
+      row.name = name;
+    }
+    if (input.description !== undefined) {
+      row.description = input.description?.trim() || null;
+    }
+    if (input.iconUrl !== undefined) {
+      row.iconUrl = input.iconUrl?.trim() || null;
+    }
+    if (input.status != null) {
+      row.status = input.status;
+    }
+    await this.specialtyRepo.save(row);
+    return { ok: true, id: String(row.id) };
+  }
+
+  async setSpecialtyStatus(id: number, status: 'active' | 'inactive') {
+    const row = await this.specialtyRepo.findOne({ where: { id } });
+    if (!row) throw new NotFoundException('Không tìm thấy chuyên khoa');
+    row.status = status;
+    await this.specialtyRepo.save(row);
+    return { ok: true, id: String(row.id), status: row.status };
   }
 }
