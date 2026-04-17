@@ -10,88 +10,11 @@ import { syncAuthToLegacyStorage, useAuthStore } from '@/stores/auth.store';
 
 type AccountKind = 'patient' | 'doctor';
 
-/** Hiệu ứng / timing dùng chung hai luồng đăng ký */
-const ease = 'ease-out';
-const dur = 'duration-200';
-const durCard = 'duration-300';
-
-const fieldInputClass = `w-full rounded-lg border-none bg-[#f3f4f5] px-4 py-3 text-[#191c1d] placeholder:text-[#c2c6d4] transition-[box-shadow,background-color] ${dur} ${ease} focus:outline-none focus:ring-2 focus:ring-[#0056b3] focus:ring-offset-0`;
-
-const labelFieldClass =
-  'block text-[0.75rem] font-bold uppercase tracking-wider text-[#424752]';
-
-const btnPrimaryClass = `w-full rounded-lg bg-[#003f87] py-4 text-base font-bold text-white shadow-sm shadow-[#003f87]/12 transition-all ${dur} ${ease} hover:bg-[#0056b3] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-[#003f87] disabled:hover:shadow-sm disabled:active:scale-100`;
-
-const cardElevatedClass = `overflow-hidden rounded-xl bg-white shadow-[0px_24px_48px_rgba(0,26,64,0.06)] transition-[box-shadow] ${durCard} ${ease} hover:shadow-[0px_28px_52px_rgba(0,26,64,0.09)]`;
-
-const linkAccentClass = `font-semibold text-[#003f87] transition-colors ${dur} ${ease} hover:text-[#0056b3]`;
-
-const AVATAR_PLACEHOLDER =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuBIo2fJtNAdfFq0puDBuRkEnUAFOHkjzBdeECD9WfhLbg47Bz8HK9KcVCEMDSz9JwAWHiwe7MxGYMauSU6mdMGttAUBxtIVcxTPTbtApFHxsRV2HaISaJv8DsjgpEuXKk8pYMy3BcQCP75X06_P5nnekzcWV3_vJxT-UAcF6pjPcPtW5pfJDcfl7OmsHcZZBsbFUl_URFUOXTFaeeYMBCWDba4ivZmQAINboXRP3y9i5r4U6Z9iRqOPCbQRhBAkIRF1qYWME6MojAI';
-
-function RegisterSiteHeader() {
-  return (
-    <header className="fixed top-0 z-50 flex w-full max-w-full items-center justify-between border-b border-black/5 bg-white/80 px-6 py-4 shadow-sm backdrop-blur-md transition-colors duration-200">
-      <div className="flex shrink-0 items-center gap-4">
-        <Link className="text-xl font-bold tracking-tighter text-[#003f87]" href="/">
-          Clinical Precision
-        </Link>
-      </div>
-      <div className="flex shrink-0 items-center gap-4">
-        <button
-          className={`rounded-lg px-4 py-2 text-sm font-semibold text-[#003f87] transition-colors ${dur} ${ease} hover:bg-[#f3f4f5] hover:text-[#0056b3]`}
-          type="button"
-        >
-          Help Center
-        </button>
-        <div className="h-10 w-10 overflow-hidden rounded-full bg-[#e7e8e9] ring-1 ring-black/5 transition-shadow duration-200 hover:ring-black/10">
-          <img alt="Ảnh đại diện minh họa" className="h-full w-full object-cover" src={AVATAR_PLACEHOLDER} />
-        </div>
-      </div>
-    </header>
-  );
-}
-
-function TabBar({
-  kind,
-  onChange,
-}: {
-  kind: AccountKind;
-  onChange: (k: AccountKind) => void;
-}) {
-  return (
-    <div className="flex border-b border-[#e1e3e4]/80">
-      <button
-        className={`flex-1 py-4 text-center text-sm uppercase tracking-wide transition-colors ${dur} ${ease} ${
-          kind === 'patient'
-            ? 'border-b-2 border-blue-900 bg-white font-bold text-blue-900'
-            : 'font-medium text-[#424752] hover:bg-[#f3f4f5]'
-        }`}
-        onClick={() => onChange('patient')}
-        type="button"
-      >
-        Bệnh nhân
-      </button>
-      <button
-        className={`flex-1 py-4 text-center text-sm uppercase tracking-wide transition-colors ${dur} ${ease} ${
-          kind === 'doctor'
-            ? 'border-b-2 border-blue-900 bg-white font-bold text-blue-900'
-            : 'font-medium text-[#424752] hover:bg-[#f3f4f5]'
-        }`}
-        onClick={() => onChange('doctor')}
-        type="button"
-      >
-        Bác sĩ
-      </button>
-    </div>
-  );
-}
-
 export default function RegisterPage() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [kind, setKind] = useState<AccountKind>('doctor');
+  const [kind, setKind] = useState<AccountKind>('patient');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -99,7 +22,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [specialtyId, setSpecialtyId] = useState('');
-  const [certificateFile, setCertificateFile] = useState<File | null>(null);
+  const [certificateFiles, setCertificateFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState(false);
 
   const { data: apiSpecialties, isError: specialtiesLoadError } = useQuery({
@@ -125,10 +48,7 @@ export default function RegisterPage() {
         });
       }
       const p = phone.trim();
-      return authApi.register({
-        ...base,
-        phone: p ? p : undefined,
-      });
+      return authApi.register({ ...base, phone: p ? p : undefined });
     },
     onSuccess: async () => {
       const me = await usersApi.me();
@@ -150,8 +70,12 @@ export default function RegisterPage() {
 
   const pickFiles = useCallback((files: FileList | null) => {
     if (!files?.length) return;
-    setCertificateFile(files[0]);
+    setCertificateFiles((prev) => [...prev, ...Array.from(files)]);
   }, []);
+
+  const removeFile = (idx: number) => {
+    setCertificateFiles((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
@@ -162,427 +86,274 @@ export default function RegisterPage() {
     [pickFiles],
   );
 
-  const emailPlaceholder = kind === 'doctor' ? 'doctor@precision.vn' : 'example@precision.com';
-
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8f9fa] text-[#191c1d]">
-      <RegisterSiteHeader />
+    <div className="auth-page">
+      <div className="auth-blob auth-blob--1" />
+      <div className="auth-blob auth-blob--2" />
 
-      <main
-        className={`flex flex-grow items-center justify-center px-4 pt-24 ${kind === 'patient' ? 'pb-12' : 'pb-16'}`}
-      >
-        {kind === 'patient' ? (
-          <div className="w-full max-w-md">
-            <div className={cardElevatedClass}>
-              <TabBar kind={kind} onChange={setKind} />
-              <div className="space-y-6 p-8">
-                <div>
-                  <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#003f87]">Bắt đầu hành trình</h1>
-                  <p className="text-pretty text-sm leading-relaxed text-[#424752]">
-                    Đăng ký để truy cập hồ sơ bệnh án điện tử của bạn
-                  </p>
-                </div>
+      <div className={`auth-card ${kind === 'doctor' ? 'auth-card--register-doc' : 'auth-card--register'}`}>
+        {/* brand */}
+        <Link className="auth-brand" href="/">
+          <span className="auth-brand-icon material-symbols-outlined">clinical_notes</span>
+          <span className="auth-brand-name">Clinical Precision</span>
+        </Link>
 
-                {errorMessage ? (
-                  <div
-                    className={`rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 transition-opacity ${dur} ${ease}`}
-                    role="alert"
-                  >
-                    {errorMessage}
-                  </div>
-                ) : null}
+        {/* tab bar */}
+        <div className="auth-tabs">
+          <button
+            className={`auth-tab ${kind === 'patient' ? 'auth-tab--active' : ''}`}
+            onClick={() => setKind('patient')}
+            type="button"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>person</span>
+            Bệnh nhân
+          </button>
+          <button
+            className={`auth-tab ${kind === 'doctor' ? 'auth-tab--active' : ''}`}
+            onClick={() => setKind('doctor')}
+            type="button"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>stethoscope</span>
+            Bác sĩ
+          </button>
+        </div>
 
-                <form
-                  className="space-y-4"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (pwdMismatch || password.length < 6) return;
-                    registerMutation.mutate();
-                  }}
-                >
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="fullName">
-                      Họ và Tên
-                    </label>
-                    <input
-                      autoComplete="name"
-                      className={fieldInputClass}
-                      id="fullName"
-                      minLength={2}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
-                      required
-                      value={fullName}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="email">
-                      Email
-                    </label>
-                    <input
-                      autoComplete="email"
-                      className={fieldInputClass}
-                      id="email"
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="example@precision.com"
-                      required
-                      type="email"
-                      value={email}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="phone">
-                      Số điện thoại
-                    </label>
-                    <input
-                      autoComplete="tel"
-                      className={fieldInputClass}
-                      id="phone"
-                      inputMode="tel"
-                      maxLength={20}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="0123 456 789"
-                      type="tel"
-                      value={phone}
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 gap-4">
-                    <div className="space-y-1">
-                      <label className={labelFieldClass} htmlFor="password">
-                        Mật khẩu
-                      </label>
-                      <input
-                        autoComplete="new-password"
-                        className={fieldInputClass}
-                        id="password"
-                        minLength={6}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        type="password"
-                        value={password}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className={labelFieldClass} htmlFor="confirm">
-                        Xác nhận mật khẩu
-                      </label>
-                      <input
-                        autoComplete="new-password"
-                        className={`${fieldInputClass} ${pwdMismatch ? 'ring-2 ring-red-300' : ''}`}
-                        id="confirm"
-                        onChange={(e) => setConfirm(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        type="password"
-                        value={confirm}
-                      />
-                      {pwdMismatch ? <p className="text-xs text-red-600">Mật khẩu không khớp.</p> : null}
-                    </div>
-                  </div>
+        <div className="auth-header">
+          <h1 className="auth-title">
+            {kind === 'patient' ? 'Tạo tài khoản Bệnh nhân' : 'Đăng ký tài khoản Bác sĩ'}
+          </h1>
+          <p className="auth-subtitle">
+            {kind === 'patient'
+              ? 'Đăng ký để truy cập hồ sơ sức khỏe và đặt lịch khám nhanh chóng'
+              : 'Vui lòng cung cấp thông tin chuyên môn để bắt đầu quá trình xác thực'}
+          </p>
+        </div>
 
-                  <div className="pt-4">
-                    <button
-                      className={btnPrimaryClass}
-                      disabled={registerMutation.isPending || pwdMismatch || password.length < 6}
-                      type="submit"
-                    >
-                      {registerMutation.isPending ? 'Đang xử lý…' : 'Đăng ký tài khoản Bệnh nhân'}
-                    </button>
-                  </div>
-                </form>
+        {errorMessage && (
+          <div className="auth-error" role="alert">{errorMessage}</div>
+        )}
 
-                <div className="text-center">
-                  <p className="text-sm text-[#424752]">
-                    Bạn đã có tài khoản?{' '}
-                    <Link className={`${linkAccentClass} hover:underline`} href="/login">
-                      Đăng nhập
-                    </Link>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              <div
-                className={`flex items-center gap-2 rounded-full bg-[#983c00] px-3 py-1 transition-transform ${dur} ${ease} hover:scale-[1.02]`}
-              >
-                <span
-                  className="material-symbols-outlined text-[14px] text-[#ffc2a7]"
-                  style={{ fontVariationSettings: '"FILL" 1' }}
-                >
-                  verified
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#ffc2a7]">
-                  Bảo mật HIPAA
-                </span>
-              </div>
-              <div
-                className={`flex items-center gap-2 rounded-full bg-[#d7e2ff] px-3 py-1 transition-transform ${dur} ${ease} hover:scale-[1.02]`}
-              >
-                <span
-                  className="material-symbols-outlined text-[14px] text-[#004491]"
-                  style={{ fontVariationSettings: '"FILL" 1' }}
-                >
-                  lock
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#004491]">
-                  Mã hóa đầu cuối
-                </span>
-              </div>
-            </div>
+        {kind === 'doctor' && specialtiesLoadError && (
+          <div className="auth-warning">
+            Không tải được danh sách chuyên khoa. Bạn vẫn có thể đăng ký, chọn chuyên khoa sẽ bổ sung sau.
           </div>
-        ) : (
-          <div className={`w-full max-w-xl ${cardElevatedClass}`}>
-            <TabBar kind={kind} onChange={setKind} />
-            <div className="p-8 md:p-10">
-              <div className="mb-8">
-                <h1 className="mb-2 text-2xl font-bold tracking-tight text-[#003f87]">
-                  Đăng ký tài khoản Bác sĩ
-                </h1>
-                <p className="text-sm text-[#424752]">
-                  Chào mừng bạn đến với hệ thống Precision Portal. Vui lòng cung cấp thông tin chuyên môn để bắt đầu
-                  quá trình xác thực.
-                </p>
+        )}
+
+        <form
+          className="auth-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (pwdMismatch || password.length < 6) return;
+            registerMutation.mutate();
+          }}
+        >
+          {/* ─── PATIENT FIELDS ─── */}
+          {kind === 'patient' && (
+            <>
+              <div className="auth-field">
+                <label className="auth-label" htmlFor="fullName">Họ và Tên</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon material-symbols-outlined">badge</span>
+                  <input className="auth-input" id="fullName" autoComplete="name" minLength={2}
+                    onChange={(e) => setFullName(e.target.value)} placeholder="Nguyễn Văn A"
+                    required value={fullName} />
+                </div>
               </div>
-
-              {errorMessage ? (
-                <div
-                  className={`mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 transition-opacity ${dur} ${ease}`}
-                  role="alert"
-                >
-                  {errorMessage}
+              <div className="auth-field">
+                <label className="auth-label" htmlFor="email">Email</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon material-symbols-outlined">mail</span>
+                  <input className="auth-input" id="email" autoComplete="email"
+                    onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+                    required type="email" value={email} />
                 </div>
-              ) : null}
+              </div>
+              <div className="auth-field">
+                <label className="auth-label" htmlFor="phone">Số điện thoại</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon material-symbols-outlined">phone</span>
+                  <input className="auth-input" id="phone" autoComplete="tel" inputMode="tel"
+                    maxLength={20} onChange={(e) => setPhone(e.target.value)}
+                    placeholder="0123 456 789" type="tel" value={phone} />
+                </div>
+              </div>
+              <div className="auth-field">
+                <label className="auth-label" htmlFor="password">Mật khẩu</label>
+                <div className="auth-input-wrap">
+                  <span className="auth-input-icon material-symbols-outlined">lock</span>
+                  <input className="auth-input" id="password" autoComplete="new-password"
+                    minLength={6} onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tối thiểu 6 ký tự" required type="password" value={password} />
+                </div>
+              </div>
+              <div className="auth-field">
+                <label className="auth-label" htmlFor="confirm">Xác nhận mật khẩu</label>
+                <div className={`auth-input-wrap ${pwdMismatch ? 'auth-input-wrap--error' : ''}`}>
+                  <span className="auth-input-icon material-symbols-outlined">lock</span>
+                  <input className="auth-input" id="confirm" autoComplete="new-password"
+                    onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••"
+                    required type="password" value={confirm} />
+                </div>
+                {pwdMismatch && <p className="auth-field-error">Mật khẩu không khớp</p>}
+              </div>
+            </>
+          )}
 
-              {specialtiesLoadError ? (
-                <p className="mb-4 text-xs text-amber-800">
-                  Không tải được danh sách chuyên khoa từ máy chủ. Bạn vẫn có thể đăng ký; chọn chuyên khoa sẽ bổ sung
-                  sau khi kết nối API.
-                </p>
-              ) : null}
-
-              <form
-                className="space-y-6"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (pwdMismatch || password.length < 6) return;
-                  registerMutation.mutate();
-                }}
-              >
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="doc-fullName">
-                      Họ và Tên
-                    </label>
-                    <input
-                      autoComplete="name"
-                      className={fieldInputClass}
-                      id="doc-fullName"
-                      minLength={2}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Nguyễn Văn A"
-                      required
-                      value={fullName}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="doc-email">
-                      Email Chuyên môn
-                    </label>
-                    <input
-                      autoComplete="email"
-                      className={fieldInputClass}
-                      id="doc-email"
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder={emailPlaceholder}
-                      required
-                      type="email"
-                      value={email}
-                    />
+          {/* ─── DOCTOR FIELDS ─── */}
+          {kind === 'doctor' && (
+            <>
+              <div className="auth-grid-2">
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="doc-fullName">Họ và Tên</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon material-symbols-outlined">badge</span>
+                    <input className="auth-input" id="doc-fullName" autoComplete="name" minLength={2}
+                      onChange={(e) => setFullName(e.target.value)} placeholder="BS. Nguyễn Văn A"
+                      required value={fullName} />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="specialty">
-                      Chuyên khoa
-                    </label>
-                    <select
-                      className={`${fieldInputClass} appearance-none`}
-                      id="specialty"
-                      onChange={(e) => setSpecialtyId(e.target.value)}
-                      value={specialtyId}
-                    >
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="doc-email">Email chuyên môn</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon material-symbols-outlined">mail</span>
+                    <input className="auth-input" id="doc-email" autoComplete="email"
+                      onChange={(e) => setEmail(e.target.value)} placeholder="doctor@hospital.vn"
+                      required type="email" value={email} />
+                  </div>
+                </div>
+              </div>
+              <div className="auth-grid-2">
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="specialty">Chuyên khoa</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon material-symbols-outlined">medical_information</span>
+                    <select className="auth-input auth-select" id="specialty"
+                      onChange={(e) => setSpecialtyId(e.target.value)} value={specialtyId}>
                       <option value="">Chọn chuyên khoa</option>
                       {apiSpecialties?.map((s) => (
-                        <option key={s.id} value={String(s.id)}>
-                          {s.name}
-                        </option>
+                        <option key={s.id} value={String(s.id)}>{s.name}</option>
                       ))}
                     </select>
                   </div>
-                  <div className="space-y-1">
-                    <label className={labelFieldClass} htmlFor="license">
-                      Số Chứng chỉ Hành nghề
-                    </label>
-                    <input
-                      className={fieldInputClass}
-                      id="license"
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="license">Số chứng chỉ hành nghề</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon material-symbols-outlined">verified</span>
+                    <input className="auth-input" id="license"
                       onChange={(e) => setLicenseNumber(e.target.value)}
-                      placeholder="123456/CCHN"
-                      type="text"
-                      value={licenseNumber}
-                    />
+                      placeholder="VD: 123456/CCHN" type="text" value={licenseNumber} />
                   </div>
                 </div>
-
-                <div className="space-y-1">
-                  <label className={labelFieldClass} htmlFor="doc-password">
-                    Mật khẩu
-                  </label>
-                  <input
-                    autoComplete="new-password"
-                    className={fieldInputClass}
-                    id="doc-password"
-                    minLength={6}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    type="password"
-                    value={password}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className={labelFieldClass} htmlFor="doc-confirm">
-                    Xác nhận mật khẩu
-                  </label>
-                  <input
-                    autoComplete="new-password"
-                    className={`${fieldInputClass} ${pwdMismatch ? 'ring-2 ring-red-300' : ''}`}
-                    id="doc-confirm"
-                    onChange={(e) => setConfirm(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    type="password"
-                    value={confirm}
-                  />
-                  {pwdMismatch ? <p className="text-xs text-red-600">Mật khẩu không khớp.</p> : null}
-                </div>
-
-                <div className="space-y-3">
-                  <span className={labelFieldClass}>Tải lên Chứng chỉ & Bằng cấp</span>
-                  <input
-                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                    className="hidden"
-                    onChange={(e) => pickFiles(e.target.files)}
-                    ref={fileInputRef}
-                    type="file"
-                  />
-                  <div
-                    className={`group flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-[#c2c6d4]/80 bg-[#f3f4f5]/30 p-8 transition-all ${dur} ${ease} hover:border-[#0056b3]/40 hover:bg-[#f3f4f5] ${
-                      dragActive ? 'border-[#0056b3] bg-[#d7e2ff]/50 ring-2 ring-[#0056b3]/20' : ''
-                    }`}
-                    onDragLeave={() => setDragActive(false)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragActive(true);
-                    }}
-                    onDrop={onDrop}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fileInputRef.current?.click();
-                      }
-                    }}
-                    onClick={() => fileInputRef.current?.click()}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div
-                      className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#d7e2ff] text-[#003f87] transition-transform ${dur} ${ease} group-hover:scale-105`}
-                    >
-                      <span className="material-symbols-outlined text-[28px]">cloud_upload</span>
-                    </div>
-                    <p className="text-center text-sm font-medium text-[#191c1d]">
-                      Kéo và thả tệp tại đây hoặc{' '}
-                      <span className="font-bold text-[#003f87]">chọn tệp</span>
-                    </p>
-                    <p className="mt-1 text-center text-xs text-[#424752]">
-                      Định dạng hỗ trợ: PDF, JPG, PNG (Tối đa 10MB)
-                    </p>
-                    {certificateFile ? (
-                      <p className="mt-3 max-w-full truncate text-center text-xs font-medium text-[#003f87]">
-                        Đã chọn: {certificateFile.name}
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-center text-[11px] text-slate-500">
-                        Tệp chỉ lưu trên trình duyệt trong phiên này; API tải lên sẽ được bổ sung sau.
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <button
-                  className={btnPrimaryClass}
-                  disabled={registerMutation.isPending || pwdMismatch || password.length < 6}
-                  type="submit"
-                >
-                  {registerMutation.isPending ? 'Đang xử lý…' : 'Đăng ký tài khoản Bác sĩ'}
-                </button>
-              </form>
-
-              <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-[#e1e3e4]/80 pt-8 md:flex-row">
-                <p className="text-sm text-[#424752]">Bạn đã có tài khoản?</p>
-                <Link
-                  className={`group flex items-center gap-1 text-sm font-bold transition-colors ${dur} ${ease} hover:text-[#0056b3] text-[#003f87]`}
-                  href="/login"
-                >
-                  Đăng nhập ngay
-                  <span
-                    className={`material-symbols-outlined text-[18px] transition-transform ${dur} ${ease} group-hover:translate-x-1`}
-                  >
-                    arrow_forward
-                  </span>
-                </Link>
               </div>
-            </div>
-          </div>
-        )}
-      </main>
+              <div className="auth-grid-2">
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="doc-password">Mật khẩu</label>
+                  <div className="auth-input-wrap">
+                    <span className="auth-input-icon material-symbols-outlined">lock</span>
+                    <input className="auth-input" id="doc-password" autoComplete="new-password"
+                      minLength={6} onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Tối thiểu 6 ký tự" required type="password" value={password} />
+                  </div>
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label" htmlFor="doc-confirm">Xác nhận mật khẩu</label>
+                  <div className={`auth-input-wrap ${pwdMismatch ? 'auth-input-wrap--error' : ''}`}>
+                    <span className="auth-input-icon material-symbols-outlined">lock</span>
+                    <input className="auth-input" id="doc-confirm" autoComplete="new-password"
+                      onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••"
+                      required type="password" value={confirm} />
+                  </div>
+                  {pwdMismatch && <p className="auth-field-error">Mật khẩu không khớp</p>}
+                </div>
+              </div>
 
-      <footer
-        className={
-          kind === 'patient'
-            ? 'mt-auto flex w-full flex-col items-center justify-center space-y-4 bg-slate-50 py-8'
-            : 'flex w-full flex-col items-center justify-center space-y-4 bg-[#f3f4f5]/50 py-8'
-        }
-      >
-        <div className="flex flex-wrap justify-center gap-6 px-4 sm:gap-8">
-          <a
-            className={`text-[12px] font-medium uppercase tracking-wide text-slate-500 opacity-80 transition-[color,opacity] ${dur} ${ease} hover:text-blue-800 hover:opacity-100`}
-            href="#"
+              {/* ─── FILE UPLOAD ─── */}
+              <div className="auth-field">
+                <label className="auth-label">
+                  <span className="material-symbols-outlined" style={{ fontSize: 16, verticalAlign: 'text-bottom' }}>attach_file</span>
+                  {' '}Đính kèm chứng chỉ &amp; bằng cấp
+                </label>
+                <input
+                  accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                  className="auth-file-hidden"
+                  onChange={(e) => pickFiles(e.target.files)}
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                />
+                <div
+                  className={`auth-dropzone ${dragActive ? 'auth-dropzone--active' : ''}`}
+                  onDragLeave={() => setDragActive(false)}
+                  onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      fileInputRef.current?.click();
+                    }
+                  }}
+                >
+                  <div className="auth-dropzone-icon">
+                    <span className="material-symbols-outlined">cloud_upload</span>
+                  </div>
+                  <p className="auth-dropzone-text">
+                    Kéo thả tệp vào đây hoặc <strong>chọn tệp</strong>
+                  </p>
+                  <p className="auth-dropzone-hint">PDF, JPG, PNG — tối đa 10MB mỗi tệp</p>
+                </div>
+
+                {certificateFiles.length > 0 && (
+                  <div className="auth-file-list">
+                    {certificateFiles.map((f, i) => (
+                      <div className="auth-file-item" key={`${f.name}-${i}`}>
+                        <span className="material-symbols-outlined auth-file-item-icon">
+                          {f.type.startsWith('image/') ? 'image' : 'description'}
+                        </span>
+                        <span className="auth-file-item-name">{f.name}</span>
+                        <span className="auth-file-item-size">
+                          {(f.size / 1024).toFixed(0)} KB
+                        </span>
+                        <button
+                          className="auth-file-item-remove"
+                          onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                          type="button"
+                          aria-label="Xóa tệp"
+                        >
+                          <span className="material-symbols-outlined">close</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          <button
+            className="auth-submit"
+            disabled={registerMutation.isPending || pwdMismatch || password.length < 6}
+            type="submit"
           >
-            Terms of Service
-          </a>
-          <a
-            className={`text-[12px] font-medium uppercase tracking-wide text-slate-500 opacity-80 transition-[color,opacity] ${dur} ${ease} hover:text-blue-800 hover:opacity-100`}
-            href="#"
-          >
-            Privacy Policy
-          </a>
-          <a
-            className={`text-[12px] font-medium uppercase tracking-wide text-slate-500 opacity-80 transition-[color,opacity] ${dur} ${ease} hover:text-blue-800 hover:opacity-100`}
-            href="#"
-          >
-            HIPAA Compliance
-          </a>
-        </div>
-        <p className="px-4 text-center text-[12px] font-medium tracking-wide text-slate-500">
-          © 2024 Clinical Precision Framework. All rights reserved.
+            {registerMutation.isPending ? (
+              <>
+                <span className="auth-spinner" />
+                Đang xử lý…
+              </>
+            ) : (
+              kind === 'patient' ? 'Đăng ký tài khoản Bệnh nhân' : 'Đăng ký tài khoản Bác sĩ'
+            )}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          Đã có tài khoản?{' '}
+          <Link className="auth-link-accent" href="/login">Đăng nhập ngay</Link>
         </p>
-      </footer>
+      </div>
     </div>
   );
 }

@@ -2,76 +2,55 @@
 'use client';
 
 import Link from 'next/link';
-import { useMutation } from '@tanstack/react-query';
+import Image from 'next/image';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 
-import { authApi } from '@/lib/api';
+import { authApi, doctorsApi } from '@/lib/api';
+import type { PublicDoctorCard } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
-const doctors = [
+/* ─────────── Icon mapping for specialties ─────────── */
+const SPECIALTY_ICONS: Record<string, string> = {
+  'noi-tong-quat': 'cardiology',
+  'tim-mach': 'favorite',
+  'nhi-khoa': 'child_care',
+  'ngoai-khoa': 'surgical',
+  'da-lieu': 'dermatology',
+  'than-kinh': 'neurology',
+  'mat': 'visibility',
+  'san-phu-khoa': 'pregnant_woman',
+  'xuong-khop': 'skeleton',
+  'tai-mui-hong': 'hearing',
+  'rang-ham-mat': 'dentistry',
+};
+function getSpecIcon(slug: string) {
+  return SPECIALTY_ICONS[slug] || 'medical_services';
+}
+
+/* ─────────── Static blog data (no public API yet) ─────────── */
+const articles = [
   {
-    name: 'Dr. Sarah Smith',
-    specialty: 'Cardiologist',
-    rating: '4.9',
-    reviews: '120+ reviews',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuC6nsEEWtMPtJjmpg1totAsDksxZIaivyzz-PLd52lEiZo16IekL-vvnSawne3Enq-YMgg2TmFVDs-riUUjTbsG3A2DHwZ1HO4HPjAem632vu0KIankyqt1RUp1VO1B89tMisFYz1K_m6Bg0PzimG0wZgQAr5apCV1bbnvRWqdaxEkGEMepnJpxcOSMJSocd3t8vAvka_zuy9L55L-cgMDQb7w4Tq_Xqexmpqf-NB5LSIfFx_3tYgfHyk9yydoMKSOVhn_KdRyMvcDy',
+    tag: 'AI & Sức khỏe',
+    title: 'Tương lai của chẩn đoán ứng dụng công nghệ trí tuệ nhân tạo trong y tế',
+    excerpt: 'Khám phá cách AI đang thay đổi ngành y tế và mang lại chẩn đoán chính xác hơn cho bệnh nhân.',
+    image: '/images/blog-1.png',
   },
   {
-    name: 'Dr. James Chen',
-    specialty: 'Neurologist',
-    rating: '4.8',
-    reviews: '95+ reviews',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAj3PYZpd1KOS0xhqHyb3V43zE8-hLfPzjOFWxhwrCndBvdszNiO7r-YvLEMylXPRDWlV6yRbsY8KxXyg8bW52Do4mXHcF-hhjLUhL-QPGT2EG0RY6cV-XCwo9H3Fgzo7GNrQFmiCX3jrdD_tK4D_7dUitaZtMr1vbUi2bFraw9YiQAnocXGwpoYQgUiwunzMa7MLeScYZe3l2TS1KuSxeeY4xI78LkqyYMEO9yBznWQQ8Bxw4VmMqwVVqSsfYsQxuh0VdkRX5-yIv2',
+    tag: 'Dinh dưỡng',
+    title: '5 thói quen giúp cải thiện hệ miễn dịch vào mùa đông',
+    excerpt: 'Những thay đổi nhỏ trong thói quen hàng ngày có thể tạo nên sự khác biệt lớn cho sức khỏe.',
+    image: '/images/blog-2.png',
   },
   {
-    name: 'Dr. Elena Rodriguez',
-    specialty: 'Pediatrician',
-    rating: '5.0',
-    reviews: '210+ reviews',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCnXwkLnw0DQCnv_FO4Iu36r601Y3XCCNifQHNbbzgz-ZDkEP5VbSs_46bkWjElCL2GFpOEmxRdAaNz6_uB1s2KeyCdxlpIuDTZDRUjSrpNS5JJ_NtXgonVs1KJJpXxF_dtnPKLs5KibsFzN-cP4eAQuoFzti9ZOlZfbC_2oa2PJrC-6acoPiCoB0OVFUEmW-USTN3y5jA_6ii7R1mYqINQV0pDELeOzsm2X7dn9zAM4DwInfP5WymFc0kymztahrltqj8RZtE_Qbg4',
-  },
-  {
-    name: 'Dr. Michael Bond',
-    specialty: 'Dermatologist',
-    rating: '4.7',
-    reviews: '80+ reviews',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuCXr_qQpCmhOO4Vze-SsbhvZkkQ0HkMiB-agzySC8p0I3Y4e56xlh5ILqaJA2J8RmsGBBWIc9XHpNDlf4v0mi6RKn4elwSxnae-NiIeqxU9DB1YASUVUmwYdd-N5U_16RdwTUUy_GmYVKnb3T8XnCynBTq1emO92k6nBWojpykpSTfOXaWAX8fd7AyO0-w2pmYtsf8WaiPy4Xc5e_QiggFnD7bP3guC_a480Gya46UQCCvJO2b4-A-frrHLfEryvJ19OkAEmBL6rzVz',
+    tag: 'Sức khỏe',
+    title: 'Khám sức khỏe định kỳ tổng quát — phát hiện bệnh sớm',
+    excerpt: 'Tại sao việc khám định kỳ mỗi năm lại quan trọng và bạn cần chuẩn bị những gì.',
+    image: '/images/blog-3.png',
   },
 ];
 
-const articles = [
-  {
-    tag: 'AI Innovation',
-    tagClass: 'bg-[#0066cc]/90',
-    title: 'How AI is Revolutionizing Symptom Diagnostics',
-    summary:
-      'Discover the complex algorithms behind MediAI that allow for high-accuracy preliminary medical assessments.',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuAP71CCqYws70yCMsPTL86jkmiONqzHztS4O7QsfgXCkrO1h_8SG0ZsTefzv8CMJV_8uaw_UqgONwMazmtRIWCo7qertxCv4cFZprmGuAe7aEoEvbsxRzJnsdnY2jafcmg7lUedSu69RZSLqFVfzhNcVWlkyADuucMunrbFSeFJm-njrpgkJYsOO-Zv9-5BlxZH2gi7hlDTeudXit4SnXhm3u_Kf0KiThYd48gIVVco5p4WurxepIJHqbQ-znMeh91FpBJrkhzF2X5y',
-  },
-  {
-    tag: 'Wellness',
-    tagClass: 'bg-emerald-500/90',
-    title: '5 Daily Habits to Boost Your Immune System',
-    summary:
-      'Small changes in your daily routine can make a massive difference in how your body fights off common seasonal illnesses.',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuA-yzEeHfFcJh21cKVXloh1T9xBAzjq8dSXK30zsqpr-Q-2Juifa-I4TmsCH6pHTiQRjNIw4nUiJKc9EoMINx59mzukhmvaMinmHhqUqbZwpd8V5kC1IoflcovE7XXob8RqZ0GDJZe1YZpwWUrcIEA15uXCTQ9T6u4Gv_AG42d_n27B0ukuPwY3fqpfgBjhCyCV5DEKI5znRepXO5nZ-ftLenewI3XScQvvzzqZv5-JMqUQWOgEg17u51WPxobfUDgd02_kFyIUKJU4',
-  },
-  {
-    tag: 'Patient Guide',
-    tagClass: 'bg-slate-700/90',
-    title: 'When to Consult a Specialist for Chronic Pain',
-    summary:
-      'Understanding the red flags that indicate it is time to move beyond home remedies and talk to a professional.',
-    image:
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuBA-pO3swj_ICg9BxLi87_EEhOCO-FOLQ5iIEVoAeBhviXJSK4lHFyXVx5PLiSAxZvNqNOcNX9BGQX0IbSV0cmYVZHbLxAe7A-2vnOBNPZttkbQ8SRbTVPo-ZBHjPOZIzTDACMEPXjQP-zliGOMBp6BcVXbKYs71O-cNn-QoA9xIwXSrYcjanCEUSldu1IljiSjq13ThP8XFv_0QSMDh_tewISjux132KX1tYEkeIubdaW22H57BToMJTvj-ezksPmPBu1kcnCqv0dI',
-  },
-];
+/* ─────────── Component ─────────── */
 
 export default function Home() {
   const router = useRouter();
@@ -86,6 +65,21 @@ export default function Home() {
     },
   });
 
+  // ── Fetch specialties from DB ──
+  const { data: specialties = [] } = useQuery({
+    queryKey: ['home-specialties'],
+    queryFn: () => authApi.specialties(),
+    staleTime: 5 * 60_000,
+  });
+
+  // ── Fetch top doctors from DB ──
+  const { data: doctorsData } = useQuery({
+    queryKey: ['home-doctors'],
+    queryFn: () => doctorsApi.list({ limit: 4 }),
+    staleTime: 5 * 60_000,
+  });
+  const doctors: PublicDoctorCard[] = doctorsData?.items ?? [];
+
   const appHref = user?.roles?.includes('admin')
     ? '/admin'
     : user?.roles?.includes('doctor')
@@ -95,35 +89,27 @@ export default function Home() {
         : '/login';
 
   return (
-    <div className="min-h-screen bg-[#f5f7f8] text-slate-900">
-      <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-[#0066cc] p-1.5 text-white">+</div>
-            <h1 className="text-xl font-bold tracking-tight">MediAI</h1>
+    <div className="page">
+      {/* ═══════ HEADER ═══════ */}
+      <header className="hdr">
+        <div className="hdr-inner">
+          <Link className="hdr-brand" href="/">
+            <span className="hdr-brand-icon material-symbols-outlined">clinical_notes</span>
+            <span className="hdr-brand-name">Clinical Precision</span>
           </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <a className="text-sm font-medium text-slate-600 transition-colors hover:text-[#0066cc]" href="#">
-              Features
-            </a>
-            <a className="text-sm font-medium text-slate-600 transition-colors hover:text-[#0066cc]" href="#">
-              How it works
-            </a>
-            <a className="text-sm font-medium text-slate-600 transition-colors hover:text-[#0066cc]" href="#">
-              About
-            </a>
+
+          <nav className="hdr-nav">
+            <a href="#specialties">Chuyên khoa</a>
+            <a href="#doctors">Bác sĩ</a>
+            <a href="#blog">Blog</a>
           </nav>
-          <div className="flex items-center gap-3">
+
+          <div className="hdr-cta">
             {user ? (
               <>
-                <Link
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-                  href={appHref}
-                >
-                  Vào ứng dụng
-                </Link>
+                <Link className="hdr-link" href={appHref}>Vào ứng dụng</Link>
                 <button
-                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="hdr-btn-fill"
                   disabled={logoutMutation.isPending}
                   onClick={() => logoutMutation.mutate()}
                   type="button"
@@ -133,117 +119,184 @@ export default function Home() {
               </>
             ) : (
               <>
-                <Link
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-                  href="/login"
-                >
-                  Login
-                </Link>
-                <Link
-                  className="rounded-lg bg-[#0066cc] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#005cb8]"
-                  href="/register"
-                >
-                  Sign Up
-                </Link>
+                <Link className="hdr-link" href="/login">Đăng nhập</Link>
+                <Link className="hdr-btn-fill" href="/register">Đăng ký</Link>
               </>
             )}
           </div>
+
+          <button className="hdr-burger" aria-label="Menu">
+            <span className="material-symbols-outlined">menu</span>
+          </button>
         </div>
       </header>
 
       <main>
-        <section className="relative overflow-hidden pb-24 pt-16 lg:pb-40 lg:pt-32">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(45%_45%_at_50%_50%,rgba(0,102,204,0.08)_0%,transparent_100%)]" />
-          <div className="mx-auto w-full max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl">
-              <h2 className="mb-6 text-4xl font-extrabold tracking-tight sm:text-6xl">
-                Personalized Medical Insights Powered by AI
-              </h2>
-              <p className="mb-10 text-lg leading-relaxed text-slate-600">
-                Get instant preliminary analysis of your symptoms from our advanced medical AI engine. Trusted by
-                thousands for quick, reliable health guidance.
-              </p>
-              <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
-                <div className="flex flex-col gap-3 sm:flex-row">
-                  <input
-                    className="w-full rounded-xl border-0 bg-transparent px-4 py-3 text-base outline-none ring-0 placeholder:text-slate-400"
-                    placeholder="Enter your symptoms (e.g., headache, fever...)"
-                    type="text"
-                  />
-                  <button className="rounded-xl bg-[#0066cc] px-8 py-3 font-bold text-white shadow-lg shadow-[#0066cc]/20 transition-all hover:bg-[#005cb8]">
-                    Analyze with AI
-                  </button>
-                </div>
+        {/* ═══════ HERO / AI BANNER ═══════ */}
+        <section className="hero">
+          <div className="hero-bg">
+            <Image
+              src="/images/hero-banner.png"
+              alt="AI Health"
+              fill
+              priority
+              className="hero-bg-img"
+            />
+            <div className="hero-overlay" />
+          </div>
+
+          <div className="hero-content">
+            <span className="hero-badge">
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>auto_awesome</span>
+              Được hỗ trợ bởi AI
+            </span>
+            <h1 className="hero-title">
+              Chẩn đoán sức khỏe<br />
+              <em>thông minh</em> với AI
+            </h1>
+            <p className="hero-desc">
+              Ứng dụng trí tuệ nhân tạo tiên tiến giúp bạn phân tích triệu chứng ban đầu,
+              tìm bác sĩ phù hợp và đặt lịch khám nhanh chóng.
+            </p>
+
+            <div className="hero-actions">
+              <Link className="hero-btn-primary" href="/patient/ai-assistant">
+                <span className="material-symbols-outlined" style={{ fontSize: 20 }}>smart_toy</span>
+                Thử phân tích với AI
+              </Link>
+              <Link className="hero-btn-ghost" href="#specialties">
+                Khám phá chuyên khoa
+              </Link>
+            </div>
+
+            <div className="hero-stats">
+              <div className="hero-stat">
+                <strong>{doctorsData?.total ?? '—'}</strong>
+                <span>Bác sĩ uy tín</span>
               </div>
-              <div className="mt-4 flex flex-wrap justify-center gap-4 text-xs font-medium text-slate-500">
-                <span>Popular:</span>
-                <button className="underline decoration-slate-300 hover:text-[#0066cc]">Seasonal Allergies</button>
-                <button className="underline decoration-slate-300 hover:text-[#0066cc]">Migraine relief</button>
-                <button className="underline decoration-slate-300 hover:text-[#0066cc]">Sleep patterns</button>
+              <div className="hero-stat-divider" />
+              <div className="hero-stat">
+                <strong>{specialties.length || '—'}</strong>
+                <span>Chuyên khoa</span>
+              </div>
+              <div className="hero-stat-divider" />
+              <div className="hero-stat">
+                <strong>98%</strong>
+                <span>Hài lòng</span>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="bg-white py-16">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8 flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-bold">Our Top-Rated Specialists</h3>
-                <p className="mt-1 text-sm text-slate-500">Connect with verified professionals across various fields.</p>
-              </div>
-              <a className="text-sm font-semibold text-[#0066cc] hover:underline" href="#">
-                See all
-              </a>
-            </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {doctors.map((doctor) => (
-                <article
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all hover:shadow-lg"
-                  key={doctor.name}
-                >
-                  <div className="relative mb-4 aspect-[4/5] overflow-hidden rounded-xl bg-slate-200">
-                    <img alt={doctor.name} className="h-full w-full object-cover" src={doctor.image} />
+        {/* ═══════ SPECIALTIES (from DB) ═══════ */}
+        <section className="sec specialties" id="specialties">
+          <div className="sec-inner">
+            <p className="sec-eyebrow">Chuyên khoa</p>
+            <h2 className="sec-heading">Tìm bác sĩ theo chuyên khoa</h2>
+            <p className="sec-sub">Đội ngũ bác sĩ trải rộng trên nhiều lĩnh vực, sẵn sàng hỗ trợ bạn.</p>
+
+            <div className="spec-grid">
+              {specialties.map((s) => (
+                <Link href={`/patient/doctors?specialty=${s.slug}`} className="spec-item" key={s.id}>
+                  <span className="spec-icon material-symbols-outlined">{getSpecIcon(s.slug)}</span>
+                  <div>
+                    <span className="spec-name">{s.name}</span>
                   </div>
-                  <h4 className="text-lg font-bold">{doctor.name}</h4>
-                  <p className="text-sm font-medium text-[#0066cc]">{doctor.specialty}</p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    {doctor.rating} stars ({doctor.reviews})
-                  </p>
-                </article>
+                </Link>
               ))}
+              {specialties.length === 0 && (
+                <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-3)', fontSize: '.875rem' }}>
+                  Đang tải chuyên khoa...
+                </p>
+              )}
             </div>
           </div>
         </section>
 
-        <section className="py-20">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-16 text-center">
-              <h3 className="text-3xl font-bold">Medical Insights &amp; Blog</h3>
-              <p className="mx-auto mt-4 max-w-2xl text-slate-600">
-                Stay informed with the latest research, wellness tips, and AI breakthroughs in the medical field.
-              </p>
+        {/* ═══════ DOCTORS (from DB) ═══════ */}
+        <section className="sec docs" id="doctors">
+          <div className="sec-inner">
+            <div className="sec-row">
+              <div>
+                <p className="sec-eyebrow">Bác sĩ ưu tú</p>
+                <h2 className="sec-heading">Đội ngũ chuyên gia hàng đầu</h2>
+              </div>
+              <Link href="/patient/doctors" className="sec-see-all">
+                Xem tất cả
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
+              </Link>
             </div>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {articles.map((article) => (
-                <article
-                  className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-shadow hover:shadow-md"
-                  key={article.title}
-                >
-                  <div className="relative aspect-video overflow-hidden">
-                    <img alt={article.title} className="h-full w-full object-cover" src={article.image} />
-                    <span
-                      className={`absolute left-4 top-4 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider text-white ${article.tagClass}`}
-                    >
-                      {article.tag}
+
+            <div className="doc-grid">
+              {doctors.map((doc) => (
+                <article className="doc-card" key={doc.userId}>
+                  <div className="doc-img-wrap">
+                    {doc.avatarUrl ? (
+                      <Image
+                        src={doc.avatarUrl}
+                        alt={doc.fullName}
+                        width={320}
+                        height={400}
+                        className="doc-img"
+                      />
+                    ) : (
+                      <div className="doc-avatar-placeholder">
+                        <span className="material-symbols-outlined">person</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="doc-info">
+                    <h3 className="doc-name">
+                      {doc.professionalTitle ? `${doc.professionalTitle} ` : ''}
+                      {doc.fullName}
+                    </h3>
+                    <span className="doc-spec">
+                      {doc.specialties?.map(s => s.name).join(', ') || 'Đa khoa'}
+                    </span>
+                    {doc.workplaceName && (
+                      <span className="doc-workplace">{doc.workplaceName}</span>
+                    )}
+                    <span className="doc-fee">
+                      {Number(doc.consultationFee).toLocaleString('vi-VN')}đ / lượt
                     </span>
                   </div>
-                  <div className="flex flex-1 flex-col p-6">
-                    <h4 className="mb-3 text-xl font-bold">{article.title}</h4>
-                    <p className="mb-6 text-sm text-slate-600">{article.summary}</p>
-                    <a className="mt-auto text-sm font-bold text-[#0066cc] hover:underline" href="#">
-                      Read article
-                    </a>
+                </article>
+              ))}
+              {doctors.length === 0 && (
+                <p style={{ gridColumn: '1/-1', textAlign: 'center', color: 'var(--text-3)', fontSize: '.875rem' }}>
+                  Đang tải danh sách bác sĩ...
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ═══════ BLOG (static for now) ═══════ */}
+        <section className="sec blog" id="blog">
+          <div className="sec-inner">
+            <div className="sec-center">
+              <p className="sec-eyebrow">Blog Y Khoa</p>
+              <h2 className="sec-heading">Kiến thức sức khỏe &amp; Cộng đồng</h2>
+              <p className="sec-sub">Cập nhật những thông tin y khoa mới nhất từ đội ngũ chuyên gia.</p>
+            </div>
+
+            <div className="blog-grid">
+              {articles.map((a) => (
+                <article className="blog-card" key={a.title}>
+                  <div className="blog-img-wrap">
+                    <Image
+                      src={a.image}
+                      alt={a.title}
+                      width={420}
+                      height={260}
+                      className="blog-img"
+                    />
+                  </div>
+                  <div className="blog-body">
+                    <span className="blog-tag">{a.tag}</span>
+                    <h3 className="blog-title">{a.title}</h3>
+                    <p className="blog-excerpt">{a.excerpt}</p>
+                    <a href="#" className="blog-read">Đọc thêm →</a>
                   </div>
                 </article>
               ))}
@@ -252,48 +305,43 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-slate-50 pb-8 pt-16">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mb-12 grid grid-cols-2 gap-8 md:grid-cols-4 lg:grid-cols-5">
-            <div className="col-span-2 lg:col-span-2">
-              <div className="mb-6 flex items-center gap-2">
-                <div className="rounded-lg bg-[#0066cc] p-1.5 text-white">+</div>
-                <h2 className="text-xl font-bold">MediAI</h2>
+      {/* ═══════ FOOTER ═══════ */}
+      <footer className="ft">
+        <div className="ft-inner">
+          <div className="ft-top">
+            <div className="ft-brand">
+              <div className="hdr-brand" style={{ marginBottom: 12 }}>
+                <span className="hdr-brand-icon material-symbols-outlined">clinical_notes</span>
+                <span className="hdr-brand-name" style={{ color: '#fff' }}>Clinical Precision</span>
               </div>
-              <p className="mb-6 max-w-sm text-sm text-slate-500">
-                Empowering patients with AI-driven health insights. MediAI provides preliminary analysis and is not a
-                substitute for professional medical advice.
+              <p className="ft-desc">
+                Nền tảng chăm sóc sức khỏe thông minh — hỗ trợ bạn chẩn đoán, đặt lịch khám
+                và quản lý sức khỏe toàn diện bằng AI.
               </p>
             </div>
-            <div>
-              <h5 className="mb-6 text-sm font-bold uppercase tracking-wider">Platform</h5>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li>AI Checker</li>
-                <li>Specialists</li>
-                <li>Lab Results</li>
-                <li>Telemedicine</li>
-              </ul>
+            <div className="ft-col">
+              <h4>Nền tảng</h4>
+              <a href="#">Chẩn đoán AI</a>
+              <a href="#">Đặt lịch khám</a>
+              <a href="#">Tư vấn trực tuyến</a>
+              <a href="#">Hồ sơ sức khỏe</a>
             </div>
-            <div>
-              <h5 className="mb-6 text-sm font-bold uppercase tracking-wider">Company</h5>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li>About Us</li>
-                <li>Careers</li>
-                <li>Privacy Policy</li>
-                <li>Terms of Service</li>
-              </ul>
+            <div className="ft-col">
+              <h4>Về chúng tôi</h4>
+              <a href="#">Giới thiệu</a>
+              <a href="#">Đội ngũ bác sĩ</a>
+              <a href="#">Chính sách bảo mật</a>
+              <a href="#">Điều khoản sử dụng</a>
             </div>
-            <div>
-              <h5 className="mb-6 text-sm font-bold uppercase tracking-wider">Support</h5>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li>Help Center</li>
-                <li>Contact Us</li>
-                <li>Safety Guide</li>
-              </ul>
+            <div className="ft-col">
+              <h4>Hỗ trợ</h4>
+              <a href="#">Trung tâm trợ giúp</a>
+              <a href="#">Liên hệ</a>
+              <a href="#">Câu hỏi thường gặp</a>
             </div>
           </div>
-          <div className="border-t border-slate-200 pt-8 text-center">
-            <p className="text-xs text-slate-400">© 2024 MediAI Health Systems. All rights reserved.</p>
+          <div className="ft-bottom">
+            <p>© 2025 Clinical Precision. All rights reserved.</p>
           </div>
         </div>
       </footer>
