@@ -1,4 +1,16 @@
-import { IsIn, IsISO8601, IsOptional, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class UpdateMyPatientProfileDto {
   @IsOptional()
@@ -41,6 +53,46 @@ export class UpdateMyPatientProfileDto {
   bloodType?: string | null;
 }
 
+export class UpdateMyDoctorProfileDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  professionalTitle?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  licenseNumber?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(80)
+  yearsOfExperience?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  workplaceName?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000000000)
+  consultationFee?: number | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  bio?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  isAvailableForBooking?: boolean | null;
+}
+
 export class UpdateMeDto {
   @IsOptional()
   @IsString()
@@ -63,5 +115,8 @@ export class UpdateMeDto {
 
   @IsOptional()
   patientProfile?: UpdateMyPatientProfileDto;
+
+  @IsOptional()
+  doctorProfile?: UpdateMyDoctorProfileDto;
 }
 

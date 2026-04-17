@@ -49,6 +49,19 @@ export class UsersController {
             bloodType: u.patientProfile.bloodType,
           }
         : null,
+      doctorProfile: u.doctorProfile
+        ? {
+            professionalTitle: u.doctorProfile.professionalTitle,
+            licenseNumber: u.doctorProfile.licenseNumber,
+            yearsOfExperience: u.doctorProfile.yearsOfExperience,
+            bio: u.doctorProfile.bio,
+            workplaceName: u.doctorProfile.workplaceName,
+            consultationFee: u.doctorProfile.consultationFee,
+            isAvailableForBooking: u.doctorProfile.isAvailableForBooking,
+            isVerified: u.doctorProfile.isVerified,
+            verificationStatus: u.doctorProfile.verificationStatus,
+          }
+        : null,
     };
   }
 
@@ -116,6 +129,22 @@ export class UsersController {
             bloodType: (normalizeNull(dto.patientProfile.bloodType) as string | null) ?? undefined,
           }
         : undefined,
+      doctorProfile: dto.doctorProfile
+        ? {
+            professionalTitle: (normalizeNull(dto.doctorProfile.professionalTitle) as string | null) ?? undefined,
+            licenseNumber: (normalizeNull(dto.doctorProfile.licenseNumber) as string | null) ?? undefined,
+            yearsOfExperience:
+              dto.doctorProfile.yearsOfExperience === undefined ? undefined : (dto.doctorProfile.yearsOfExperience as any),
+            workplaceName: (normalizeNull(dto.doctorProfile.workplaceName) as string | null) ?? undefined,
+            consultationFee:
+              dto.doctorProfile.consultationFee === undefined || dto.doctorProfile.consultationFee == null
+                ? undefined
+                : String(dto.doctorProfile.consultationFee),
+            bio: (normalizeNull(dto.doctorProfile.bio) as string | null) ?? undefined,
+            isAvailableForBooking:
+              dto.doctorProfile.isAvailableForBooking === undefined ? undefined : (dto.doctorProfile.isAvailableForBooking as any),
+          }
+        : undefined,
     });
 
     const u = await this.usersService.findById(user.id);
@@ -136,6 +165,19 @@ export class UsersController {
               wardCode: u.patientProfile.wardCode,
               occupation: u.patientProfile.occupation,
               bloodType: u.patientProfile.bloodType,
+            }
+          : null,
+        doctorProfile: u.doctorProfile
+          ? {
+              professionalTitle: u.doctorProfile.professionalTitle,
+              licenseNumber: u.doctorProfile.licenseNumber,
+              yearsOfExperience: u.doctorProfile.yearsOfExperience,
+              bio: u.doctorProfile.bio,
+              workplaceName: u.doctorProfile.workplaceName,
+              consultationFee: u.doctorProfile.consultationFee,
+              isAvailableForBooking: u.doctorProfile.isAvailableForBooking,
+              isVerified: u.doctorProfile.isVerified,
+              verificationStatus: u.doctorProfile.verificationStatus,
             }
           : null,
       },

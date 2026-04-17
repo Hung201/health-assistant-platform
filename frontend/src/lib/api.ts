@@ -71,6 +71,17 @@ export type AuthUser = {
     occupation: string | null;
     bloodType: string | null;
   };
+  doctorProfile?: null | {
+    professionalTitle: string | null;
+    licenseNumber: string | null;
+    yearsOfExperience: number | null;
+    bio: string | null;
+    workplaceName: string | null;
+    consultationFee: string;
+    isAvailableForBooking: boolean;
+    isVerified: boolean;
+    verificationStatus: string;
+  };
   roles: string[];
 };
 
@@ -114,7 +125,9 @@ export const usersApi = {
     }
     return res.json() as Promise<{ ok: boolean; avatarUrl: string }>;
   },
-  updateMe: (data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile'>>) =>
+  updateMe: (
+    data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile' | 'doctorProfile'>>,
+  ) =>
     api<{ ok: boolean; user: AuthUser }>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
