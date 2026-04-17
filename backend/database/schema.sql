@@ -14,6 +14,7 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
+    avatar_public_id VARCHAR(255),
     date_of_birth DATE,
     gender VARCHAR(20),
     status VARCHAR(20) NOT NULL DEFAULT 'active',
