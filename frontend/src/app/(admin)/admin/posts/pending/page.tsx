@@ -58,10 +58,10 @@ export default function AdminPendingPostsPage() {
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Bài viết chờ duyệt</h2>
-          <p className="text-sm text-slate-500">
-            Trạng thái <code className="rounded bg-slate-100 px-1 text-xs">pending_review</code> —{' '}
-            <code className="rounded bg-slate-100 px-1 text-xs">GET /admin/posts/pending</code>
+          <h2 className="text-2xl font-bold text-foreground">Bài viết chờ duyệt</h2>
+          <p className="text-sm text-muted-foreground">
+            Trạng thái <code className="rounded bg-muted px-1 text-xs">pending_review</code> —{' '}
+            <code className="rounded bg-muted px-1 text-xs">GET /admin/posts/pending</code>
           </p>
         </div>
         <Link className="text-sm font-medium text-primary hover:underline" href="/admin">
@@ -70,7 +70,7 @@ export default function AdminPendingPostsPage() {
       </div>
 
       {msg ? (
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+        <div className="mb-4 rounded-lg border border-border bg-muted px-4 py-2 text-sm text-foreground">
           {msg}
         </div>
       ) : null}
@@ -82,20 +82,20 @@ export default function AdminPendingPostsPage() {
       ) : null}
 
       {selectedId != null ? (
-        <div className="sticky top-4 z-10 mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="sticky top-4 z-10 mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="mb-3 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Chi tiết bài viết</p>
-              <h3 className="mt-1 text-lg font-bold text-slate-900">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Chi tiết bài viết</p>
+              <h3 className="mt-1 text-lg font-bold text-foreground">
                 {isLoadingSelected ? 'Đang tải…' : selected?.title ?? '—'}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {selected?.authorName ?? '—'} • {selected?.authorEmail ?? '—'} •{' '}
                 {selected?.createdAt ? new Date(selected.createdAt).toLocaleString() : '—'}
               </p>
             </div>
             <button
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setSelectedId(null)}
               type="button"
             >
@@ -103,28 +103,28 @@ export default function AdminPendingPostsPage() {
             </button>
           </div>
 
-          {selected?.excerpt ? <p className="mb-4 text-sm text-slate-700">{selected.excerpt}</p> : null}
+          {selected?.excerpt ? <p className="mb-4 text-sm text-muted-foreground">{selected.excerpt}</p> : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <div className="lg:col-span-3">
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+              <div className="rounded-lg border border-border bg-muted p-3">
+                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
                   {selected?.content ?? (isLoadingSelected ? 'Đang tải…' : '')}
                 </pre>
               </div>
             </div>
             <div className="lg:col-span-2">
-              <div className="rounded-lg border border-slate-200 p-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Thông tin</p>
-                <div className="mt-2 space-y-2 text-sm text-slate-700">
+              <div className="rounded-lg border border-border p-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Thông tin</p>
+                <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                   <p>
-                    <span className="font-semibold">Trạng thái:</span> {selected?.status ?? '—'}
+                    <span className="font-semibold text-foreground">Trạng thái:</span> {selected?.status ?? '—'}
                   </p>
                   <p>
-                    <span className="font-semibold">Loại:</span> {selected?.postType ?? '—'}
+                    <span className="font-semibold text-foreground">Loại:</span> {selected?.postType ?? '—'}
                   </p>
-                  <p className="break-all text-xs text-slate-500">
-                    <span className="font-semibold text-slate-600">Slug:</span> {selected?.slug ?? '—'}
+                  <p className="break-all text-xs text-muted-foreground">
+                    <span className="font-semibold text-foreground/80">Slug:</span> {selected?.slug ?? '—'}
                   </p>
                   {selected?.thumbnailUrl ? (
                     <a className="text-primary hover:underline" href={selected.thumbnailUrl} target="_blank" rel="noreferrer">
@@ -132,8 +132,8 @@ export default function AdminPendingPostsPage() {
                     </a>
                   ) : null}
                   {selected?.rejectionReason ? (
-                    <p className="text-red-700">
-                      <span className="font-semibold">Lý do từ chối:</span> {selected.rejectionReason}
+                    <p className="text-destructive">
+                      <span className="font-semibold text-foreground">Lý do từ chối:</span> {selected.rejectionReason}
                     </p>
                   ) : null}
                 </div>
@@ -143,14 +143,14 @@ export default function AdminPendingPostsPage() {
         </div>
       ) : null}
 
-      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+      <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
         <p>
-          Tổng: <span className="font-semibold text-slate-900">{total}</span> • Trang{' '}
-          <span className="font-semibold text-slate-900">{page}</span>/{totalPages}
+          Tổng: <span className="font-semibold text-foreground">{total}</span> • Trang{' '}
+          <span className="font-semibold text-foreground">{page}</span>/{totalPages}
         </p>
         <div className="flex gap-2">
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
             disabled={page <= 1 || isLoading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             type="button"
@@ -158,7 +158,7 @@ export default function AdminPendingPostsPage() {
             ← Trước
           </button>
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
             disabled={page >= totalPages || isLoading}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             type="button"
@@ -168,27 +168,27 @@ export default function AdminPendingPostsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase text-slate-500">
+            <tr className="border-b border-border bg-muted text-xs font-bold uppercase text-muted-foreground">
               <th className="px-4 py-3">Tiêu đề</th>
               <th className="px-4 py-3">Tác giả</th>
               <th className="px-4 py-3">Loại</th>
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={4}>
+                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4}>
                   Đang tải…
                 </td>
               </tr>
             ) : null}
             {rows.length === 0 && !isLoading ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={4}>
+                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4}>
                   Chưa có bài ở trạng thái chờ duyệt. (Bác sĩ cần gửi bài với status pending_review.)
                 </td>
               </tr>
@@ -197,7 +197,7 @@ export default function AdminPendingPostsPage() {
               const idNum = Number(p.id);
               return (
                 <tr
-                  className={selectedId === idNum ? 'bg-primary/5' : 'hover:bg-slate-50'}
+                  className={selectedId === idNum ? 'bg-primary/5' : 'hover:bg-muted'}
                   key={p.id}
                   onClick={() => setSelectedId(idNum)}
                   role="button"
@@ -205,32 +205,32 @@ export default function AdminPendingPostsPage() {
                 >
                   <td className="px-4 py-3">
                     <p className="font-medium">{p.title}</p>
-                    <p className="text-xs text-slate-400">{p.slug}</p>
+                    <p className="text-xs text-muted-foreground">{p.slug}</p>
                   </td>
                   <td className="px-4 py-3">
                     <p>{p.authorName ?? '—'}</p>
-                    <p className="text-xs text-slate-500">{p.authorEmail}</p>
+                    <p className="text-xs text-muted-foreground">{p.authorEmail}</p>
                   </td>
                   <td className="px-4 py-3">{p.postType}</td>
                   <td className="px-4 py-3 text-right">
                     {rejectId === idNum ? (
                       <div className="flex flex-col items-end gap-2">
                         <input
-                          className="w-full max-w-xs rounded border border-slate-200 px-2 py-1 text-xs"
+                          className="w-full max-w-xs rounded border border-border bg-card px-2 py-1 text-xs outline-none focus:border-primary focus:ring-2 focus:ring-primary"
                           onChange={(e) => setReason(e.target.value)}
                           placeholder="Lý do từ chối (tuỳ chọn)"
                           value={reason}
                         />
                         <div className="flex gap-2">
                           <button
-                            className="rounded bg-red-600 px-2 py-1 text-xs text-white"
+                            className="rounded bg-destructive px-2 py-1 text-xs text-primary-foreground"
                             onClick={() => reject.mutate({ id: idNum, reason })}
                             type="button"
                           >
                             Xác nhận từ chối
                           </button>
                           <button
-                            className="text-xs text-slate-600"
+                            className="text-xs text-muted-foreground hover:text-foreground"
                             onClick={() => {
                               setRejectId(null);
                               setReason('');
@@ -244,7 +244,7 @@ export default function AdminPendingPostsPage() {
                     ) : (
                       <div className="flex justify-end gap-2">
                         <button
-                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-white hover:bg-primary/90 disabled:opacity-50"
+                          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                           disabled={approve.isPending || reject.isPending}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -255,7 +255,7 @@ export default function AdminPendingPostsPage() {
                           Duyệt
                         </button>
                         <button
-                          className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                          className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
                           disabled={approve.isPending || reject.isPending}
                           onClick={(e) => {
                             e.stopPropagation();
