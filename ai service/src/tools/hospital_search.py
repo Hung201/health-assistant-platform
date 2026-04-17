@@ -186,9 +186,9 @@ class HospitalSearchTool:
             if tag == "dentist":
                 # Nha khoa có amenity tag riêng trong OSM
                 add("[amenity=dentist]")
-                add("[healthcare:speciality=dentist]")
+                add('["healthcare:speciality"=dentist]')
             else:
-                add(f"[healthcare:speciality={tag}]")
+                add(f'["healthcare:speciality"="{tag}"]')
 
         # Phase B: General healthcare fallback
         add("[amenity=hospital]")

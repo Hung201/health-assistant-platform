@@ -24,7 +24,7 @@ export default function AIAssistantPage() {
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-    
+
     const text = input;
     setInput('');
     await sendMessage(text, location);
@@ -55,7 +55,7 @@ export default function AIAssistantPage() {
         {/* Main Chat Area */}
         <div className="relative flex flex-1 flex-col rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
           {/* Messages */}
-          <div 
+          <div
             ref={scrollRef}
             className="flex-1 space-y-4 overflow-y-auto p-4 scroll-smooth"
           >
@@ -76,11 +76,10 @@ export default function AIAssistantPage() {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                      msg.role === 'user'
+                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${msg.role === 'user'
                         ? 'bg-primary text-white rounded-tr-none'
                         : 'bg-muted text-foreground rounded-tl-none border border-border'
-                    }`}
+                      }`}
                   >
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
                     <p className={`mt-1 text-[10px] opacity-70 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
@@ -104,18 +103,9 @@ export default function AIAssistantPage() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-border p-4 bg-card/60">
-            <div className="mb-3 flex items-center gap-2">
-               <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm">
-                  <span className="material-symbols-outlined text-muted-foreground text-[20px]">location_on</span>
-                  <input
-                    type="text"
-                    placeholder="Vị trí của bạn (VD: Quận 1, TP.HCM)..."
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-               </div>
+          <div className="border-t border-slate-100 p-4 bg-slate-50/50">
+            <div className="mb-1 flex items-center gap-2">
+              {/* Thanh địa chỉ đã được loại bỏ để chuyển sang nhận diện qua chat */}
             </div>
             <form onSubmit={handleSend} className="flex gap-2">
               <input
@@ -148,7 +138,7 @@ export default function AIAssistantPage() {
               <p className="mb-4 text-xs font-medium text-muted-foreground leading-relaxed">
                 {hospitalSuggestion.invitation_text}
               </p>
-              
+
               <div className="space-y-3">
                 {hospitalSuggestion.hospitals.map((h, i) => (
                   <div key={i} className="rounded-xl border border-border bg-background/60 p-3 shadow-sm hover:shadow-md transition-shadow">
@@ -176,12 +166,12 @@ export default function AIAssistantPage() {
                   </div>
                 ))}
               </div>
-              
+
               <p className="mt-4 text-[10px] italic text-muted-foreground">
                 Tìm kiếm trong bán kính {hospitalSuggestion.search_radius_km}km.
               </p>
             </div>
-            
+
             <div className="rounded-2xl border border-border bg-muted p-4 text-foreground text-xs">
               <p className="font-bold flex items-center gap-1 mb-1 text-primary">
                 <span className="material-symbols-outlined text-[18px]">warning</span>
