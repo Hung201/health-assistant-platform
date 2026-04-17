@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth.store';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Use same-origin proxy via Next rewrites to preserve cookies reliably in dev.
+const API_BASE = '/api';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -56,6 +57,20 @@ export type AuthUser = {
   id: string;
   email: string;
   fullName: string;
+  avatarUrl?: string | null;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+  gender?: string | null;
+  patientProfile?: null | {
+    emergencyContactName: string | null;
+    emergencyContactPhone: string | null;
+    addressLine: string | null;
+    provinceCode: string | null;
+    districtCode: string | null;
+    wardCode: string | null;
+    occupation: string | null;
+    bloodType: string | null;
+  };
   roles: string[];
 };
 
@@ -84,7 +99,31 @@ export const authApi = {
 };
 
 export const usersApi = {
-  me: () => api<{ id: string; email: string; fullName: string; roles: string[] }>('/users/me'),
+  me: () =>
+    api<AuthUser & { avatarUrl: string | null }>('/users/me'),
+  uploadAvatar: async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`/api/users/me/avatar`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      throw new Error(await parseApiError(res));
+    }
+    return res.json() as Promise<{ ok: boolean; avatarUrl: string }>;
+  },
+  updateMe: (data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile'>>) =>
+    api<{ ok: boolean; user: AuthUser }>('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  changePassword: (data: { currentPassword?: string; newPassword: string }) =>
+    api<{ ok: boolean }>('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
 };
 
 export type PublicDoctorCard = {

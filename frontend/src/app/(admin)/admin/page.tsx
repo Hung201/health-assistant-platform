@@ -23,9 +23,9 @@ export default function AdminDashboardPage() {
     <>
       <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Bảng điều khiển</h2>
-          <p className="text-sm text-slate-500">
-            Số liệu từ <code className="rounded bg-slate-100 px-1 text-xs">GET /admin/dashboard/summary</code>
+          <h2 className="text-2xl font-bold text-foreground">Bảng điều khiển</h2>
+          <p className="text-sm text-muted-foreground">
+            Số liệu từ <code className="rounded bg-muted px-1 text-xs">GET /admin/dashboard/summary</code>
           </p>
         </div>
       </header>
@@ -47,31 +47,31 @@ export default function AdminDashboardPage() {
           { key: 'totalSpecialties', label: 'Chuyên khoa', sub: 'specialties' },
         ].map((card) => (
           <div
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
+            className="rounded-xl border border-border bg-card p-5 shadow-sm"
             key={card.key}
           >
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{card.label}</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.label}</p>
+            <p className="mt-1 text-2xl font-bold text-foreground">
               {isLoading ? '…' : data ? String((data as Record<string, number>)[card.key] ?? '—') : '—'}
             </p>
-            <p className="mt-1 text-xs text-slate-400">{card.sub}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
           </div>
         ))}
       </div>
 
       <div className="mb-8">
-        <h3 className="mb-3 text-lg font-bold text-slate-900">Chức năng & API</h3>
+        <h3 className="mb-3 text-lg font-bold text-foreground">Chức năng & API</h3>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {quickLinks.map((q) => (
             <Link
-              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+              className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
               href={q.href}
               key={q.href}
             >
               <span className="material-symbols-outlined text-primary">{q.icon}</span>
               <div>
-                <p className="font-semibold text-slate-900">{q.label}</p>
-                <p className="text-xs text-slate-500">{q.desc}</p>
+                <p className="font-semibold text-foreground">{q.label}</p>
+                <p className="text-xs text-muted-foreground">{q.desc}</p>
               </div>
             </Link>
           ))}

@@ -54,10 +54,10 @@ export default function AdminPendingDoctorsPage() {
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Bác sĩ chờ duyệt</h2>
-          <p className="text-sm text-slate-500">
-            <code className="rounded bg-slate-100 px-1 text-xs">GET /admin/doctors/pending</code> —{' '}
-            <code className="rounded bg-slate-100 px-1 text-xs">PATCH …/approve|reject</code>
+          <h2 className="text-2xl font-bold text-foreground">Bác sĩ chờ duyệt</h2>
+          <p className="text-sm text-muted-foreground">
+            <code className="rounded bg-muted px-1 text-xs">GET /admin/doctors/pending</code> —{' '}
+            <code className="rounded bg-muted px-1 text-xs">PATCH …/approve|reject</code>
           </p>
         </div>
         <Link className="text-sm font-medium text-primary hover:underline" href="/admin">
@@ -66,7 +66,7 @@ export default function AdminPendingDoctorsPage() {
       </div>
 
       {msg ? (
-        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700">
+        <div className="mb-4 rounded-lg border border-border bg-muted px-4 py-2 text-sm text-foreground">
           {msg}
         </div>
       ) : null}
@@ -78,20 +78,20 @@ export default function AdminPendingDoctorsPage() {
       ) : null}
 
       {selectedUserId ? (
-        <div className="sticky top-4 z-10 mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="sticky top-4 z-10 mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
           <div className="mb-3 flex items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Chi tiết bác sĩ</p>
-              <h3 className="mt-1 text-lg font-bold text-slate-900">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Chi tiết bác sĩ</p>
+              <h3 className="mt-1 text-lg font-bold text-foreground">
                 {isLoadingSelected ? 'Đang tải…' : selected?.fullName ?? '—'}
               </h3>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {selected?.email ?? '—'} • {selected?.phone ?? '—'} •{' '}
                 {selected?.createdAt ? new Date(selected.createdAt).toLocaleString() : '—'}
               </p>
             </div>
             <button
-              className="text-sm font-medium text-slate-600 hover:text-slate-900"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground"
               onClick={() => setSelectedUserId(null)}
               type="button"
             >
@@ -100,55 +100,55 @@ export default function AdminPendingDoctorsPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Tài khoản</p>
-              <div className="mt-2 space-y-2 text-sm text-slate-700">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tài khoản</p>
+              <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-semibold">Trạng thái:</span> {selected?.status ?? '—'}
+                  <span className="font-semibold text-foreground">Trạng thái:</span> {selected?.status ?? '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Roles:</span> {selected?.roles?.join(', ') || '—'}
+                  <span className="font-semibold text-foreground">Roles:</span> {selected?.roles?.join(', ') || '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Giới tính:</span> {selected?.gender ?? '—'}
+                  <span className="font-semibold text-foreground">Giới tính:</span> {selected?.gender ?? '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Ngày sinh:</span>{' '}
+                  <span className="font-semibold text-foreground">Ngày sinh:</span>{' '}
                   {selected?.dateOfBirth ? new Date(selected.dateOfBirth).toLocaleDateString() : '—'}
                 </p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Hồ sơ hành nghề</p>
-              <div className="mt-2 space-y-2 text-sm text-slate-700">
+            <div className="rounded-lg border border-border p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Hồ sơ hành nghề</p>
+              <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-semibold">Chức danh:</span> {selected?.doctorProfile?.professionalTitle ?? '—'}
+                  <span className="font-semibold text-foreground">Chức danh:</span> {selected?.doctorProfile?.professionalTitle ?? '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">CCHN:</span>{' '}
+                  <span className="font-semibold text-foreground">CCHN:</span>{' '}
                   <span className="font-mono text-xs">{selected?.doctorProfile?.licenseNumber ?? '—'}</span>
                 </p>
                 <p>
-                  <span className="font-semibold">Cơ sở:</span> {selected?.doctorProfile?.workplaceName ?? '—'}
+                  <span className="font-semibold text-foreground">Cơ sở:</span> {selected?.doctorProfile?.workplaceName ?? '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Kinh nghiệm:</span>{' '}
+                  <span className="font-semibold text-foreground">Kinh nghiệm:</span>{' '}
                   {selected?.doctorProfile?.yearsOfExperience != null ? `${selected.doctorProfile.yearsOfExperience} năm` : '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Phí tư vấn:</span> {selected?.doctorProfile?.consultationFee ?? '—'}
+                  <span className="font-semibold text-foreground">Phí tư vấn:</span> {selected?.doctorProfile?.consultationFee ?? '—'}
                 </p>
                 <p>
-                  <span className="font-semibold">Xác thực:</span>{' '}
+                  <span className="font-semibold text-foreground">Xác thực:</span>{' '}
                   {selected?.doctorProfile
                     ? `${selected.doctorProfile.verificationStatus} (${selected.doctorProfile.isVerified ? 'verified' : 'not verified'})`
                     : '—'}
                 </p>
                 {selected?.doctorProfile?.bio ? (
                   <div>
-                    <p className="font-semibold">Giới thiệu:</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{selected.doctorProfile.bio}</p>
+                    <p className="font-semibold text-foreground">Giới thiệu:</p>
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{selected.doctorProfile.bio}</p>
                   </div>
                 ) : null}
               </div>
@@ -157,14 +157,14 @@ export default function AdminPendingDoctorsPage() {
         </div>
       ) : null}
 
-      <div className="mb-3 flex items-center justify-between text-sm text-slate-600">
+      <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
         <p>
-          Tổng: <span className="font-semibold text-slate-900">{total}</span> • Trang{' '}
-          <span className="font-semibold text-slate-900">{page}</span>/{totalPages}
+          Tổng: <span className="font-semibold text-foreground">{total}</span> • Trang{' '}
+          <span className="font-semibold text-foreground">{page}</span>/{totalPages}
         </p>
         <div className="flex gap-2">
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
             disabled={page <= 1 || isLoading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             type="button"
@@ -172,7 +172,7 @@ export default function AdminPendingDoctorsPage() {
             ← Trước
           </button>
           <button
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
             disabled={page >= totalPages || isLoading}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             type="button"
@@ -182,10 +182,10 @@ export default function AdminPendingDoctorsPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs font-bold uppercase text-slate-500">
+            <tr className="border-b border-border bg-muted text-xs font-bold uppercase text-muted-foreground">
               <th className="px-4 py-3">Bác sĩ</th>
               <th className="px-4 py-3">Chức danh</th>
               <th className="px-4 py-3">Số CCHN</th>
@@ -193,24 +193,24 @@ export default function AdminPendingDoctorsPage() {
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border">
             {isLoading ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>
                   Đang tải…
                 </td>
               </tr>
             ) : null}
             {rows.length === 0 && !isLoading ? (
               <tr>
-                <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                <td className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>
                   Không có bác sĩ chờ duyệt.
                 </td>
               </tr>
             ) : null}
             {rows.map((d) => (
               <tr
-                className={selectedUserId === d.userId ? 'bg-primary/5' : 'hover:bg-slate-50'}
+                className={selectedUserId === d.userId ? 'bg-primary/5' : 'hover:bg-muted'}
                 key={d.userId}
                 onClick={() => setSelectedUserId(d.userId)}
                 role="button"
@@ -218,7 +218,7 @@ export default function AdminPendingDoctorsPage() {
               >
                 <td className="px-4 py-3">
                   <p className="font-medium">{d.fullName ?? '—'}</p>
-                  <p className="text-xs text-slate-500">{d.email}</p>
+                  <p className="text-xs text-muted-foreground">{d.email}</p>
                 </td>
                 <td className="px-4 py-3">{d.professionalTitle ?? '—'}</td>
                 <td className="px-4 py-3 font-mono text-xs">{d.licenseNumber ?? '—'}</td>
@@ -226,7 +226,7 @@ export default function AdminPendingDoctorsPage() {
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-2">
                     <button
-                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                       disabled={approve.isPending || reject.isPending}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -237,7 +237,7 @@ export default function AdminPendingDoctorsPage() {
                       Duyệt
                     </button>
                     <button
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                      className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-destructive hover:bg-muted disabled:opacity-50"
                       disabled={approve.isPending || reject.isPending}
                       onClick={(e) => {
                         e.stopPropagation();

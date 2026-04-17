@@ -34,6 +34,9 @@ export class User {
   @Column({ name: 'avatar_url', type: 'text', nullable: true })
   avatarUrl: string | null;
 
+  @Column({ name: 'avatar_public_id', type: 'varchar', length: 255, nullable: true })
+  avatarPublicId: string | null;
+
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: Date | null;
 

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import type { SignOptions } from 'jsonwebtoken';
@@ -10,13 +11,11 @@ import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
+import { UserIdentity } from '../entities/user-identity.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
-
-const jwtSignOptions: SignOptions = {
-  expiresIn: (process.env.JWT_EXPIRES_IN ?? '7d') as SignOptions['expiresIn'],
-};
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
@@ -24,19 +23,29 @@ const jwtSignOptions: SignOptions = {
       User,
       UserRole,
       Role,
+      UserIdentity,
       PatientProfile,
       DoctorProfile,
       Specialty,
       DoctorSpecialty,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-      signOptions: jwtSignOptions,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const signOptions: SignOptions = {
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '7d') as SignOptions['expiresIn'],
+        };
+        return {
+          secret: config.get<string>('JWT_SECRET') || 'your-secret-key-change-in-production',
+          signOptions,
+        };
+      },
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}

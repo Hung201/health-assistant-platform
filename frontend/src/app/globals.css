@@ -1,13 +1,208 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground: #171717;
-  --background: #fafafa;
-}
+@layer base {
+  .theme {
 
-body {
-  color: var(--foreground);
-  background: var(--background);
+    --font-heading: var(--font-sans);
+
+    --font-sans: var(--font-sans)
+  }
+
+  :root {
+
+    /* Light theme: soft clinical slate */
+    --background: oklch(0.985 0.01 255);
+
+    --foreground: oklch(0.22 0.02 255);
+
+    --card: oklch(1 0 0);
+
+    --card-foreground: oklch(0.22 0.02 255);
+
+    --popover: oklch(1 0 0);
+
+    --popover-foreground: oklch(0.145 0 0);
+
+    /* Primary: clinical blue (match dark mode) */
+    --primary: oklch(0.55 0.22 264.4);
+
+    --primary-foreground: oklch(0.985 0 0);
+
+    --secondary: oklch(0.965 0.01 255);
+
+    --secondary-foreground: oklch(0.26 0.02 255);
+
+    --muted: oklch(0.965 0.01 255);
+
+    --muted-foreground: oklch(0.52 0.03 255);
+
+    --accent: oklch(0.965 0.01 255);
+
+    --accent-foreground: oklch(0.26 0.02 255);
+
+    --destructive: oklch(0.577 0.245 27.325);
+
+    --border: oklch(0.90 0.02 255);
+
+    --input: oklch(0.90 0.02 255);
+
+    --ring: oklch(0.70 0.09 264.4);
+
+    --chart-1: oklch(0.87 0 0);
+
+    --chart-2: oklch(0.556 0 0);
+
+    --chart-3: oklch(0.439 0 0);
+
+    --chart-4: oklch(0.371 0 0);
+
+    --chart-5: oklch(0.269 0 0);
+
+    --radius: 0.625rem;
+
+    --sidebar: oklch(0.99 0.008 255);
+
+    --sidebar-foreground: oklch(0.22 0.02 255);
+
+    --sidebar-primary: oklch(0.55 0.22 264.4);
+
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+
+    --sidebar-accent: oklch(0.965 0.01 255);
+
+    --sidebar-accent-foreground: oklch(0.26 0.02 255);
+
+    --sidebar-border: oklch(0.90 0.02 255);
+
+    --sidebar-ring: oklch(0.70 0.09 264.4)
+  }
+
+  /* Force a subtree to use light theme variables even when html is .dark */
+  .force-light {
+    --background: oklch(0.985 0.01 255);
+    --foreground: oklch(0.22 0.02 255);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.22 0.02 255);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.55 0.22 264.4);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.965 0.01 255);
+    --secondary-foreground: oklch(0.26 0.02 255);
+    --muted: oklch(0.965 0.01 255);
+    --muted-foreground: oklch(0.52 0.03 255);
+    --accent: oklch(0.965 0.01 255);
+    --accent-foreground: oklch(0.26 0.02 255);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.90 0.02 255);
+    --input: oklch(0.90 0.02 255);
+    --ring: oklch(0.70 0.09 264.4);
+    --sidebar: oklch(0.99 0.008 255);
+    --sidebar-foreground: oklch(0.22 0.02 255);
+    --sidebar-primary: oklch(0.55 0.22 264.4);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.965 0.01 255);
+    --sidebar-accent-foreground: oklch(0.26 0.02 255);
+    --sidebar-border: oklch(0.90 0.02 255);
+    --sidebar-ring: oklch(0.70 0.09 264.4);
+  }
+
+  .force-light input:-webkit-autofill,
+  .force-light input:-webkit-autofill:hover,
+  .force-light input:-webkit-autofill:focus,
+  .force-light textarea:-webkit-autofill,
+  .force-light textarea:-webkit-autofill:hover,
+  .force-light textarea:-webkit-autofill:focus,
+  .force-light select:-webkit-autofill,
+  .force-light select:-webkit-autofill:hover,
+  .force-light select:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    transition: background-color 9999s ease-in-out 0s;
+    -webkit-box-shadow: 0 0 0px 1000px var(--background) inset;
+  }
+
+  .dark {
+
+    /* Dark theme: slate, not pure black */
+    --background: oklch(0.20 0.02 255);
+
+    --foreground: oklch(0.96 0.01 255);
+
+    --card: oklch(0.24 0.02 255);
+
+    --card-foreground: oklch(0.96 0.01 255);
+
+    --popover: oklch(0.24 0.02 255);
+
+    --popover-foreground: oklch(0.96 0.01 255);
+
+    --primary: oklch(0.55 0.22 264.4);
+
+    /* Text on primary in dark mode should stay light */
+    --primary-foreground: oklch(0.985 0 0);
+
+    --secondary: oklch(0.28 0.02 255);
+
+    --secondary-foreground: oklch(0.985 0 0);
+
+    --muted: oklch(0.28 0.02 255);
+
+    --muted-foreground: oklch(0.72 0.02 255);
+
+    --accent: oklch(0.28 0.02 255);
+
+    --accent-foreground: oklch(0.985 0 0);
+
+    --destructive: oklch(0.704 0.191 22.216);
+
+    --border: oklch(1 0 0 / 12%);
+
+    --input: oklch(1 0 0 / 16%);
+
+    --ring: oklch(0.70 0.09 264.4);
+
+    --chart-1: oklch(0.87 0 0);
+
+    --chart-2: oklch(0.556 0 0);
+
+    --chart-3: oklch(0.439 0 0);
+
+    --chart-4: oklch(0.371 0 0);
+
+    --chart-5: oklch(0.269 0 0);
+
+    --sidebar: oklch(0.22 0.02 255);
+
+    --sidebar-foreground: oklch(0.96 0.01 255);
+
+    --sidebar-primary: oklch(0.55 0.22 264.4);
+
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+
+    --sidebar-accent: oklch(0.28 0.02 255);
+
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+
+    --sidebar-border: oklch(1 0 0 / 12%);
+
+    --sidebar-ring: oklch(0.70 0.09 264.4)
+  }
+
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  html {
+    @apply font-sans;
+  }
 }

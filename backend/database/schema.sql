@@ -14,6 +14,7 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     avatar_url TEXT,
+    avatar_public_id VARCHAR(255),
     date_of_birth DATE,
     gender VARCHAR(20),
     status VARCHAR(20) NOT NULL DEFAULT 'active',
@@ -23,6 +24,19 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ
+);
+
+-- 1.1) user_identities (OAuth / SSO)
+-- Liên kết user nội bộ với tài khoản provider (Google, Facebook, ...)
+CREATE TABLE user_identities (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    provider VARCHAR(50) NOT NULL,          -- e.g. 'google'
+    provider_sub VARCHAR(255) NOT NULL,     -- subject/id của provider
+    provider_email VARCHAR(255),            -- email provider (nếu có)
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (provider, provider_sub)
 );
 
 -- 2) roles
