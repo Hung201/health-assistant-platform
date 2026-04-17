@@ -16,8 +16,10 @@ import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
+import { UserIdentity } from '../entities/user-identity.entity';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import type { GoogleAuthUser } from './strategies/google.strategy';
 
 @Injectable()
 export class AuthService {
@@ -26,6 +28,8 @@ export class AuthService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserRole)
     private readonly userRoleRepository: Repository<UserRole>,
+    @InjectRepository(UserIdentity)
+    private readonly userIdentityRepository: Repository<UserIdentity>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -164,6 +168,98 @@ export class AuthService {
       where: { id: userId, status: 'active' },
       relations: ['userRoles', 'userRoles.role'],
     });
+  }
+
+  async loginWithGoogle(googleUser: GoogleAuthUser) {
+    const provider = 'google' as const;
+    const providerSub = googleUser.providerSub;
+    const email = googleUser.email?.trim().toLowerCase() ?? null;
+
+    // 1) Prefer linking by provider sub.
+    const existingIdentity = await this.userIdentityRepository.findOne({
+      where: { provider, providerSub },
+    });
+
+    let user: User | null = null;
+    if (existingIdentity) {
+      user = await this.userRepository.findOne({
+        where: { id: existingIdentity.userId, status: 'active' },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+    }
+
+    // 2) If no identity found, try linking by email (common case).
+    if (!user && email) {
+      const byEmail = await this.userRepository.findOne({
+        where: { email, status: 'active' },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+      if (byEmail) {
+        user = byEmail;
+        await this.userIdentityRepository.save(
+          this.userIdentityRepository.create({
+            userId: user.id,
+            provider,
+            providerSub,
+            providerEmail: email,
+          }),
+        );
+      }
+    }
+
+    // 3) Create user + identity when missing.
+    if (!user) {
+      const fullName = (googleUser.fullName?.trim() || email || 'Người dùng').slice(0, 255);
+      const passwordHash = await bcrypt.hash(`${provider}:${providerSub}:${Date.now()}`, 10);
+
+      const created = await this.userRepository.save(
+        this.userRepository.create({
+          email: email ?? `${providerSub}@google.local`,
+          fullName,
+          passwordHash,
+          status: 'active',
+          avatarUrl: googleUser.avatarUrl,
+          emailVerifiedAt: email ? new Date() : null,
+        }),
+      );
+
+      await this.userIdentityRepository.save(
+        this.userIdentityRepository.create({
+          userId: created.id,
+          provider,
+          providerSub,
+          providerEmail: email,
+        }),
+      );
+
+      // Default role = patient
+      const role = await this.userRoleRepository.manager
+        .getRepository(Role)
+        .findOne({ where: { code: 'patient' } });
+      if (role) {
+        await this.userRoleRepository.save({ userId: created.id, roleId: role.id });
+      }
+      await this.userRoleRepository.manager.getRepository(PatientProfile).save({
+        userId: created.id,
+      });
+
+      user = await this.userRepository.findOne({
+        where: { id: created.id, status: 'active' },
+        relations: ['userRoles', 'userRoles.role'],
+      });
+    }
+
+    if (!user) {
+      throw new UnauthorizedException('Không thể đăng nhập bằng Google');
+    }
+
+    await this.userRepository.update(user.id, { lastLoginAt: new Date() });
+    const roles = (user.userRoles?.map((ur) => ur.role?.code).filter(Boolean) as string[]) ?? [];
+    const token = this.generateToken(user.id, user.email, roles);
+    return {
+      access_token: token,
+      user: { id: user.id, email: user.email, fullName: user.fullName, roles },
+    };
   }
 
   private generateToken(userId: string, email: string, roles: string[]): string {

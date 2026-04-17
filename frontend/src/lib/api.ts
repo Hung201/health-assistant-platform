@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/stores/auth.store';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Use same-origin proxy via Next rewrites to preserve cookies reliably in dev.
+const API_BASE = '/api';
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;

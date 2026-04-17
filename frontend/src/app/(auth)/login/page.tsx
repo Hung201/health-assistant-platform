@@ -183,9 +183,9 @@ export default function LoginPage() {
               <span className="relative bg-white px-3 text-sm text-slate-400">Hoặc tiếp tục với</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <button
+              <a
                 className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 px-4 transition-colors hover:bg-slate-50"
-                type="button"
+                href={`/api/auth/google?next=${encodeURIComponent(nextParam || '/app')}`}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
@@ -194,7 +194,7 @@ export default function LoginPage() {
                   />
                 </svg>
                 <span className="font-medium">Google</span>
-              </button>
+              </a>
               <button
                 className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 px-4 transition-colors hover:bg-slate-50"
                 type="button"

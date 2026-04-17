@@ -1,9 +1,12 @@
-import { Body, Controller, Get, Post, Res } from '@nestjs/common';
-import type { Response } from 'express';
+import { Body, Controller, Get, Post, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
+import { AuthGuard } from '@nestjs/passport';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
+import type { GoogleAuthUser } from './strategies/google.strategy';
 
 @Controller('auth')
 export class AuthController {
@@ -41,6 +44,36 @@ export class AuthController {
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('access_token', { path: '/' });
     return { ok: true };
+  }
+
+  @Public()
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  googleAuth() {
+    // Passport will redirect to Google.
+  }
+
+  @Public()
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  async googleCallback(
+    @Req() req: Request & { user?: GoogleAuthUser; query?: Record<string, unknown> },
+    @Res() res: Response,
+  ) {
+    const result = await this.authService.loginWithGoogle(req.user as GoogleAuthUser);
+    res.cookie('access_token', result.access_token, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    const stateRaw = typeof req.query?.state === 'string' ? req.query.state : '';
+    const next = stateRaw ? decodeURIComponent(stateRaw) : '';
+    const frontend = process.env.FRONTEND_URL || 'http://localhost:3001';
+    const dest = `${frontend}/oauth/google${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+    return res.redirect(dest);
   }
 
   /** Danh sách chuyên khoa (form đăng ký bác sĩ). */
