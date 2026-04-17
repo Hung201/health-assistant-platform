@@ -193,12 +193,26 @@ export type MyBookingRow = {
   createdAt: string;
 };
 
+export type MyBookingDetail = MyBookingRow & {
+  doctorNote: string | null;
+  rejectionReason: string | null;
+  cancelReason: string | null;
+  platformFee: string;
+  updatedAt: string;
+};
+
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
+  detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
   create: (data: { availableSlotId: number; specialtyId?: number; patientNote?: string }) =>
     api<{ ok: boolean; id: string; bookingCode: string; status: string }>('/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+  cancel: (id: string, reason?: string) =>
+    api<{ ok: boolean; id: string; status: string }>(`/bookings/me/${encodeURIComponent(id)}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason?.trim() || undefined }),
     }),
 };
 
