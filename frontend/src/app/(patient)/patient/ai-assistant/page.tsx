@@ -38,13 +38,13 @@ export default function AIAssistantPage() {
           <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             Trợ lý sức khỏe AI
           </h2>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-muted-foreground">
             Tư vấn triệu chứng và tìm kiếm cơ sở y tế gần bạn.
           </p>
         </div>
         <button
           onClick={resetChat}
-          className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+          className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
         >
           <span className="material-symbols-outlined text-[18px]">refresh</span>
           Làm mới hội thoại
@@ -53,7 +53,7 @@ export default function AIAssistantPage() {
 
       <div className="flex flex-1 gap-6 overflow-hidden">
         {/* Main Chat Area */}
-        <div className="relative flex flex-1 flex-col rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 overflow-hidden">
+        <div className="relative flex flex-1 flex-col rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
           {/* Messages */}
           <div 
             ref={scrollRef}
@@ -61,7 +61,7 @@ export default function AIAssistantPage() {
           >
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center text-center opacity-60">
-                <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
                   <span className="material-symbols-outlined text-4xl">chat_bubble</span>
                 </div>
                 <h3 className="text-lg font-semibold">Bắt đầu trò chuyện</h3>
@@ -79,7 +79,7 @@ export default function AIAssistantPage() {
                     className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${
                       msg.role === 'user'
                         ? 'bg-primary text-white rounded-tr-none'
-                        : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200'
+                        : 'bg-muted text-foreground rounded-tl-none border border-border'
                     }`}
                   >
                     <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
@@ -92,11 +92,11 @@ export default function AIAssistantPage() {
             )}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="rounded-2xl bg-slate-100 px-4 py-3 text-slate-800 rounded-tl-none border border-slate-200">
+                <div className="rounded-2xl bg-muted px-4 py-3 text-foreground rounded-tl-none border border-border">
                   <div className="flex gap-1">
-                    <div className="size-1.5 animate-bounce rounded-full bg-slate-400"></div>
-                    <div className="size-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:0.2s]"></div>
-                    <div className="size-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:0.4s]"></div>
+                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground"></div>
+                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></div>
+                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.4s]"></div>
                   </div>
                 </div>
               </div>
@@ -104,14 +104,14 @@ export default function AIAssistantPage() {
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-slate-100 p-4 bg-slate-50/50">
+          <div className="border-t border-border p-4 bg-card/60">
             <div className="mb-3 flex items-center gap-2">
-               <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                  <span className="material-symbols-outlined text-slate-400 text-[20px]">location_on</span>
+               <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 shadow-sm">
+                  <span className="material-symbols-outlined text-muted-foreground text-[20px]">location_on</span>
                   <input
                     type="text"
                     placeholder="Vị trí của bạn (VD: Quận 1, TP.HCM)..."
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                   />
@@ -121,7 +121,7 @@ export default function AIAssistantPage() {
               <input
                 type="text"
                 placeholder="Nhập triệu chứng tại đây..."
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-inner transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
+                className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-inner transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 autoFocus
@@ -140,35 +140,35 @@ export default function AIAssistantPage() {
         {/* Sidebar Suggestions Area */}
         {hospitalSuggestion && (
           <div className="w-80 space-y-4 overflow-y-auto animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-              <div className="mb-2 flex items-center gap-2 text-blue-700">
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="mb-2 flex items-center gap-2 text-primary">
                 <span className="material-symbols-outlined text-[20px]">medical_services</span>
-                <span className="text-sm font-bold uppercase tracking-wider">Gợi ý từ AI 🏥</span>
+                <span className="text-sm font-bold uppercase tracking-wider">Gợi ý từ AI</span>
               </div>
-              <p className="mb-4 text-xs font-medium text-slate-600 leading-relaxed">
+              <p className="mb-4 text-xs font-medium text-muted-foreground leading-relaxed">
                 {hospitalSuggestion.invitation_text}
               </p>
               
               <div className="space-y-3">
                 {hospitalSuggestion.hospitals.map((h, i) => (
-                  <div key={i} className="rounded-xl border border-white bg-white/80 p-3 shadow-sm hover:shadow-md transition-shadow">
-                    <p className="font-bold text-slate-900 text-sm">{h.name}</p>
-                    <p className="mt-1 flex items-start gap-1 text-[11px] text-slate-500">
-                      <span className="material-symbols-outlined text-[14px] mt-0.5">location_on</span>
+                  <div key={i} className="rounded-xl border border-border bg-background/60 p-3 shadow-sm hover:shadow-md transition-shadow">
+                    <p className="font-bold text-foreground text-sm">{h.name}</p>
+                    <p className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
+                      <span className="material-symbols-outlined text-[14px] mt-0.5 text-muted-foreground">location_on</span>
                       {h.address}
                     </p>
                     {h.phone && (
-                      <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500">
-                        <span className="material-symbols-outlined text-[14px]">phone</span>
+                      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">phone</span>
                         {h.phone}
                       </p>
                     )}
                     <div className="mt-2 flex items-center gap-1.5">
-                      <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 uppercase">
+                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary uppercase">
                         {h.amenity_type || 'Bệnh viện'}
                       </span>
                       {h.specialty && (
-                        <span className="rounded bg-indigo-100 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700">
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-bold text-foreground">
                           {h.specialty}
                         </span>
                       )}
@@ -177,13 +177,13 @@ export default function AIAssistantPage() {
                 ))}
               </div>
               
-              <p className="mt-4 text-[10px] italic text-slate-400">
+              <p className="mt-4 text-[10px] italic text-muted-foreground">
                 Tìm kiếm trong bán kính {hospitalSuggestion.search_radius_km}km.
               </p>
             </div>
             
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 text-amber-900 text-xs">
-              <p className="font-bold flex items-center gap-1 mb-1 text-amber-700">
+            <div className="rounded-2xl border border-border bg-muted p-4 text-foreground text-xs">
+              <p className="font-bold flex items-center gap-1 mb-1 text-primary">
                 <span className="material-symbols-outlined text-[18px]">warning</span>
                 Lưu ý quan trọng:
               </p>

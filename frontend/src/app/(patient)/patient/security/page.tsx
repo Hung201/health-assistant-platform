@@ -21,9 +21,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <input
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         disabled={disabled}
         placeholder={placeholder}
         type={type}
@@ -42,14 +42,14 @@ export default function PatientSecurityPage() {
   return (
     <div className="space-y-4">
       <header>
-        <h2 className="text-2xl font-bold text-slate-900">Bảo mật</h2>
-        <p className="text-sm text-slate-500">Đổi mật khẩu và bảo vệ tài khoản của bạn.</p>
+        <h2 className="text-2xl font-bold text-foreground">Bảo mật</h2>
+        <p className="text-sm text-muted-foreground">Đổi mật khẩu và bảo vệ tài khoản của bạn.</p>
       </header>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-4">
-          <div className="text-sm font-semibold text-slate-900">Đổi mật khẩu</div>
-          <div className="mt-1 text-xs text-slate-500">
+          <div className="text-sm font-semibold text-foreground">Đổi mật khẩu</div>
+          <div className="mt-1 text-xs text-muted-foreground">
             Nếu bạn tạo tài khoản bằng Google, bạn có thể để trống mật khẩu hiện tại để đặt mật khẩu lần đầu.
           </div>
         </div>
@@ -84,7 +84,7 @@ export default function PatientSecurityPage() {
 
         <div className="mt-5 flex items-center justify-end">
           <button
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={saving}
             type="button"
             onClick={async () => {

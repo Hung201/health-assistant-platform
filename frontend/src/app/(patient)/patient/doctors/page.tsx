@@ -52,18 +52,18 @@ export default function PatientFindDoctorsPage() {
   return (
     <div className="space-y-6">
       <header>
-        <h2 className="text-2xl font-bold text-slate-900">Tìm bác sĩ</h2>
-        <p className="text-sm text-slate-500">Chọn chuyên khoa, xem bác sĩ và đặt lịch theo slot trống.</p>
+        <h2 className="text-2xl font-bold text-foreground">Tìm bác sĩ</h2>
+        <p className="text-sm text-muted-foreground">Chọn chuyên khoa, xem bác sĩ và đặt lịch theo slot trống.</p>
       </header>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex-1">
-            <label className="mb-2 block text-sm font-semibold text-slate-800" htmlFor="specialty">
+            <label className="mb-2 block text-sm font-semibold text-foreground" htmlFor="specialty">
               Chuyên khoa
             </label>
             <select
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
               id="specialty"
               onChange={(e) => {
                 const v = e.target.value ? Number(e.target.value) : null;
@@ -82,10 +82,10 @@ export default function PatientFindDoctorsPage() {
               ))}
             </select>
           </div>
-          <div className="text-sm text-slate-500">
+          <div className="text-sm text-muted-foreground">
             {activeSpecialtyName ? (
               <span>
-                Đang lọc theo: <span className="font-semibold text-slate-700">{activeSpecialtyName}</span>
+                Đang lọc theo: <span className="font-semibold text-foreground">{activeSpecialtyName}</span>
               </span>
             ) : (
               <span>Hiển thị tất cả bác sĩ đã duyệt</span>
@@ -103,20 +103,20 @@ export default function PatientFindDoctorsPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-slate-900">Bác sĩ</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className="text-lg font-bold text-foreground">Bác sĩ</h3>
+            <p className="text-sm text-muted-foreground">
               {isLoadingDoctors ? 'Đang tải…' : `${doctors?.total ?? 0} kết quả`}
             </p>
           </div>
 
-          <div className="flex items-center justify-between text-sm text-slate-600">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
             <p>
-              Trang <span className="font-semibold text-slate-900">{doctors?.page ?? page}</span>/
+              Trang <span className="font-semibold text-foreground">{doctors?.page ?? page}</span>/
               {Math.max(1, Math.ceil((doctors?.total ?? 0) / limit))}
             </p>
             <div className="flex gap-2">
               <button
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
                 disabled={page <= 1 || isLoadingDoctors}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 type="button"
@@ -124,7 +124,7 @@ export default function PatientFindDoctorsPage() {
                 ← Trước
               </button>
               <button
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-muted disabled:opacity-50"
                 disabled={page >= Math.max(1, Math.ceil((doctors?.total ?? 0) / limit)) || isLoadingDoctors}
                 onClick={() => setPage((p) => p + 1)}
                 type="button"
@@ -137,9 +137,9 @@ export default function PatientFindDoctorsPage() {
           <div className="space-y-3">
             {isLoadingDoctors ? (
               <>
-                <div className="h-[92px] animate-pulse rounded-xl border border-slate-200 bg-white p-4" />
-                <div className="h-[92px] animate-pulse rounded-xl border border-slate-200 bg-white p-4" />
-                <div className="h-[92px] animate-pulse rounded-xl border border-slate-200 bg-white p-4" />
+                <div className="h-[92px] animate-pulse rounded-xl border border-border bg-card p-4" />
+                <div className="h-[92px] animate-pulse rounded-xl border border-border bg-card p-4" />
+                <div className="h-[92px] animate-pulse rounded-xl border border-border bg-card p-4" />
               </>
             ) : (doctors?.items ?? []).length > 0 ? (
               (doctors?.items ?? []).map((d) => {
@@ -147,7 +147,7 @@ export default function PatientFindDoctorsPage() {
                 return (
                   <div
                     className={`w-full rounded-xl border p-4 transition-colors ${
-                      active ? 'border-primary bg-primary/5' : 'border-slate-200 bg-white hover:bg-slate-50'
+                      active ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted'
                     }`}
                     key={d.userId}
                   >
@@ -156,8 +156,8 @@ export default function PatientFindDoctorsPage() {
                         <span className="material-symbols-outlined">stethoscope</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-bold text-slate-900">{d.fullName}</p>
-                        <p className="mt-0.5 text-sm text-slate-500">
+                        <p className="truncate font-bold text-foreground">{d.fullName}</p>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
                           {d.professionalTitle ?? 'Bác sĩ'}
                           {d.workplaceName ? ` • ${d.workplaceName}` : ''}
                         </p>
@@ -165,7 +165,7 @@ export default function PatientFindDoctorsPage() {
                           {(d.specialties ?? []).slice(0, 3).map((s: PublicDoctorCard['specialties'][number]) => (
                             <span
                               className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                s.isPrimary ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'
+                                s.isPrimary ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
                               }`}
                               key={`${d.userId}-${s.id}`}
                             >
@@ -173,7 +173,7 @@ export default function PatientFindDoctorsPage() {
                             </span>
                           ))}
                           {d.specialties.length > 3 ? (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                               +{d.specialties.length - 3}
                             </span>
                           ) : null}
@@ -181,11 +181,11 @@ export default function PatientFindDoctorsPage() {
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <div className="text-right">
-                          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Phí khám</p>
-                          <p className="mt-1 font-bold text-slate-900">{Number(d.consultationFee).toLocaleString()}₫</p>
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phí khám</p>
+                          <p className="mt-1 font-bold text-foreground">{Number(d.consultationFee).toLocaleString()}₫</p>
                         </div>
                         <button
-                          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50"
+                          className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
                           onClick={() => setSelectedDoctor(d)}
                           type="button"
                         >
@@ -203,7 +203,7 @@ export default function PatientFindDoctorsPage() {
                 );
               })
             ) : (
-              <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600 shadow-sm">
+              <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground shadow-sm">
                 Không có bác sĩ phù hợp.
               </div>
             )}
@@ -211,24 +211,24 @@ export default function PatientFindDoctorsPage() {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-slate-900">Slot trống</h3>
+          <h3 className="text-lg font-bold text-foreground">Slot trống</h3>
 
           {!selectedDoctor ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-sm text-slate-600">Chọn 1 bác sĩ để xem slot.</p>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+              <p className="text-sm text-muted-foreground">Chọn 1 bác sĩ để xem slot.</p>
             </div>
           ) : (
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="mb-4">
-                <p className="text-sm text-slate-500">Bác sĩ</p>
-                <p className="font-bold text-slate-900">{selectedDoctor.fullName}</p>
+                <p className="text-sm text-muted-foreground">Bác sĩ</p>
+                <p className="font-bold text-foreground">{selectedDoctor.fullName}</p>
               </div>
 
-              <label className="mb-2 block text-sm font-semibold text-slate-800" htmlFor="note">
+              <label className="mb-2 block text-sm font-semibold text-foreground" htmlFor="note">
                 Ghi chú cho bác sĩ (tuỳ chọn)
               </label>
               <textarea
-                className="mb-4 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
+                className="mb-4 w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary"
                 id="note"
                 onChange={(e) => setPatientNote(e.target.value)}
                 placeholder="Triệu chứng, mong muốn tư vấn…"
@@ -245,25 +245,25 @@ export default function PatientFindDoctorsPage() {
               <div className="space-y-3">
                 {isLoadingSlots ? (
                   <>
-                    <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
-                    <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                    <div className="h-16 animate-pulse rounded-lg bg-muted" />
+                    <div className="h-16 animate-pulse rounded-lg bg-muted" />
                   </>
                 ) : slots && slots.length > 0 ? (
                   slots.slice(0, 10).map((s) => (
                     <button
-                      className="flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-left transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={createBooking.isPending}
                       key={s.id}
                       onClick={() => createBooking.mutate(s.id)}
                       type="button"
                     >
                       <div>
-                        <p className="font-semibold text-slate-900">
+                        <p className="font-semibold text-foreground">
                           {new Date(s.startAt).toLocaleString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' })}{' '}
                           • {new Date(s.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} -{' '}
                           {new Date(s.endAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                         </p>
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-muted-foreground">
                           Còn {Math.max(0, s.maxBookings - s.bookedCount)} / {s.maxBookings} lượt
                         </p>
                       </div>
@@ -273,7 +273,7 @@ export default function PatientFindDoctorsPage() {
                     </button>
                   ))
                 ) : (
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                  <div className="rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
                     Không có slot trống phù hợp.
                   </div>
                 )}

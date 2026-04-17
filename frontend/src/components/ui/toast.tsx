@@ -18,9 +18,11 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 function variantStyles(v: ToastVariant) {
-  if (v === 'success') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
-  if (v === 'error') return 'border-red-200 bg-red-50 text-red-900';
-  return 'border-slate-200 bg-white text-slate-900';
+  if (v === 'success')
+    return 'border-emerald-200 bg-emerald-50 text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-100';
+  if (v === 'error')
+    return 'border-red-200 bg-red-50 text-red-950 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-100';
+  return 'border-border bg-card text-foreground';
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -64,7 +66,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 <div className="text-sm">{t.message}</div>
               </div>
               <button
-                className="rounded-md px-2 py-1 text-xs text-slate-500 hover:bg-slate-100"
+                className="rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
                 onClick={() => remove(t.id)}
                 type="button"
                 aria-label="Đóng thông báo"
@@ -81,9 +83,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 export function useToast() {
   const ctx = useContext(ToastContext);
-  if (!ctx) {
-    throw new Error('useToast must be used within ToastProvider');
-  }
+  if (!ctx) throw new Error('useToast must be used within ToastProvider');
   return ctx;
 }
 

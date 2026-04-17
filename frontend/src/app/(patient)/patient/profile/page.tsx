@@ -22,9 +22,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
       <input
-        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         disabled={disabled}
         placeholder={placeholder}
         type={type}
@@ -79,27 +79,27 @@ export default function PatientProfilePage() {
   return (
     <div className="space-y-4">
       <header>
-        <h2 className="text-2xl font-bold text-slate-900">Hồ sơ</h2>
-        <p className="text-sm text-slate-500">Cập nhật hồ sơ bệnh nhân và thông tin liên hệ.</p>
+        <h2 className="text-2xl font-bold text-foreground">Hồ sơ</h2>
+        <p className="text-sm text-muted-foreground">Cập nhật hồ sơ bệnh nhân và thông tin liên hệ.</p>
       </header>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+            <div className="h-16 w-16 overflow-hidden rounded-full border border-border bg-muted">
               {user?.avatarUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img alt="Avatar" className="h-full w-full object-cover" src={user.avatarUrl} />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-slate-400">—</div>
+                <div className="flex h-full w-full items-center justify-center text-muted-foreground">—</div>
               )}
             </div>
             <div>
-              <div className="text-sm font-semibold text-slate-900">Ảnh đại diện</div>
-              <div className="text-xs text-slate-500">JPG/PNG/WebP, tối đa 5MB</div>
+              <div className="text-sm font-semibold text-foreground">Ảnh đại diện</div>
+              <div className="text-xs text-muted-foreground">JPG/PNG/WebP, tối đa 5MB</div>
             </div>
           </div>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted">
             {uploading ? 'Đang tải…' : 'Đổi ảnh'}
             <input
               className="hidden"
@@ -138,8 +138,8 @@ export default function PatientProfilePage() {
           <section>
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <div className="text-sm font-semibold text-slate-900">Thông tin cơ bản</div>
-                <div className="text-xs text-slate-500">Tên, giới tính, ngày sinh</div>
+                <div className="text-sm font-semibold text-foreground">Thông tin cơ bản</div>
+                <div className="text-xs text-muted-foreground">Tên, giới tính, ngày sinh</div>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -151,9 +151,9 @@ export default function PatientProfilePage() {
                 placeholder="Nguyễn Văn A"
               />
               <label className="block">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Email</div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Email</div>
                 <input
-                  className="w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600"
+                  className="w-full cursor-not-allowed rounded-lg border border-border bg-muted px-3 py-2 text-sm text-muted-foreground"
                   disabled
                   value={user?.email ?? ''}
                 />
@@ -173,9 +173,9 @@ export default function PatientProfilePage() {
                 onChange={(v) => setForm((s) => ({ ...s, dateOfBirth: v }))}
               />
               <label className="block">
-                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Giới tính</div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Giới tính</div>
                 <select
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={saving}
                   value={form.gender}
                   onChange={(e) => setForm((s) => ({ ...s, gender: e.target.value }))}
@@ -192,8 +192,8 @@ export default function PatientProfilePage() {
 
           <section>
             <div className="mb-3">
-              <div className="text-sm font-semibold text-slate-900">Liên hệ</div>
-              <div className="text-xs text-slate-500">Địa chỉ, khu vực</div>
+              <div className="text-sm font-semibold text-foreground">Liên hệ</div>
+              <div className="text-xs text-muted-foreground">Địa chỉ, khu vực</div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
@@ -229,8 +229,8 @@ export default function PatientProfilePage() {
 
           <section>
             <div className="mb-3">
-              <div className="text-sm font-semibold text-slate-900">Khẩn cấp</div>
-              <div className="text-xs text-slate-500">Người liên hệ khi cần</div>
+              <div className="text-sm font-semibold text-foreground">Khẩn cấp</div>
+              <div className="text-xs text-muted-foreground">Người liên hệ khi cần</div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
@@ -252,8 +252,8 @@ export default function PatientProfilePage() {
 
           <section>
             <div className="mb-3">
-              <div className="text-sm font-semibold text-slate-900">Thông tin y tế</div>
-              <div className="text-xs text-slate-500">Nghề nghiệp, nhóm máu</div>
+              <div className="text-sm font-semibold text-foreground">Thông tin y tế</div>
+              <div className="text-xs text-muted-foreground">Nghề nghiệp, nhóm máu</div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field
@@ -274,11 +274,11 @@ export default function PatientProfilePage() {
           </section>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-slate-500">
+            <div className="text-xs text-muted-foreground">
               {savedAt ? `Đã lưu lúc ${new Date(savedAt).toLocaleTimeString()}` : 'Hãy bấm Lưu để cập nhật thay đổi.'}
             </div>
             <button
-              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={saving}
               type="button"
               onClick={async () => {
