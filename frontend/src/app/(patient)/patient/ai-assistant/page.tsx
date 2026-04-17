@@ -105,17 +105,8 @@ export default function AIAssistantPage() {
 
           {/* Input Area */}
           <div className="border-t border-slate-100 p-4 bg-slate-50/50">
-            <div className="mb-3 flex items-center gap-2">
-               <div className="flex flex-1 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-                  <span className="material-symbols-outlined text-slate-400 text-[20px]">location_on</span>
-                  <input
-                    type="text"
-                    placeholder="Vị trí của bạn (VD: Quận 1, TP.HCM)..."
-                    className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-               </div>
+            <div className="mb-1 flex items-center gap-2">
+               {/* Thanh địa chỉ đã được loại bỏ để chuyển sang nhận diện qua chat */}
             </div>
             <form onSubmit={handleSend} className="flex gap-2">
               <input
