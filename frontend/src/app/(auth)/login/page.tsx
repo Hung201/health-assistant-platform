@@ -62,8 +62,17 @@ export default function LoginPage() {
         : null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 text-slate-900">
-      <div className="flex w-full max-w-[1000px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl">
+    <div className="force-light flex min-h-screen items-center justify-center bg-background p-4 text-foreground">
+      <div className="relative flex w-full max-w-[1000px] overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
+        <div className="absolute right-3 top-3 z-50 pointer-events-auto">
+          <Link
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+            href="/"
+          >
+            <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+            Trang chủ
+          </Link>
+        </div>
         <div className="w-full p-8 md:p-12 lg:w-1/2">
           <div className="mb-8 flex items-center gap-2">
             <div className="rounded-lg bg-primary/10 p-2 text-primary">
@@ -76,7 +85,7 @@ export default function LoginPage() {
 
           <div className="mb-8">
             <h2 className="mb-2 text-3xl font-bold">Chào mừng trở lại</h2>
-            <p className="text-slate-500">
+            <p className="text-muted-foreground">
               Đăng nhập để tiếp tục quản lý sức khỏe và lịch hẹn của bạn.
             </p>
           </div>
@@ -102,12 +111,12 @@ export default function LoginPage() {
                 Email
               </label>
               <div className="group relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 transition-colors group-focus-within:text-primary">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground transition-colors group-focus-within:text-primary">
                   <span className="material-symbols-outlined">person</span>
                 </div>
                 <input
                   autoComplete="email"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border border-input bg-background py-3 pl-10 pr-4 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary"
                   id="email"
                   name="email"
                   onChange={(e) => setEmail(e.target.value)}
@@ -124,12 +133,12 @@ export default function LoginPage() {
                 Mật khẩu
               </label>
               <div className="group relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 transition-colors group-focus-within:text-primary">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground transition-colors group-focus-within:text-primary">
                   <span className="material-symbols-outlined">lock</span>
                 </div>
                 <input
                   autoComplete="current-password"
-                  className="w-full rounded-lg border border-slate-200 bg-slate-50 py-3 pl-10 pr-12 outline-none transition-all placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-lg border border-input bg-background py-3 pl-10 pr-12 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary"
                   id="password"
                   name="password"
                   onChange={(e) => setPassword(e.target.value)}
@@ -140,7 +149,7 @@ export default function LoginPage() {
                 />
                 <button
                   aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition-colors hover:text-primary"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground transition-colors hover:text-primary"
                   onClick={() => setShowPassword((v) => !v)}
                   type="button"
                 >
@@ -154,11 +163,11 @@ export default function LoginPage() {
             <div className="flex items-center justify-between text-sm">
               <label className="flex cursor-pointer items-center">
                 <input
-                  className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
                   name="remember"
                   type="checkbox"
                 />
-                <span className="ml-2 text-slate-600">Ghi nhớ đăng nhập</span>
+                <span className="ml-2 text-muted-foreground">Ghi nhớ đăng nhập</span>
               </label>
               <Link className="font-semibold text-primary hover:underline" href="#">
                 Quên mật khẩu?
@@ -166,7 +175,7 @@ export default function LoginPage() {
             </div>
 
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={loginMutation.isPending}
               type="submit"
             >
@@ -178,13 +187,13 @@ export default function LoginPage() {
           <div className="mt-8">
             <div className="relative mb-6 flex items-center justify-center">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-border" />
               </div>
-              <span className="relative bg-white px-3 text-sm text-slate-400">Hoặc tiếp tục với</span>
+              <span className="relative bg-card px-3 text-sm text-muted-foreground">Hoặc tiếp tục với</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <a
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 px-4 transition-colors hover:bg-slate-50"
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 px-4 transition-colors hover:bg-muted"
                 href={`/api/auth/google?next=${encodeURIComponent(nextParam || '/app')}`}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -196,7 +205,7 @@ export default function LoginPage() {
                 <span className="font-medium">Google</span>
               </a>
               <button
-                className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 py-2 px-4 transition-colors hover:bg-slate-50"
+                className="flex items-center justify-center gap-2 rounded-lg border border-border bg-card py-2 px-4 transition-colors hover:bg-muted"
                 type="button"
               >
                 <svg className="h-5 w-5" fill="#1877F2" viewBox="0 0 24 24">
@@ -207,7 +216,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="mt-8 text-center text-sm text-slate-600">
+          <p className="mt-8 text-center text-sm text-muted-foreground">
             Chưa có tài khoản?{' '}
             <Link className="font-bold text-primary hover:underline" href="/register">
               Đăng ký ngay
@@ -215,8 +224,8 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="relative hidden min-h-[560px] w-1/2 overflow-hidden bg-primary/5 lg:block">
-          <div className="absolute inset-0 z-10 bg-gradient-to-br from-primary/20 to-transparent" />
+        <div className="relative hidden min-h-[560px] w-1/2 overflow-hidden bg-muted lg:block">
+          <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-br from-primary/20 to-transparent" />
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-12 text-center">
             <div className="relative mb-8 w-full max-w-md">
               <div className="relative aspect-[3/4] max-h-[380px] w-full overflow-hidden rounded-xl shadow-xl">
@@ -228,14 +237,14 @@ export default function LoginPage() {
                 <div className="absolute inset-0 bg-primary opacity-20 mix-blend-multiply" />
               </div>
 
-              <div className="absolute -right-2 top-6 z-30 animate-pulse rounded-lg border border-white/50 bg-white/90 p-4 shadow-lg backdrop-blur sm:right-4">
+              <div className="absolute -right-2 top-6 z-30 animate-pulse rounded-lg border border-border bg-card/90 p-4 shadow-lg backdrop-blur sm:right-4">
                 <div className="flex items-center gap-2 text-primary">
                   <span className="material-symbols-outlined">monitoring</span>
                   <span className="text-sm font-bold">AI Sàng lọc chuẩn 98%</span>
                 </div>
               </div>
-              <div className="absolute -left-2 bottom-6 z-30 rounded-lg border border-white/50 bg-white/90 p-4 shadow-lg backdrop-blur sm:left-4">
-                <div className="flex items-center gap-2 text-emerald-600">
+              <div className="absolute -left-2 bottom-6 z-30 rounded-lg border border-border bg-card/90 p-4 shadow-lg backdrop-blur sm:left-4">
+                <div className="flex items-center gap-2 text-primary">
                   <span className="material-symbols-outlined">verified</span>
                   <span className="text-sm font-bold">200+ Đối tác bệnh viện</span>
                 </div>
@@ -243,8 +252,8 @@ export default function LoginPage() {
             </div>
 
             <div className="max-w-md space-y-4">
-              <h3 className="text-2xl font-bold text-slate-900">Trí tuệ nhân tạo hỗ trợ sàng lọc bệnh</h3>
-              <p className="text-slate-700">
+              <h3 className="text-2xl font-bold text-foreground">Trí tuệ nhân tạo hỗ trợ sàng lọc bệnh</h3>
+              <p className="text-muted-foreground">
                 MediSmart AI sử dụng các thuật toán tiên tiến nhất để giúp bạn theo dõi và sàng lọc các dấu hiệu sức
                 khỏe sớm một cách chính xác nhất.
               </p>
