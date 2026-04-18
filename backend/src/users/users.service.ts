@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
+import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
 
 @Injectable()
@@ -12,6 +13,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(PatientProfile)
     private readonly patientProfileRepository: Repository<PatientProfile>,
+    @InjectRepository(DoctorProfile)
+    private readonly doctorProfileRepository: Repository<DoctorProfile>,
     @InjectRepository(UserIdentity)
     private readonly userIdentityRepository: Repository<UserIdentity>,
   ) {}
@@ -19,7 +22,7 @@ export class UsersService {
   async findById(id: string) {
     return this.userRepository.findOne({
       where: { id },
-      relations: ['userRoles', 'userRoles.role', 'patientProfile'],
+      relations: ['userRoles', 'userRoles.role', 'patientProfile', 'doctorProfile'],
       select: [
         'id',
         'email',
@@ -50,6 +53,12 @@ export class UsersService {
     );
   }
 
+  async ensureDoctorProfile(userId: string) {
+    const existing = await this.doctorProfileRepository.findOne({ where: { userId } });
+    if (existing) return existing;
+    return await this.doctorProfileRepository.save(this.doctorProfileRepository.create({ userId }));
+  }
+
   async updateMe(params: {
     userId: string;
     fullName?: string;
@@ -65,6 +74,15 @@ export class UsersService {
       | 'wardCode'
       | 'occupation'
       | 'bloodType'
+    >>;
+    doctorProfile?: Partial<Pick<DoctorProfile,
+      | 'professionalTitle'
+      | 'licenseNumber'
+      | 'yearsOfExperience'
+      | 'bio'
+      | 'workplaceName'
+      | 'consultationFee'
+      | 'isAvailableForBooking'
     >>;
   }) {
     const { userId } = params;
@@ -82,6 +100,11 @@ export class UsersService {
     if (params.patientProfile) {
       await this.ensurePatientProfile(userId);
       await this.patientProfileRepository.update({ userId }, params.patientProfile);
+    }
+
+    if (params.doctorProfile) {
+      await this.ensureDoctorProfile(userId);
+      await this.doctorProfileRepository.update({ userId }, params.doctorProfile);
     }
   }
 

@@ -14,6 +14,7 @@ import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
+import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
 function hasRole(user: User, code: string): boolean {
@@ -180,6 +181,92 @@ export class BookingsService {
       totalFee: b.totalFee,
       createdAt: b.createdAt.toISOString(),
     }));
+  }
+
+  async getMyBookingDetail(currentUser: User, bookingId: string) {
+    if (!hasRole(currentUser, 'patient')) {
+      throw new ForbiddenException('Chỉ bệnh nhân mới có thể xem lịch hẹn của mình');
+    }
+    const b = await this.bookingRepo.findOne({
+      where: { id: bookingId, patientUserId: currentUser.id },
+    });
+    if (!b) throw new NotFoundException('Không tìm thấy lịch hẹn');
+
+    return {
+      id: b.id,
+      bookingCode: b.bookingCode,
+      status: b.status,
+      appointmentDate: b.appointmentDate instanceof Date ? b.appointmentDate.toISOString().slice(0, 10) : String(b.appointmentDate),
+      appointmentStartAt: b.appointmentStartAt.toISOString(),
+      appointmentEndAt: b.appointmentEndAt.toISOString(),
+      doctorUserId: b.doctorUserId,
+      doctorName: b.doctorNameSnapshot,
+      specialtyId: Number(b.specialtyId),
+      specialtyName: b.specialtyNameSnapshot,
+      patientNote: b.patientNote,
+      doctorNote: b.doctorNote,
+      rejectionReason: b.rejectionReason,
+      cancelReason: b.cancelReason,
+      consultationFee: b.consultationFee,
+      platformFee: b.platformFee,
+      totalFee: b.totalFee,
+      createdAt: b.createdAt.toISOString(),
+      updatedAt: b.updatedAt.toISOString(),
+    };
+  }
+
+  async cancelMyBooking(currentUser: User, bookingId: string, dto: CancelBookingDto) {
+    if (!hasRole(currentUser, 'patient')) {
+      throw new ForbiddenException('Chỉ bệnh nhân mới có thể huỷ lịch hẹn của mình');
+    }
+
+    return this.bookingRepo.manager.transaction(async (manager) => {
+      const bookingRepo = manager.getRepository(Booking);
+      const slotRepo = manager.getRepository(DoctorAvailableSlot);
+      const logRepo = manager.getRepository(BookingStatusLog);
+
+      const booking = await bookingRepo.findOne({
+        where: { id: bookingId, patientUserId: currentUser.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!booking) throw new NotFoundException('Không tìm thấy lịch hẹn');
+
+      if (booking.status !== 'pending') {
+        throw new BadRequestException('Chỉ lịch hẹn pending mới có thể huỷ');
+      }
+      if (booking.appointmentStartAt.getTime() < Date.now()) {
+        throw new BadRequestException('Lịch hẹn đã qua thời gian, không thể huỷ');
+      }
+
+      const oldStatus = booking.status;
+      booking.status = 'cancelled';
+      booking.cancelReason = dto.reason?.trim() || null;
+      await bookingRepo.save(booking);
+
+      // Best-effort release slot capacity
+      if (booking.availableSlotId != null) {
+        const slot = await slotRepo.findOne({
+          where: { id: Number(booking.availableSlotId) },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (slot) {
+          slot.bookedCount = Math.max(0, Number(slot.bookedCount) - 1);
+          await slotRepo.save(slot);
+        }
+      }
+
+      await logRepo.save(
+        logRepo.create({
+          bookingId: booking.id,
+          oldStatus,
+          newStatus: booking.status,
+          changedBy: currentUser.id,
+          note: booking.cancelReason ? `Patient cancelled: ${booking.cancelReason}` : 'Patient cancelled booking',
+        }),
+      );
+
+      return { ok: true, id: booking.id, status: booking.status };
+    });
   }
 
   async listDoctorBookings(currentUser: User) {

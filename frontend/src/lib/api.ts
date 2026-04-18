@@ -71,6 +71,17 @@ export type AuthUser = {
     occupation: string | null;
     bloodType: string | null;
   };
+  doctorProfile?: null | {
+    professionalTitle: string | null;
+    licenseNumber: string | null;
+    yearsOfExperience: number | null;
+    bio: string | null;
+    workplaceName: string | null;
+    consultationFee: string;
+    isAvailableForBooking: boolean;
+    isVerified: boolean;
+    verificationStatus: string;
+  };
   roles: string[];
 };
 
@@ -114,7 +125,9 @@ export const usersApi = {
     }
     return res.json() as Promise<{ ok: boolean; avatarUrl: string }>;
   },
-  updateMe: (data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile'>>) =>
+  updateMe: (
+    data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile' | 'doctorProfile'>>,
+  ) =>
     api<{ ok: boolean; user: AuthUser }>('/users/me', {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -193,12 +206,26 @@ export type MyBookingRow = {
   createdAt: string;
 };
 
+export type MyBookingDetail = MyBookingRow & {
+  doctorNote: string | null;
+  rejectionReason: string | null;
+  cancelReason: string | null;
+  platformFee: string;
+  updatedAt: string;
+};
+
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
+  detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
   create: (data: { availableSlotId: number; specialtyId?: number; patientNote?: string }) =>
     api<{ ok: boolean; id: string; bookingCode: string; status: string }>('/bookings', {
       method: 'POST',
       body: JSON.stringify(data),
+    }),
+  cancel: (id: string, reason?: string) =>
+    api<{ ok: boolean; id: string; status: string }>(`/bookings/me/${encodeURIComponent(id)}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason?.trim() || undefined }),
     }),
 };
 
