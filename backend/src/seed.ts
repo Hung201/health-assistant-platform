@@ -17,6 +17,7 @@ import { Booking } from './entities/booking.entity';
 import { BookingStatusLog } from './entities/booking-status-log.entity';
 import { Post } from './entities/post.entity';
 import { Comment } from './entities/comment.entity';
+import { CommentReaction } from './entities/comment-reaction.entity';
 import { POST_STATUS_PENDING_REVIEW } from './admin/admin.service';
 
 loadEnv();
@@ -60,6 +61,7 @@ async function seed() {
       BookingStatusLog,
       Post,
       Comment,
+      CommentReaction,
     ],
     synchronize: false,
     logging: false,
@@ -81,6 +83,7 @@ async function seed() {
   const bookingLogRepo = dataSource.getRepository(BookingStatusLog);
   const postRepo = dataSource.getRepository(Post);
   const commentRepo = dataSource.getRepository(Comment);
+  const reactionRepo = dataSource.getRepository(CommentReaction);
 
   await dataSource.transaction(async (manager) => {
     // Rebind repos inside transaction.
@@ -98,6 +101,7 @@ async function seed() {
     const txBookingLogRepo = manager.getRepository(BookingStatusLog);
     const txPostRepo = manager.getRepository(Post);
     const txCommentRepo = manager.getRepository(Comment);
+    const txReactionRepo = manager.getRepository(CommentReaction);
 
     // ---- roles (idempotent)
     const roleSeeds: Array<{ code: string; name: string }> = [
@@ -592,6 +596,66 @@ async function seed() {
         );
       }
     }
+
+    // ---- Published Blog Posts for Public View (idempotent by slug)
+    const publishedPostSeeds = [
+      {
+        slug: 'huong-dan-cham-soc-suc-khoe-mua-dich',
+        title: 'Hướng dẫn chăm sóc sức khỏe chủ động tại nhà mùa dịch',
+        excerpt: 'Chăm sóc sức khỏe tại nhà không khó nếu bạn nắm vững các nguyên tắc cơ bản về dinh dưỡng và vận động.',
+        content: '<h2>1. Chế độ dinh dưỡng</h2><p>Bổ sung đầy đủ vitamin C, E và kẽm giúp tăng cường hệ miễn dịch.</p><h2>2. Vận động thể chất</h2><p>Dành ít nhất 30 phút mỗi ngày để tập thể dục nhẹ nhàng tại nhà.</p><p>Hệ thống miễn dịch là lá chắn quan trọng nhất của cơ thể chúng ta.</p>',
+        postType: 'health_tip',
+        status: 'published',
+        publishedAt: new Date(),
+      },
+      {
+        slug: 'dot-quy-va-nhung-dieu-can-biet',
+        title: 'Đột quỵ: Nhận biết dấu hiệu "Vàng" để cứu người',
+        excerpt: 'Thời gian chính là não bộ. Nhận biết sớm các triệu chứng FAST để xử trí kịp thời.',
+        content: '<h2>Quy tắc FAST</h2><ul><li><b>F (Face):</b> Liệt mặt, miệng méo.</li><li><b>A (Arm):</b> Yếu tay chân.</li><li><b>S (Speech):</b> Khó nói, nói ngọng.</li><li><b>T (Time):</b> Gọi cấp cứu ngay lập tức.</li></ul>',
+        postType: 'medical_article',
+        status: 'published',
+        publishedAt: new Date(),
+      }
+    ];
+
+    for (const s of publishedPostSeeds) {
+      let post = await txPostRepo.findOne({ where: { slug: s.slug } });
+      if (!post) {
+        post = await txPostRepo.save(txPostRepo.create({
+          ...s,
+          authorUserId: approvedDoctorUser.id,
+          viewCount: String(Math.floor(Math.random() * 500)),
+        }));
+      }
+
+      // Add a comment for each published post
+      const commentExists = await txCommentRepo.findOne({ where: { postId: post.id, userId: patientUser.id } });
+      if (!commentExists) {
+        const rootComment = await txCommentRepo.save(txCommentRepo.create({
+          postId: post.id,
+          userId: patientUser.id,
+          content: 'Bài viết rất hữu ích, cảm ơn bác sĩ nhiều!',
+          status: 'visible',
+        }));
+
+        // Add a reply from doctor
+        await txCommentRepo.save(txCommentRepo.create({
+          postId: post.id,
+          userId: approvedDoctorUser.id,
+          parentCommentId: rootComment.id,
+          content: 'Rất vui vì thông tin này giúp ích cho bạn. Hãy chia sẻ cho người thân nhé!',
+          status: 'visible',
+        }));
+
+        // Add a reaction to root comment from admin
+        await txReactionRepo.save(txReactionRepo.create({
+          commentId: rootComment.id,
+          userId: adminUser.id,
+          type: 'like',
+        }));
+      }
+    }
   });
 
   const counts = await Promise.all([
@@ -606,6 +670,7 @@ async function seed() {
     bookingRepo.count(),
     postRepo.count(),
     commentRepo.count(),
+    reactionRepo.count(),
   ]);
 
   // eslint-disable-next-line no-console
@@ -623,6 +688,7 @@ async function seed() {
       `bookings=${counts[8]}`,
       `posts=${counts[9]}`,
       `comments=${counts[10]}`,
+      `reactions=${counts[11]}`,
     ].join(' | '),
   );
 

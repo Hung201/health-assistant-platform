@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Post } from './post.entity';
 import { User } from './user.entity';
+import { CommentReaction } from './comment-reaction.entity';
 
 @Entity('comments')
 export class Comment {
@@ -48,5 +50,9 @@ export class Comment {
   @JoinColumn({ name: 'parent_comment_id' })
   parentComment: Comment | null;
 
+  @OneToMany(() => Comment, (c) => c.parentComment)
   replies: Comment[];
+
+  @OneToMany(() => CommentReaction, (r) => r.comment)
+  reactions: CommentReaction[];
 }

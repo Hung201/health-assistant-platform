@@ -13,6 +13,7 @@ const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/patient/bookings', icon: 'event', label: 'Lịch hẹn của tôi' },
   { href: '/patient/profile', icon: 'person', label: 'Hồ sơ' },
   { href: '/patient/security', icon: 'security', label: 'Bảo mật' },
+  { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
 ];
 
 function navActive(pathname: string, href: string) {

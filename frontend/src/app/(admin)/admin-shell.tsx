@@ -18,6 +18,7 @@ const NAV: { href: string; icon: string; label: string; badgeFrom?: 'pendingPost
   { href: '/admin/posts/pending', icon: 'article', label: 'Duyệt bài viết', badgeFrom: 'pendingPosts' },
   { href: '/admin/specialties', icon: 'category', label: 'Chuyên khoa' },
   { href: '/admin/settings', icon: 'settings', label: 'Cài đặt' },
+  { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
 ];
 
 function navActive(pathname: string, href: string) {

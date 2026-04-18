@@ -214,6 +214,85 @@ export const doctorApi = {
   myBookings: () => api<DoctorBookingRow[]>('/doctor/bookings'),
 };
 
+export type DoctorPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  status: string;
+  postType: string;
+  viewCount: string;
+  createdAt: string;
+};
+
+export type DoctorPostDetail = DoctorPostRow & {
+  content: string;
+  thumbnailUrl: string | null;
+  rejectionReason: string | null;
+};
+
+export const doctorPostsApi = {
+  list: (page = 1, limit = 20) => api<Paginated<DoctorPostRow>>(`/doctor/posts?page=${page}&limit=${limit}`),
+  detail: (id: string) => api<DoctorPostDetail>(`/doctor/posts/${id}`),
+  create: (data: any) =>
+    api<{ ok: boolean; id: string }>('/doctor/posts', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: any) =>
+    api<{ ok: boolean; id: string }>(`/doctor/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) => api<{ ok: boolean }>(`/doctor/posts/${id}`, { method: 'DELETE' }),
+};
+
+export type PublicPostRow = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  thumbnailUrl: string | null;
+  postType: string;
+  viewCount: number;
+  publishedAt: string;
+  authorName: string;
+};
+
+export type PublicPostDetail = PublicPostRow & {
+  content: string;
+  authorId: string;
+};
+
+export type CommentRow = {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  likesCount: number;
+  isLikedByMe: boolean;
+  replies: CommentRow[];
+};
+
+export const publicPostsApi = {
+  list: (page = 1, limit = 20) => apiPublic<Paginated<PublicPostRow>>(`/posts?page=${page}&limit=${limit}`),
+  detail: (slug: string) => apiPublic<PublicPostDetail>(`/posts/${slug}`),
+  comments: (slug: string) => apiPublic<CommentRow[]>(`/posts/${slug}/comments`),
+  addComment: (slug: string, data: { content: string; parentCommentId?: number }) =>
+    api<CommentRow>(`/posts/${slug}/comments`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  reactComment: (commentId: string) =>
+    api<{ liked: boolean }>(`/posts/comments/${commentId}/react`, {
+      method: 'POST',
+    }),
+};
+
 export type AdminDashboardSummary = {
   totalUsers: number;
   totalPatients: number;
