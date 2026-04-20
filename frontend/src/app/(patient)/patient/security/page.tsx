@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { usersApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
+import { Lock, ShieldAlert, KeyRound, CheckCircle2, AlertCircle } from 'lucide-react';
 
 function Field({
   label,
@@ -21,9 +22,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</div>
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</div>
       <input
-        className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#003f87] focus:bg-white focus:ring-4 focus:ring-[#003f87]/10 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-slate-400"
         disabled={disabled}
         placeholder={placeholder}
         type={type}
@@ -40,51 +41,80 @@ export default function PatientSecurityPage() {
   const [saving, setSaving] = useState(false);
 
   return (
-    <div className="space-y-4">
-      <header>
-        <h2 className="text-2xl font-bold text-foreground">Bảo mật</h2>
-        <p className="text-sm text-muted-foreground">Đổi mật khẩu và bảo vệ tài khoản của bạn.</p>
+    <div className="space-y-8 pb-12 max-w-4xl mx-auto">
+      <header className="text-center mb-10">
+        <div className="w-16 h-16 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-100 shadow-sm">
+           <Lock size={32} />
+        </div>
+        <h2 className="text-3xl font-extrabold text-[#003f87]">Cài đặt bảo mật</h2>
+        <p className="mt-2 text-sm font-medium text-slate-500">Đổi mật khẩu và thiết lập các biện pháp bảo vệ tài khoản của bạn.</p>
       </header>
 
-      <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-        <div className="mb-4">
-          <div className="text-sm font-semibold text-foreground">Đổi mật khẩu</div>
-          <div className="mt-1 text-xs text-muted-foreground">
-            Nếu bạn tạo tài khoản bằng Google, bạn có thể để trống mật khẩu hiện tại để đặt mật khẩu lần đầu.
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 sm:p-10 border-b border-slate-100">
+          <div className="flex items-start gap-4 mb-8">
+             <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+               <KeyRound size={20} />
+             </div>
+             <div>
+               <h3 className="text-xl font-extrabold text-slate-900">Đổi mật khẩu</h3>
+               <p className="text-sm font-medium text-slate-500 mt-1">
+                 Nếu bạn đăng nhập bằng Google, bạn có thể để trống mật khẩu hiện tại để tạo mật khẩu lần đầu.
+               </p>
+             </div>
+          </div>
+
+          <div className="space-y-6">
+            <Field
+              label="Mật khẩu hiện tại (tuỳ chọn)"
+              type="password"
+              value={pw.current}
+              disabled={saving}
+              onChange={(v) => setPw((s) => ({ ...s, current: v }))}
+              placeholder="••••••••"
+            />
+            <div className="w-full h-px bg-slate-100 my-2"></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Field
+                label="Mật khẩu mới"
+                type="password"
+                value={pw.next}
+                disabled={saving}
+                onChange={(v) => setPw((s) => ({ ...s, next: v }))}
+                placeholder="Tối thiểu 8 ký tự"
+              />
+              <Field
+                label="Nhập lại mật khẩu mới"
+                type="password"
+                value={pw.confirm}
+                disabled={saving}
+                onChange={(v) => setPw((s) => ({ ...s, confirm: v }))}
+                placeholder="Nhập lại mật khẩu mới"
+              />
+            </div>
+          </div>
+
+          <div className="mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+             <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Yêu cầu mật khẩu an toàn:</h4>
+             <ul className="space-y-2 text-sm font-medium text-slate-500">
+                <li className="flex items-center gap-2">
+                   <CheckCircle2 size={16} className={pw.next.length >= 8 ? "text-emerald-500" : "text-slate-300"} />
+                   Tối thiểu 8 ký tự
+                </li>
+                <li className="flex items-center gap-2">
+                   <CheckCircle2 size={16} className={pw.next.length > 0 && pw.next === pw.confirm ? "text-emerald-500" : "text-slate-300"} />
+                   Mật khẩu xác nhận phải khớp
+                </li>
+             </ul>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field
-            label="Mật khẩu hiện tại (tuỳ chọn)"
-            type="password"
-            value={pw.current}
-            disabled={saving}
-            onChange={(v) => setPw((s) => ({ ...s, current: v }))}
-            placeholder="••••••••"
-          />
-          <div />
-          <Field
-            label="Mật khẩu mới"
-            type="password"
-            value={pw.next}
-            disabled={saving}
-            onChange={(v) => setPw((s) => ({ ...s, next: v }))}
-            placeholder="Tối thiểu 8 ký tự"
-          />
-          <Field
-            label="Nhập lại mật khẩu mới"
-            type="password"
-            value={pw.confirm}
-            disabled={saving}
-            onChange={(v) => setPw((s) => ({ ...s, confirm: v }))}
-            placeholder="Nhập lại mật khẩu mới"
-          />
-        </div>
-
-        <div className="mt-5 flex items-center justify-end">
+        <div className="p-8 sm:p-10 bg-slate-50 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+             <ShieldAlert size={16} /> Chúng tôi mã hóa 100% dữ liệu của bạn
+          </div>
           <button
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#003f87] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#003f87]/20 transition-all hover:bg-[#002b5e] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:transform-none"
             disabled={saving}
             type="button"
             onClick={async () => {
@@ -103,7 +133,7 @@ export default function PatientSecurityPage() {
                   newPassword: pw.next,
                 });
                 setPw({ current: '', next: '', confirm: '' });
-                toast.show({ variant: 'success', title: 'Thành công', message: 'Đã đổi mật khẩu.' });
+                toast.show({ variant: 'success', title: 'Thành công', message: 'Đã cập nhật mật khẩu mới an toàn.' });
               } catch (err) {
                 toast.show({
                   variant: 'error',
@@ -115,11 +145,15 @@ export default function PatientSecurityPage() {
               }
             }}
           >
-            {saving ? 'Đang đổi…' : 'Đổi mật khẩu'}
+            {saving ? (
+               <>
+                 <div className="w-4 h-4 border-2 border-white border-r-transparent rounded-full animate-spin"></div>
+                 Đang cập nhật...
+               </>
+            ) : 'Cập nhật mật khẩu'}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
