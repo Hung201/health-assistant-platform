@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { usersApi } from '@/lib/api';
@@ -26,7 +26,7 @@ function pickRedirect(roles: string[], next: string | null) {
   return '/';
 }
 
-export default function GoogleOauthCallbackPage() {
+function GoogleOauthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextParam = searchParams.get('next');
@@ -87,6 +87,14 @@ export default function GoogleOauthCallbackPage() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function GoogleOauthCallbackPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background-light px-6 text-slate-700">Đang tải...</div>}>
+      <GoogleOauthCallbackContent />
+    </Suspense>
   );
 }
 

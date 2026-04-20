@@ -1,77 +1,78 @@
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
+from src.schemas.diagnostic_request_schema import PatientContext
 from src.schemas.diagnostic_schema import DiagnosticResult
 
 
 class ChatMessage(BaseModel):
-    """Một lượt tin nhắn trong lịch sử hội thoại."""
-    role: Literal["user", "assistant"] = Field(..., description="Vai trò người gửi")
-    content: str = Field(..., min_length=1, description="Nội dung tin nhắn")
+    """Mot luot tin nhan trong lich su hoi thoai."""
+    role: Literal["user", "assistant"] = Field(..., description="Vai tro nguoi gui")
+    content: str = Field(..., min_length=1, description="Noi dung tin nhan")
 
 
 class ChatRequest(BaseModel):
-    """Request body cho endpoint chat đa lượt."""
+    """Request body cho endpoint chat da luot."""
     session_id: Optional[str] = Field(
         None,
-        description="ID phiên hội thoại (do frontend quản lý, có thể để trống ở lần đầu)"
+        description="ID phien hoi thoai; co the de trong o lan dau"
     )
     message: str = Field(
         ...,
         min_length=1,
         max_length=2000,
-        description="Tin nhắn mới nhất của người dùng"
+        description="Tin nhan moi nhat cua nguoi dung"
     )
     history: List[ChatMessage] = Field(
         default_factory=list,
-        description="Lịch sử hội thoại trước đó (không kể message hiện tại)"
+        description="Lich su hoi thoai truoc do; hien backend AI dang tu quan ly bang DB"
     )
     user_location: Optional[str] = Field(
         None,
-        description=(
-            "Địa chỉ / vị trí người dùng để gợi ý cơ sở y tế gần đó "
-            "(VD: 'Hoàn Kiếm, Hà Nội'). Nếu không có, tính năng gợi ý bệnh viện sẽ bị bỏ qua."
-        ),
+        description="Dia chi/vi tri nguoi dung de goi y co so y te gan do"
+    )
+    user_id: Optional[str] = Field(
+        None,
+        description="ID user da duoc backend xac thuc, dung de gan chat session voi users.id"
+    )
+    patient_context: Optional[PatientContext] = Field(
+        None,
+        description="Ngu canh benh nhan do backend da xac thuc truyen sang de ca nhan hoa phan tich"
     )
 
 
-# ─── Hospital Suggestion Schemas ────────────────────────────────────────────
-
 class HospitalResult(BaseModel):
-    """Thông tin một cơ sở y tế."""
-    name: str = Field(..., description="Tên bệnh viện / phòng khám")
-    address: Optional[str] = Field(None, description="Địa chỉ")
-    phone: Optional[str] = Field(None, description="Số điện thoại")
-    specialty: Optional[str] = Field(None, description="Chuyên khoa (nếu có trong OSM)")
-    amenity_type: Optional[str] = Field(None, description="Loại: hospital | clinic | doctors")
+    """Thong tin mot co so y te."""
+    name: str = Field(..., description="Ten benh vien/phong kham")
+    address: Optional[str] = Field(None, description="Dia chi")
+    phone: Optional[str] = Field(None, description="So dien thoai")
+    specialty: Optional[str] = Field(None, description="Chuyen khoa neu co trong OSM")
+    amenity_type: Optional[str] = Field(None, description="Loai: hospital | clinic | doctors")
 
 
 class HospitalSuggestion(BaseModel):
-    """Kết quả gợi ý cơ sở y tế – chỉ xuất hiện khi confidence ≥ ngưỡng."""
+    """Ket qua goi y co so y te."""
     invitation_text: str = Field(
         ...,
-        description="Câu mời thân thiện kèm số lượng cơ sở tìm thấy"
+        description="Cau moi than thien kem so luong co so tim thay"
     )
-    hospitals: List[HospitalResult] = Field(..., description="Danh sách cơ sở y tế gần đó")
-    search_radius_km: int = Field(..., description="Bán kính tìm kiếm (km)")
-    location_used: str = Field(..., description="Địa chỉ đã dùng để tìm kiếm")
+    hospitals: List[HospitalResult] = Field(..., description="Danh sach co so y te gan do")
+    search_radius_km: int = Field(..., description="Ban kinh tim kiem (km)")
+    location_used: str = Field(..., description="Dia chi da dung de tim kiem")
 
 
 class ChatResponse(BaseModel):
-    """Response từ chat endpoint."""
-    session_id: str = Field(..., description="ID phiên hội thoại")
-    reply: str = Field(..., description="Câu trả lời của AI")
+    """Response tu chat endpoint."""
+    session_id: str = Field(..., description="ID phien hoi thoai")
+    reply: str = Field(..., description="Cau tra loi cua AI")
     is_ready_to_diagnose: bool = Field(
         False,
-        description="True khi AI đã thu thập đủ thông tin để phân tích"
+        description="True khi AI da thu thap du thong tin de phan tich"
     )
     final_result: Optional[DiagnosticResult] = Field(
         None,
-        description="Kết quả chẩn đoán sơ bộ (chỉ có khi is_ready_to_diagnose=True)"
+        description="Ket qua chan doan so bo"
     )
     hospital_suggestion: Optional[HospitalSuggestion] = Field(
         None,
-        description=(
-            "Gợi ý cơ sở y tế gần đó. Chỉ xuất hiện khi "
-            "is_ready_to_diagnose=True và confidence ≥ 70% và user_location được cung cấp."
-        ),
+        description="Goi y co so y te gan do neu co du location va confidence"
     )

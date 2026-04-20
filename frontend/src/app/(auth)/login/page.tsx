@@ -3,7 +3,7 @@
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { User, Lock, Eye, EyeOff, Activity, ArrowLeft } from 'lucide-react';
 
 import { authApi, usersApi } from '@/lib/api';
@@ -13,7 +13,7 @@ import { syncAuthToLegacyStorage, useAuthStore } from '@/stores/auth.store';
 const HERO_IMAGE =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuC-wsAzrANdti2F347u__dOveI66sI4mBuOdZo7Ru6Sj273HhkwAhBBO66ANG3vpXXetlM_wWSis_Uk6EyDXkK3GSef947upzxP6FVTlzzltSy3FZqJ-t9e2v8D-fgb_vkRA0JkvHy7_u_IUXGov9G80MRtaJf8xSOWSsyKWVrHGVXpO3Z0AQfU9Wqak_RdRtUfScAlQGTenX_vDraSsLfzqqVEkdqzABGiGd3S-jYEiUY6CUFFqHGCZeMU8eD9mIAHRc1Zkv6ntwFR';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextParam = searchParams.get('next');
@@ -246,5 +246,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-[#eefaf8] text-sm text-slate-600">Đang tải...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
