@@ -2,15 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChatStore } from '@/stores/chat.store';
+import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon } from 'lucide-react';
 
 export default function AIAssistantPage() {
   const [input, setInput] = useState('');
   const [location, setLocation] = useState('');
   const messages = useChatStore((s) => s.messages);
   const isLoading = useChatStore((s) => s.isLoading);
-  const hospitalSuggestion = useChatStore((s) => s.hospitalSuggestion);
   const sendMessage = useChatStore((s) => s.sendMessage);
-  const resetChat = useChatStore((s) => s.resetChat);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -30,157 +29,183 @@ export default function AIAssistantPage() {
     await sendMessage(text, location);
   };
 
+  // Default mock messages if store is empty (to match design)
+  const displayMessages = messages.length > 0 ? messages : [
+    {
+      role: 'assistant',
+      content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải hoặc tải lên kết quả xét nghiệm để tôi hỗ trợ phân tích ban đầu.',
+      timestamp: new Date().toISOString()
+    },
+    {
+      role: 'user',
+      content: 'Tôi cảm thấy đau tức ngực trái âm ỉ khoảng 2 ngày nay, thỉnh thoảng thấy khó thở khi leo cầu thang.',
+      timestamp: new Date().toISOString()
+    },
+    {
+      role: 'assistant',
+      content: 'Cảm ơn thông tin của bạn. Ngoài đau ngực, bạn có thấy vã mồ hôi, buồn nôn hay đau lan ra cánh tay trái không? Độ tuổi hiện tại của bạn là bao nhiêu?',
+      timestamp: new Date().toISOString()
+    }
+  ];
+
   return (
-    <div className="flex h-[calc(100vh-120px)] flex-col gap-4 overflow-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            Trợ lý sức khỏe AI
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Tư vấn triệu chứng và tìm kiếm cơ sở y tế gần bạn.
-          </p>
+    <div className="flex h-[calc(100vh-120px)] gap-6">
+      {/* Left Column: Chat Area */}
+      <div className="flex flex-[2] flex-col rounded-2xl bg-white shadow-sm border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full bg-teal-500"></span>
+            <h2 className="font-bold text-slate-800">AI Assistant Trực Tuyến</h2>
+          </div>
+          <div className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold tracking-wider text-slate-500">
+            PHIÊN: #DX-2024
+          </div>
         </div>
-        <button
-          onClick={resetChat}
-          className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+
+        {/* Messages */}
+        <div 
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto p-6 space-y-6"
         >
-          <span className="material-symbols-outlined text-[18px]">refresh</span>
-          Làm mới hội thoại
-        </button>
-      </header>
-
-      <div className="flex flex-1 gap-6 overflow-hidden">
-        {/* Main Chat Area */}
-        <div className="relative flex flex-1 flex-col rounded-2xl border border-border bg-card shadow-xl overflow-hidden">
-          {/* Messages */}
-          <div
-            ref={scrollRef}
-            className="flex-1 space-y-4 overflow-y-auto p-4 scroll-smooth"
-          >
-            {messages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-center opacity-60">
-                <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                  <span className="material-symbols-outlined text-4xl">chat_bubble</span>
-                </div>
-                <h3 className="text-lg font-semibold">Bắt đầu trò chuyện</h3>
-                <p className="max-w-xs text-sm">
-                  Hãy mô tả các triệu chứng bạn đang gặp phải (VD: "Tôi bị đau đầu và ho kéo dài").
-                </p>
+          {displayMessages.map((msg, idx) => (
+            <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
+                msg.role === 'user' ? 'bg-[#eefaf8] text-teal-700' : 'bg-[#003f87] text-white'
+              }`}>
+                {msg.role === 'user' ? <UserIcon size={16} /> : <Bot size={16} />}
               </div>
-            ) : (
-              messages.map((msg, idx) => (
-                <div
-                  key={idx}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2.5 shadow-sm ${msg.role === 'user'
-                        ? 'bg-primary text-white rounded-tr-none'
-                        : 'bg-muted text-foreground rounded-tl-none border border-border'
-                      }`}
-                  >
-                    <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
-                    <p className={`mt-1 text-[10px] opacity-70 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl bg-muted px-4 py-3 text-foreground rounded-tl-none border border-border">
-                  <div className="flex gap-1">
-                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground"></div>
-                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.2s]"></div>
-                    <div className="size-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:0.4s]"></div>
-                  </div>
-                </div>
+              <div className={`rounded-2xl px-5 py-4 text-sm max-w-[80%] shadow-sm ${
+                msg.role === 'user' 
+                  ? 'bg-[#003f87] text-white rounded-tr-none' 
+                  : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'
+              }`}>
+                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
               </div>
-            )}
-          </div>
-
-          {/* Input Area */}
-          <div className="border-t border-slate-100 p-4 bg-slate-50/50">
-            <div className="mb-1 flex items-center gap-2">
-              {/* Thanh địa chỉ đã được loại bỏ để chuyển sang nhận diện qua chat */}
             </div>
-            <form onSubmit={handleSend} className="flex gap-2">
-              <input
-                type="text"
-                placeholder="Nhập triệu chứng tại đây..."
-                className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm shadow-inner transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                autoFocus
-              />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="flex size-11 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
-              >
-                <span className="material-symbols-outlined">send</span>
-              </button>
-            </form>
-          </div>
+          ))}
+          {isLoading && (
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#003f87] text-white">
+                <Bot size={16} />
+              </div>
+              <div className="rounded-2xl rounded-tl-none bg-slate-50 border border-slate-100 px-5 py-4">
+                <div className="flex gap-1.5">
+                  <div className="size-1.5 animate-bounce rounded-full bg-slate-400"></div>
+                  <div className="size-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:0.2s]"></div>
+                  <div className="size-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:0.4s]"></div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Sidebar Suggestions Area */}
-        {hospitalSuggestion && (
-          <div className="w-80 space-y-4 overflow-y-auto animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <div className="mb-2 flex items-center gap-2 text-primary">
-                <span className="material-symbols-outlined text-[20px]">medical_services</span>
-                <span className="text-sm font-bold uppercase tracking-wider">Gợi ý từ AI</span>
-              </div>
-              <p className="mb-4 text-xs font-medium text-muted-foreground leading-relaxed">
-                {hospitalSuggestion.invitation_text}
-              </p>
+        {/* Input */}
+        <div className="border-t border-slate-100 p-4 bg-slate-50/50">
+          <form onSubmit={handleSend} className="relative flex items-center">
+            <button type="button" className="absolute left-4 text-slate-400 hover:text-teal-600 transition-colors">
+              <Paperclip size={20} />
+            </button>
+            <input
+              type="text"
+              placeholder="Nhập triệu chứng của bạn..."
+              className="w-full rounded-xl border border-slate-200 bg-white py-4 pl-12 pr-24 text-sm outline-none transition-all focus:border-teal-400 focus:ring-2 focus:ring-teal-100 shadow-sm"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="absolute right-2 flex items-center gap-2 rounded-lg bg-[#003f87] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#0056b3] disabled:opacity-50"
+            >
+              Gửi <Send size={16} className="ml-1" />
+            </button>
+          </form>
+        </div>
+      </div>
 
-              <div className="space-y-3">
-                {hospitalSuggestion.hospitals.map((h, i) => (
-                  <div key={i} className="rounded-xl border border-border bg-background/60 p-3 shadow-sm hover:shadow-md transition-shadow">
-                    <p className="font-bold text-foreground text-sm">{h.name}</p>
-                    <p className="mt-1 flex items-start gap-1 text-[11px] text-muted-foreground">
-                      <span className="material-symbols-outlined text-[14px] mt-0.5 text-muted-foreground">location_on</span>
-                      {h.address}
-                    </p>
-                    {h.phone && (
-                      <p className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
-                        <span className="material-symbols-outlined text-[14px] text-muted-foreground">phone</span>
-                        {h.phone}
-                      </p>
-                    )}
-                    <div className="mt-2 flex items-center gap-1.5">
-                      <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary uppercase">
-                        {h.amenity_type || 'Bệnh viện'}
-                      </span>
-                      {h.specialty && (
-                        <span className="rounded bg-muted px-1.5 py-0.5 text-[9px] font-bold text-foreground">
-                          {h.specialty}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Right Column: Diagnostics & History */}
+      <div className="flex flex-[1] flex-col gap-6">
+        {/* Diagnostics Card */}
+        <div className="rounded-2xl bg-white shadow-sm border-l-4 border-l-[#003f87] border-y border-r border-slate-200 p-6 flex flex-col">
+          <h3 className="text-lg font-bold text-[#003f87] mb-1">Kết quả chẩn đoán dự kiến</h3>
+          <p className="text-xs text-slate-500 mb-6">Dựa trên các triệu chứng được cung cấp</p>
 
-              <p className="mt-4 text-[10px] italic text-muted-foreground">
-                Tìm kiếm trong bán kính {hospitalSuggestion.search_radius_km}km.
-              </p>
+          <div className="space-y-5 mb-8">
+            {/* Progress Item 1 */}
+            <div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-bold text-slate-800">Đau thắt ngực (Angina)</span>
+                <span className="text-lg font-bold text-[#003f87]">65%</span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-[#003f87]" style={{ width: '65%' }}></div>
+              </div>
             </div>
-
-            <div className="rounded-2xl border border-border bg-muted p-4 text-foreground text-xs">
-              <p className="font-bold flex items-center gap-1 mb-1 text-primary">
-                <span className="material-symbols-outlined text-[18px]">warning</span>
-                Lưu ý quan trọng:
-              </p>
-              Gợi ý của AI chỉ mang tính tham khảo sơ bộ. Nếu bạn gặp các triệu chứng cấp cứu (đau ngực, khó thở...), hãy gọi ngay 115 hoặc đến cơ sở y tế gần nhất.
+            {/* Progress Item 2 */}
+            <div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-bold text-slate-800">Rối loạn lo âu</span>
+                <span className="text-lg font-bold text-slate-600">25%</span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-slate-400" style={{ width: '25%' }}></div>
+              </div>
+            </div>
+            {/* Progress Item 3 */}
+            <div>
+              <div className="flex justify-between items-end mb-2">
+                <span className="text-sm font-bold text-slate-800">Trào ngược dạ dày</span>
+                <span className="text-lg font-bold text-slate-600">10%</span>
+              </div>
+              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div className="h-full rounded-full bg-slate-300" style={{ width: '10%' }}></div>
+              </div>
             </div>
           </div>
-        )}
+
+          <div className="rounded-xl border border-red-100 bg-red-50 p-4 flex gap-3 mb-6">
+            <AlertTriangle className="text-red-500 shrink-0" size={20} />
+            <p className="text-xs font-semibold text-red-700 leading-relaxed italic">
+              Kết quả chỉ mang tính tham khảo. AI không thay thế chẩn đoán chuyên môn của bác sĩ. Vui lòng đến cơ sở y tế gần nhất nếu triệu chứng trầm trọng.
+            </p>
+          </div>
+
+          <button className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-100/50 py-3.5 text-sm font-bold text-[#003f87] transition-all hover:bg-indigo-100">
+            <UserSearch size={18} />
+            Tìm bác sĩ chuyên khoa phù hợp
+          </button>
+        </div>
+
+        {/* History Card */}
+        <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex-1 flex flex-col min-h-0">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">Lịch sử phiên hỏi</h3>
+            <History size={18} className="text-[#003f87]" />
+          </div>
+
+          <div className="space-y-3 overflow-y-auto pr-2">
+            {[
+              { title: 'Đau ngực & Khó thở', date: '15/03/2024' },
+              { title: 'Nhức đầu kéo dài', date: '12/03/2024' },
+              { title: 'Ho khan về đêm', date: '08/03/2024' },
+            ].map((item, idx) => (
+              <div key={idx} className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#003f87] group-hover:bg-[#003f87]/10 transition-colors">
+                    <FileText size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">{item.date}</p>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-slate-400 group-hover:text-[#003f87] transition-colors" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
