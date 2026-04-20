@@ -14,6 +14,14 @@ function statusBadgeClass(status: string) {
   return 'bg-muted text-muted-foreground';
 }
 
+type BookingStats = {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  cancelled: number;
+};
+
 export default function DoctorBookingsPage() {
   const toast = useToast();
   const [query, setQuery] = useState('');
@@ -38,11 +46,15 @@ export default function DoctorBookingsPage() {
     });
   }, [data, query, status]);
 
-  const stats = useMemo(() => {
+  const stats = useMemo<BookingStats>(() => {
     const rows = data ?? [];
-    const by = { pending: 0, approved: 0, rejected: 0, cancelled: 0 } as Record<string, number>;
-    for (const r of rows) by[r.status] = (by[r.status] ?? 0) + 1;
-    return { total: rows.length, ...by };
+    const by: BookingStats = { total: rows.length, pending: 0, approved: 0, rejected: 0, cancelled: 0 };
+    for (const r of rows) {
+      if (r.status === 'pending' || r.status === 'approved' || r.status === 'rejected' || r.status === 'cancelled') {
+        by[r.status] += 1;
+      }
+    }
+    return by;
   }, [data]);
 
   useEffect(() => {

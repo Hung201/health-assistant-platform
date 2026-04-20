@@ -34,7 +34,7 @@ interface ChatState {
   setSessionId: (id: string) => void;
 }
 
-const API_URL = 'http://localhost:8000/api/v1/chat/';
+const API_URL = '/api/ai/chat';
 
 export const useChatStore = create<ChatState>()(
   persist(
@@ -70,16 +70,16 @@ export const useChatStore = create<ChatState>()(
         });
 
         try {
-          // 2. Call AI Service API
+          // 2. Call backend AI proxy so the request carries the authenticated user cookie.
           const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
+            credentials: 'include',
             body: JSON.stringify({
               session_id: currentSessionId,
               message: message,
-              history: [], // History is now managed by backend, but schema might still require it
               user_location: location || null
             }),
           });

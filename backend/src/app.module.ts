@@ -10,6 +10,7 @@ import { DoctorsModule } from './doctors/doctors.module';
 import { BookingsModule } from './bookings/bookings.module';
 import { DoctorPortalModule } from './doctor-portal/doctor-portal.module';
 import { PostsModule } from './posts/posts.module';
+import { AiModule } from './ai/ai.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -25,6 +26,7 @@ import { AppService } from './app.service';
     BookingsModule,
     DoctorPortalModule,
     PostsModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [
