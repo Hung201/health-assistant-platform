@@ -37,7 +37,7 @@ export default function Home() {
     queryKey: ['public-doctors-home'],
     queryFn: () => doctorsApi.list({ limit: 4 }),
   });
-  
+
   const { data: blogsData } = useQuery({
     queryKey: ['public-posts-home'],
     queryFn: () => publicPostsApi.list(1, 3),
@@ -117,7 +117,7 @@ export default function Home() {
         <section className="relative overflow-hidden pb-24 pt-16 lg:pb-32 lg:pt-24 bg-[#e6f7f5]/30">
           <div className="absolute inset-0 -z-10 bg-[url('https://images.unsplash.com/photo-1576091160550-2173ff9e5ee5?q=80&w=2069&auto=format&fit=crop')] bg-cover bg-center opacity-10" />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white via-white/90 to-transparent" />
-          
+
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="max-w-2xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-sm font-bold text-teal-700 ring-1 ring-inset ring-teal-600/20">
@@ -130,7 +130,7 @@ export default function Home() {
               <p className="mb-10 text-lg leading-relaxed text-slate-600 max-w-xl">
                 Ứng dụng trí tuệ nhân tạo tiên tiến giúp bạn phân tích triệu chứng ban đầu, tìm bác sĩ phù hợp và đặt lịch khám nhanh chóng.
               </p>
-              
+
               <div className="flex flex-wrap items-center gap-4 mb-16">
                 <Link href={aiHref} className="flex items-center gap-2 rounded-full bg-teal-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:shadow-xl hover:-translate-y-0.5">
                   <Activity size={20} />
@@ -169,7 +169,7 @@ export default function Home() {
                 Đội ngũ bác sĩ trải rộng trên nhiều lĩnh vực, sẵn sàng hỗ trợ bạn.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {SPECIALTIES.map((spec) => {
                 const Icon = spec.icon;
@@ -197,24 +197,25 @@ export default function Home() {
                 <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600 mb-3">Bác sĩ ưu tú</h3>
                 <h2 className="text-3xl font-extrabold text-slate-900">Đội ngũ chuyên gia hàng đầu</h2>
               </div>
-              <a className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 group" href="#">
+              <Link className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 group" href="/doctors">
                 Xem tất cả
                 <span className="transition-transform group-hover:translate-x-1">→</span>
-              </a>
+              </Link>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {doctorsData?.items?.length ? (
                 doctorsData.items.map((doctor) => (
-                  <article
-                    className="group overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:shadow-xl hover:-translate-y-1"
+                  <Link
+                    className="group overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 block"
                     key={doctor.userId}
+                    href={`/doctors/${doctor.userId}`}
                   >
                     <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
-                      <img 
-                        alt={doctor.fullName} 
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                        src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'} 
+                      <img
+                        alt={doctor.fullName}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
@@ -226,7 +227,7 @@ export default function Home() {
                         {doctor.specialties?.[0]?.name || 'Đa khoa'}
                       </p>
                     </div>
-                  </article>
+                  </Link>
                 ))
               ) : (
                 <div className="col-span-4 text-center py-12 text-slate-500">
@@ -247,7 +248,7 @@ export default function Home() {
                 Cập nhật những thông tin y khoa mới nhất từ đội ngũ chuyên gia.
               </p>
             </div>
-            
+
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {blogsData?.items?.length ? (
                 blogsData.items.map((article) => (
@@ -256,10 +257,10 @@ export default function Home() {
                     key={article.id}
                   >
                     <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                      <img 
-                        alt={article.title} 
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                        src={article.thumbnailUrl || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop'} 
+                      <img
+                        alt={article.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        src={article.thumbnailUrl || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop'}
                       />
                     </div>
                     <div className="flex flex-1 flex-col p-6 lg:p-8">
@@ -297,13 +298,13 @@ export default function Home() {
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-extrabold text-[#003f87]">Clinical Precision</h2>
             </div>
-            
+
             <div className="flex gap-6 text-sm font-medium text-slate-600">
               <a href="#" className="hover:text-teal-600 transition-colors">Chính sách bảo mật</a>
               <a href="#" className="hover:text-teal-600 transition-colors">Điều khoản sử dụng</a>
               <a href="#" className="hover:text-teal-600 transition-colors">Liên hệ</a>
             </div>
-            
+
             <p className="text-[10px] uppercase tracking-widest text-slate-400">
               © 2024 ETHOS CLINICAL SYSTEMS. ALL RIGHTS RESERVED.
             </p>
