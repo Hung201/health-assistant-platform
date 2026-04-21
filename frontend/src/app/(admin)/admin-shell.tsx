@@ -33,7 +33,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   const { data: summary } = useQuery({
     queryKey: ['admin', 'dashboard', 'summary'],
-    queryFn: adminApi.dashboardSummary,
+    queryFn: () => adminApi.dashboardSummary(30),
     enabled: true,
     staleTime: 30_000,
   });

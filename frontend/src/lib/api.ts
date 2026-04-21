@@ -295,6 +295,35 @@ export type DoctorBookingRow = MyBookingRow & {
   guestEmail: string | null;
 };
 
+export type DoctorPaymentSummary = {
+  totalBookings: number;
+  pendingApprovalBookings: number;
+  payment: {
+    periodDays: number;
+    paidBookings: number;
+    unpaidBookings: number;
+    awaitingGatewayBookings: number;
+    payAtClinicBookings: number;
+    paidRatePct: number;
+    paidRevenue: number;
+    periodPaidRevenue: number;
+    previousPeriodPaidRevenue: number;
+    revenueGrowthPct: number;
+    todayPaidRevenue: number;
+    monthPaidRevenue: number;
+  };
+  revenueByMethod: Array<{
+    paymentMethod: string;
+    paidBookings: number;
+    revenue: number;
+  }>;
+  revenueTrend: Array<{
+    date: string;
+    paidBookings: number;
+    revenue: number;
+  }>;
+};
+
 export const doctorApi = {
   mySlots: () => api<DoctorSlotRow[]>('/doctor/slots'),
   createSlot: (data: { startAt: string; endAt: string; maxBookings: number }) =>
@@ -302,6 +331,7 @@ export const doctorApi = {
   cancelSlot: (id: number) =>
     api<{ ok: boolean; id: number; status: string }>(`/doctor/slots/${id}/cancel`, { method: 'PATCH' }),
   myBookings: () => api<DoctorBookingRow[]>('/doctor/bookings'),
+  dashboardPaymentSummary: (days = 30) => api<DoctorPaymentSummary>(`/doctor/dashboard/payment-summary?days=${days}`),
   approveBooking: (bookingId: string) =>
     api<{ ok: boolean; id: string; status: string; paymentStatus: string }>(
       `/doctor/bookings/${encodeURIComponent(bookingId)}/approve`,
@@ -401,6 +431,37 @@ export type AdminDashboardSummary = {
   pendingPosts: number;
   totalSpecialties: number;
   pendingBookings: number;
+  payment: {
+    periodDays: number;
+    paidBookings: number;
+    unpaidBookings: number;
+    awaitingGatewayBookings: number;
+    payAtClinicBookings: number;
+    paidRatePct: number;
+    paidRevenue: number;
+    pendingRevenue: number;
+    currentMonthRevenue: number;
+    previousMonthRevenue: number;
+    periodRevenue: number;
+    previousPeriodRevenue: number;
+    revenueGrowthPct: number;
+  };
+  revenueByMethod: Array<{
+    paymentMethod: string;
+    paidBookings: number;
+    revenue: number;
+  }>;
+  topDoctorsByRevenue: Array<{
+    doctorUserId: string;
+    doctorName: string;
+    paidBookings: number;
+    revenue: number;
+  }>;
+  revenueTrend: Array<{
+    date: string;
+    paidBookings: number;
+    revenue: number;
+  }>;
 };
 
 export type AdminUserRow = {
@@ -469,7 +530,7 @@ export type Paginated<T> = {
 };
 
 export const adminApi = {
-  dashboardSummary: () => api<AdminDashboardSummary>('/admin/dashboard/summary'),
+  dashboardSummary: (days = 30) => api<AdminDashboardSummary>(`/admin/dashboard/summary?days=${days}`),
 
   listUsers: (page = 1, limit = 20) =>
     api<AdminUsersResponse>(`/admin/users?page=${page}&limit=${limit}`),

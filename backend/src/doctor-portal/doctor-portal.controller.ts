@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -43,6 +44,12 @@ export class DoctorPortalController {
   @Get('bookings')
   myBookings(@CurrentUser() user: User) {
     return this.bookingsService.listDoctorBookings(user);
+  }
+
+  @Get('dashboard/payment-summary')
+  paymentSummary(@CurrentUser() user: User, @Query('days') days?: string) {
+    const parsedDays = days ? Number(days) : undefined;
+    return this.bookingsService.doctorPaymentSummary(user, Number.isFinite(parsedDays) ? parsedDays : undefined);
   }
 
   @Patch('bookings/:bookingId/approve')
