@@ -569,15 +569,192 @@ export class BookingsService {
     return rows.map((b) => {
       const patient = b.patientUserId ? patientById.get(b.patientUserId) : undefined;
       return {
-      ...mapBookingRow(b),
-      patientUserId: b.patientUserId,
-      patientFullName: patient?.fullName ?? null,
-      patientEmail: patient?.email ?? null,
-      patientPhone: patient?.phone ?? null,
-      guestFullName: b.guestFullName,
-      guestPhone: b.guestPhone,
-      guestEmail: b.guestEmail,
+        ...mapBookingRow(b),
+        patientUserId: b.patientUserId,
+        patientFullName: patient?.fullName ?? null,
+        patientEmail: patient?.email ?? null,
+        patientPhone: patient?.phone ?? null,
+        guestFullName: b.guestFullName,
+        guestPhone: b.guestPhone,
+        guestEmail: b.guestEmail,
       };
     });
+  }
+
+  async doctorPaymentSummary(currentUser: User, days?: number) {
+    if (!hasRole(currentUser, 'doctor')) {
+      throw new ForbiddenException('Chỉ bác sĩ mới có thể xem thống kê');
+    }
+
+    const now = new Date();
+    const allowedRanges = new Set([7, 30, 90]);
+    const periodDays = days && allowedRanges.has(days) ? days : 30;
+    const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const previousPeriodStart = new Date(periodStart.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
+    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const [
+      totalBookings,
+      paidBookings,
+      unpaidBookings,
+      awaitingGatewayBookings,
+      payAtClinicBookings,
+      pendingApprovalBookings,
+      paidRevenueRaw,
+      previousPeriodPaidRevenueRaw,
+      revenueByMethodRaw,
+      revenueTrendRaw,
+    ] = await Promise.all([
+      this.bookingRepo.count({ where: { doctorUserId: currentUser.id } }),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'unpaid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'awaiting_gateway' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'pay_at_clinic' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo.count({ where: { doctorUserId: currentUser.id, status: 'pending' } }),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :previousPeriodStart', { previousPeriodStart: previousPeriodStart.toISOString() })
+        .andWhere('b.created_at < :periodStart', { periodStart: periodStart.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('b.payment_method', 'paymentMethod')
+        .addSelect('COUNT(*)', 'paidBookings')
+        .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .groupBy('b.payment_method')
+        .orderBy('COALESCE(SUM(b.total_fee), 0)', 'DESC')
+        .getRawMany<{ paymentMethod: string; paidBookings: string; revenue: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select(`TO_CHAR(DATE_TRUNC('day', b.created_at), 'YYYY-MM-DD')`, 'date')
+        .addSelect('COUNT(*)', 'paidBookings')
+        .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .groupBy(`DATE_TRUNC('day', b.created_at)`)
+        .orderBy(`DATE_TRUNC('day', b.created_at)`, 'ASC')
+        .getRawMany<{ date: string; paidBookings: string; revenue: string }>(),
+    ]);
+
+    const paidRevenue = Number(paidRevenueRaw?.value ?? 0);
+    const previousPeriodPaidRevenue = Number(previousPeriodPaidRevenueRaw?.value ?? 0);
+    const trackedPaymentTotal = paidBookings + unpaidBookings + awaitingGatewayBookings + payAtClinicBookings;
+    const paidRatePct = trackedPaymentTotal > 0 ? Number(((paidBookings / trackedPaymentTotal) * 100).toFixed(1)) : 0;
+    const revenueGrowthPct =
+      previousPeriodPaidRevenue > 0
+        ? Number((((paidRevenue - previousPeriodPaidRevenue) / previousPeriodPaidRevenue) * 100).toFixed(1))
+        : paidRevenue > 0
+          ? 100
+          : 0;
+    const trendByDate = new Map(
+      revenueTrendRaw.map((row) => [
+        row.date,
+        {
+          paidBookings: Number(row.paidBookings ?? 0),
+          revenue: Number(row.revenue ?? 0),
+        },
+      ]),
+    );
+    const revenueTrend = Array.from({ length: periodDays }, (_, i) => {
+      const d = new Date(periodStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      const found = trendByDate.get(key);
+      return {
+        date: key,
+        paidBookings: found?.paidBookings ?? 0,
+        revenue: found?.revenue ?? 0,
+      };
+    });
+
+    const [todayPaidRevenueRaw, monthPaidRevenueRaw] = await Promise.all([
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :todayStart', { todayStart: todayStart.toISOString() })
+        .andWhere('b.created_at < :tomorrowStart', { tomorrowStart: tomorrowStart.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+        .andWhere('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', {
+          periodStart: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString(),
+        })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getRawOne<{ value: string }>(),
+    ]);
+
+    const todayPaidRevenue = Number(todayPaidRevenueRaw?.value ?? 0);
+    const monthPaidRevenue = Number(monthPaidRevenueRaw?.value ?? 0);
+
+    return {
+      totalBookings,
+      pendingApprovalBookings,
+      payment: {
+        periodDays,
+        paidBookings,
+        unpaidBookings,
+        awaitingGatewayBookings,
+        payAtClinicBookings,
+        paidRatePct,
+        paidRevenue,
+        periodPaidRevenue: paidRevenue,
+        previousPeriodPaidRevenue,
+        revenueGrowthPct,
+        todayPaidRevenue,
+        monthPaidRevenue,
+      },
+      revenueByMethod: revenueByMethodRaw.map((row) => ({
+        paymentMethod: row.paymentMethod,
+        paidBookings: Number(row.paidBookings ?? 0),
+        revenue: Number(row.revenue ?? 0),
+      })),
+      revenueTrend,
+    };
   }
 }

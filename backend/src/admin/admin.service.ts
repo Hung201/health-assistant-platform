@@ -39,7 +39,12 @@ export class AdminService {
     return input.replace(/\s+/g, '').slice(0, 20);
   }
 
-  async dashboardSummary() {
+  async dashboardSummary(days?: number) {
+    const now = new Date();
+    const allowedRanges = new Set([7, 30, 90]);
+    const periodDays = days && allowedRanges.has(days) ? days : 30;
+    const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
+    const previousPeriodStart = new Date(periodStart.getTime() - periodDays * 24 * 60 * 60 * 1000);
     const [
       totalUsers,
       totalPatients,
@@ -48,6 +53,16 @@ export class AdminService {
       pendingPosts,
       totalSpecialties,
       pendingBookings,
+      paidBookings,
+      unpaidBookings,
+      awaitingGatewayBookings,
+      payAtClinicBookings,
+      paidRevenueRaw,
+      pendingRevenueRaw,
+      previousPeriodRevenueRaw,
+      topDoctorsRaw,
+      revenueByMethodRaw,
+      revenueTrendRaw,
     ] = await Promise.all([
       this.userRepo.count(),
       this.patientRepo.count(),
@@ -58,7 +73,118 @@ export class AdminService {
       this.postRepo.count({ where: { status: POST_STATUS_PENDING_REVIEW } }),
       this.specialtyRepo.count(),
       this.bookingRepo.count({ where: { status: 'pending' } }),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.payment_status = :status', { status: 'unpaid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.payment_status = :status', { status: 'awaiting_gateway' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .where('b.payment_status = :status', { status: 'pay_at_clinic' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getCount(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.payment_status IN (:...statuses)', { statuses: ['awaiting_gateway', 'unpaid'] })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('COALESCE(SUM(b.total_fee), 0)', 'value')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :previousPeriodStart', { previousPeriodStart: previousPeriodStart.toISOString() })
+        .andWhere('b.created_at < :periodStart', { periodStart: periodStart.toISOString() })
+        .getRawOne<{ value: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('b.doctor_user_id', 'doctorUserId')
+        .addSelect('MAX(b.doctor_name_snapshot)', 'doctorName')
+        .addSelect('COUNT(*)', 'paidBookings')
+        .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .groupBy('b.doctor_user_id')
+        .orderBy('COALESCE(SUM(b.total_fee), 0)', 'DESC')
+        .limit(5)
+        .getRawMany<{ doctorUserId: string; doctorName: string; paidBookings: string; revenue: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select('b.payment_method', 'paymentMethod')
+        .addSelect('COUNT(*)', 'paidBookings')
+        .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .groupBy('b.payment_method')
+        .orderBy('COALESCE(SUM(b.total_fee), 0)', 'DESC')
+        .getRawMany<{ paymentMethod: string; paidBookings: string; revenue: string }>(),
+      this.bookingRepo
+        .createQueryBuilder('b')
+        .select(`TO_CHAR(DATE_TRUNC('day', b.created_at), 'YYYY-MM-DD')`, 'date')
+        .addSelect('COUNT(*)', 'paidBookings')
+        .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
+        .where('b.payment_status = :status', { status: 'paid' })
+        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .groupBy(`DATE_TRUNC('day', b.created_at)`)
+        .orderBy(`DATE_TRUNC('day', b.created_at)`, 'ASC')
+        .getRawMany<{ date: string; paidBookings: string; revenue: string }>(),
     ]);
+
+    const paidRevenue = Number(paidRevenueRaw?.value ?? 0);
+    const pendingRevenue = Number(pendingRevenueRaw?.value ?? 0);
+    const previousPeriodRevenue = Number(previousPeriodRevenueRaw?.value ?? 0);
+    const paymentTrackedTotal = paidBookings + unpaidBookings + awaitingGatewayBookings + payAtClinicBookings;
+    const paidRatePct = paymentTrackedTotal > 0 ? Number(((paidBookings / paymentTrackedTotal) * 100).toFixed(1)) : 0;
+    const revenueGrowthPct =
+      previousPeriodRevenue > 0
+        ? Number((((paidRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100).toFixed(1))
+        : paidRevenue > 0
+          ? 100
+          : 0;
+    const trendByDate = new Map(
+      revenueTrendRaw.map((row) => [
+        row.date,
+        {
+          paidBookings: Number(row.paidBookings ?? 0),
+          revenue: Number(row.revenue ?? 0),
+        },
+      ]),
+    );
+    const revenueTrend = Array.from({ length: periodDays }, (_, i) => {
+      const d = new Date(periodStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      const found = trendByDate.get(key);
+      return {
+        date: key,
+        paidBookings: found?.paidBookings ?? 0,
+        revenue: found?.revenue ?? 0,
+      };
+    });
 
     return {
       totalUsers,
@@ -68,6 +194,33 @@ export class AdminService {
       pendingPosts,
       totalSpecialties,
       pendingBookings,
+      payment: {
+        periodDays,
+        paidBookings,
+        unpaidBookings,
+        awaitingGatewayBookings,
+        payAtClinicBookings,
+        paidRatePct,
+        paidRevenue,
+        pendingRevenue,
+        currentMonthRevenue: paidRevenue,
+        previousMonthRevenue: previousPeriodRevenue,
+        periodRevenue: paidRevenue,
+        previousPeriodRevenue,
+        revenueGrowthPct,
+      },
+      revenueByMethod: revenueByMethodRaw.map((row) => ({
+        paymentMethod: row.paymentMethod,
+        paidBookings: Number(row.paidBookings ?? 0),
+        revenue: Number(row.revenue ?? 0),
+      })),
+      topDoctorsByRevenue: topDoctorsRaw.map((row) => ({
+        doctorUserId: row.doctorUserId,
+        doctorName: row.doctorName || 'Bác sĩ',
+        paidBookings: Number(row.paidBookings ?? 0),
+        revenue: Number(row.revenue ?? 0),
+      })),
+      revenueTrend,
     };
   }
 
