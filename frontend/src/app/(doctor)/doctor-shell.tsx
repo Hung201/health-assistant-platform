@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { useAuthStore } from '@/stores/auth.store';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 
 const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/doctor', icon: 'home', label: 'Tổng quan' },
@@ -13,6 +12,8 @@ const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/doctor/posts', icon: 'article', label: 'Bài viết của tôi' },
   { href: '/doctor/profile', icon: 'stethoscope', label: 'Hồ sơ hành nghề' },
   { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
+  { href: '/doctor/security', icon: 'lock', label: 'Bảo mật' },
+  { href: '/doctor/settings', icon: 'settings', label: 'Cài đặt' },
 ];
 
 function navActive(pathname: string, href: string) {
@@ -55,12 +56,9 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="border-t border-border p-4">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-bold">{user?.fullName ?? 'Bác sĩ'}</span>
-              <span className="truncate text-xs text-muted-foreground">{user?.email ?? ''}</span>
-            </div>
-            <ModeToggle />
+          <div className="mb-3 flex min-w-0 flex-col">
+            <span className="truncate text-sm font-bold">{user?.fullName ?? 'Bác sĩ'}</span>
+            <span className="truncate text-xs text-muted-foreground">{user?.email ?? ''}</span>
           </div>
           <button
             className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { doctorApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
+import { loadDoctorPortalSettings } from '@/lib/doctor-settings';
 import { useAuthStore } from '@/stores/auth.store';
 
 function statusBadgeClass(status: string) {
@@ -44,6 +45,7 @@ export default function DoctorSlotsPage() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('09:30');
   const [maxBookings, setMaxBookings] = useState(5);
+  const [defaultDurationMinutes, setDefaultDurationMinutes] = useState(30);
   const [filter, setFilter] = useState<'upcoming' | 'all'>('upcoming');
   const [cancelSlotId, setCancelSlotId] = useState<number | null>(null);
   const [detailSlotId, setDetailSlotId] = useState<number | null>(null);
@@ -85,6 +87,14 @@ export default function DoctorSlotsPage() {
     const mm = String(total % 60).padStart(2, '0');
     setEndTime(`${hh}:${mm}`);
   };
+
+  useEffect(() => {
+    const settings = loadDoctorPortalSettings();
+    setDefaultDurationMinutes(settings.defaultSlotDurationMinutes);
+    setMaxBookings(settings.defaultMaxBookings);
+    applyDurationFromStart(settings.defaultSlotDurationMinutes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const createSlot = useMutation({
     mutationFn: () => {
@@ -295,6 +305,13 @@ export default function DoctorSlotsPage() {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground">Nhập nhanh thời lượng:</span>
+          <button
+            className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15"
+            onClick={() => applyDurationFromStart(defaultDurationMinutes)}
+            type="button"
+          >
+            Mặc định ({defaultDurationMinutes} phút)
+          </button>
           {[15, 30, 45, 60].map((minute) => (
             <button
               key={minute}
