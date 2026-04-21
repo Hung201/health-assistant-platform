@@ -496,6 +496,8 @@ async function seed() {
           availableSlotId: slot ? asNumberId(slot.id) : null,
           patientNote: 'Mình muốn tư vấn tổng quát.',
           status: 'pending',
+          paymentMethod: 'momo',
+          paymentStatus: 'unpaid',
           appointmentDate: apptDate,
           appointmentStartAt: startAt,
           appointmentEndAt: endAt,
