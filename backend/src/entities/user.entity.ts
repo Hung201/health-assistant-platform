@@ -43,7 +43,7 @@ export class User {
   @Column({ type: 'varchar', length: 20, nullable: true })
   gender: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'active' })
+  @Column({ type: 'varchar', length: 40, default: 'active' })
   status: string;
 
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })

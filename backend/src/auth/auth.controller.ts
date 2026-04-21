@@ -5,6 +5,8 @@ import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { VerifyPatientEmailDto } from './dto/verify-patient-email.dto';
+import { ResendPatientEmailCodeDto } from './dto/resend-patient-email-code.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { GoogleAuthUser } from './strategies/google.strategy';
 
@@ -16,6 +18,26 @@ export class AuthController {
   @Post('register')
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.register(dto);
+    if (result.access_token) {
+      res.cookie('access_token', result.access_token, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+    }
+    return {
+      ok: true,
+      requiresEmailVerification: result.requiresEmailVerification ?? false,
+      email: result.email ?? undefined,
+    };
+  }
+
+  @Public()
+  @Post('register/patient/verify-email')
+  async verifyPatientEmail(@Body() dto: VerifyPatientEmailDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.verifyPatientEmail(dto);
     res.cookie('access_token', result.access_token, {
       httpOnly: true,
       sameSite: 'lax',
@@ -23,6 +45,13 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });
+    return { ok: true };
+  }
+
+  @Public()
+  @Post('register/patient/resend-code')
+  async resendPatientCode(@Body() dto: ResendPatientEmailCodeDto) {
+    await this.authService.resendPatientEmailCode(dto);
     return { ok: true };
   }
 

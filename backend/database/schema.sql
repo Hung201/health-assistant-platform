@@ -17,7 +17,7 @@ CREATE TABLE users (
     avatar_public_id VARCHAR(255),
     date_of_birth DATE,
     gender VARCHAR(20),
-    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    status VARCHAR(40) NOT NULL DEFAULT 'active',
     email_verified_at TIMESTAMPTZ,
     phone_verified_at TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
@@ -37,6 +37,18 @@ CREATE TABLE user_identities (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (provider, provider_sub)
+);
+
+-- 1.2) patient_email_verifications (OTP xác thực email lúc đăng ký bệnh nhân)
+CREATE TABLE patient_email_verifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    code_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 2) roles

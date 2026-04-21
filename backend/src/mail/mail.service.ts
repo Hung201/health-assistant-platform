@@ -84,6 +84,23 @@ export class MailService {
     await this.sendRaw({ to, subject: `[Lịch khám] Đã xác nhận — ${bookingCode}`, html });
   }
 
+  async sendPatientVerifyCode(params: { to: string; fullName: string; code: string; expiresMinutes: number }) {
+    const { to, fullName, code, expiresMinutes } = params;
+    const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px">
+        <h2>Xác thực email đăng ký bệnh nhân</h2>
+        <p>Xin chào <strong>${fullName}</strong>,</p>
+        <p>Mã xác thực của bạn là:</p>
+        <div style="font-size:28px;font-weight:800;letter-spacing:4px;padding:12px 16px;background:#f3faf9;border:1px solid #d1eeea;border-radius:10px;display:inline-block">
+          ${code}
+        </div>
+        <p style="margin-top:16px">Mã có hiệu lực trong <strong>${expiresMinutes} phút</strong>.</p>
+        <p style="font-size:12px;color:#666">Nếu bạn không thực hiện đăng ký, vui lòng bỏ qua email này.</p>
+      </div>
+    `.trim();
+    await this.sendRaw({ to, subject: '[Clinical Precision] Mã xác thực đăng ký bệnh nhân', html });
+  }
+
   private async sendRaw(params: { to: string; subject: string; html: string }): Promise<void> {
     const from = this.config.get<string>('MAIL_FROM') || 'noreply@localhost';
     if (!this.transporter) {
