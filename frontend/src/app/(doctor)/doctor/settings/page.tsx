@@ -27,18 +27,18 @@ export default function DoctorSettingsPage() {
 
   return (
     <>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Cài đặt</h2>
           <p className="text-sm text-muted-foreground">Tuỳ chỉnh nhanh giao diện cho khu vực bác sĩ.</p>
         </div>
-        <Link className="text-sm font-medium text-primary hover:underline" href="/doctor">
+        <Link className="self-start text-sm font-medium text-primary hover:underline sm:self-auto" href="/doctor">
           ← Tổng quan
         </Link>
       </div>
 
-      <div className="max-w-3xl rounded-xl border border-border bg-muted p-6 text-sm text-foreground">
-        <div className="mb-5 flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+      <div className="w-full max-w-3xl rounded-xl border border-border bg-muted p-4 text-sm text-foreground sm:p-6">
+        <div className="mb-5 flex flex-col gap-3 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Giao diện</p>
             <p className="text-sm font-medium text-foreground">Bật/tắt chế độ sáng tối trong màn hình bác sĩ.</p>
@@ -46,7 +46,7 @@ export default function DoctorSettingsPage() {
           <button
             type="button"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+            className={`self-start inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors sm:self-auto ${
               isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
             }`}
             aria-label="Bật tắt chế độ sáng tối"
@@ -59,7 +59,7 @@ export default function DoctorSettingsPage() {
 
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Nhắc lịch</p>
                 <p className="text-sm font-medium text-foreground">Nhắc bác sĩ trước giờ khám để tránh bỏ sót lịch hẹn.</p>
@@ -166,10 +166,10 @@ export default function DoctorSettingsPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+        <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
             type="button"
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+            className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60 sm:w-auto"
             disabled={!loaded}
             onClick={() => {
               setSettings(defaultDoctorPortalSettings);
@@ -181,7 +181,7 @@ export default function DoctorSettingsPage() {
           </button>
           <button
             type="button"
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             disabled={!loaded}
             onClick={() => {
               saveDoctorPortalSettings(settings);
