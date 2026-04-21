@@ -114,6 +114,9 @@ async def _get_or_create_session(db: AsyncSession, session_id: Optional[str], us
         db.add(session)
         await db.flush()
         logger.info(f"Created new chat session: {session.id}")
+    elif user_id and not session.user_id:
+        session.user_id = uuid.UUID(user_id)
+        await db.flush()
     
     return session
 
@@ -137,7 +140,7 @@ async def chat(
 
     # 1. Lấy hoặc tạo session
     # Lưu ý: body mang session_id từ frontend (thường là UUID)
-    session = await _get_or_create_session(db, body.session_id)
+    session = await _get_or_create_session(db, body.session_id, body.user_id)
     
     # 2. Lưu tin nhắn người dùng
     user_tokens = _estimate_tokens(body.message)
@@ -169,6 +172,10 @@ async def chat(
     saved_location = (session.metadata_json or {}).get("user_location")
     if saved_location:
         messages.append(SystemMessage(content=f"LƯU Ý: Người dùng đã cho biết họ ở gần: {saved_location}"))
+    if body.patient_context:
+        ctx_str = body.patient_context.to_context_string()
+        if ctx_str:
+            messages.append(SystemMessage(content=f"LƯU Ý: Thông tin bệnh nhân đã xác thực từ hệ thống: {ctx_str}"))
 
     for msg in history_msgs:
         if msg.role == "user":
@@ -240,6 +247,10 @@ async def chat(
             combined_symptoms = " ".join([m.content for m in history_msgs if m.role == "user"])
             if body.message not in combined_symptoms:
                 combined_symptoms += " " + body.message
+            if body.patient_context:
+                ctx_str = body.patient_context.to_context_string()
+                if ctx_str:
+                    combined_symptoms = f"[Thông tin bệnh nhân: {ctx_str}]\n\nTriệu chứng: {combined_symptoms}"
 
             logger.info(f"[Chat] Ready to diagnose. Session: {session.id}")
             final_result = diagnostic_agent.analyze(combined_symptoms)

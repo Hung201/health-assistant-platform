@@ -238,6 +238,30 @@ CREATE TABLE comments (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 16) chat_sessions
+-- Luu phien chat cua AI Service. Dat trong schema chinh de Docker init DB moi
+-- khong bi thieu bang khi frontend/backend goi AI chat.
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    total_tokens INTEGER DEFAULT 0,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 17) chat_messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id UUID NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    token_count INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- ============================================================
 -- Indexes
 -- ============================================================
@@ -255,3 +279,5 @@ CREATE INDEX idx_posts_status_published_at ON posts(status, published_at DESC);
 CREATE INDEX idx_posts_author ON posts(author_user_id);
 CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_comments_parent ON comments(parent_comment_id);
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
