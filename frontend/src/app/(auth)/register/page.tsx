@@ -249,18 +249,20 @@ export default function RegisterPage() {
 
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div>
-                      <label className={labelFieldClass} htmlFor="specialty">Chuyên khoa</label>
+                      <label className={labelFieldClass} htmlFor="specialty">Chuyên khoa chính</label>
                       <SelectWithIcon 
                         icon={Stethoscope}
                         id="specialty"
                         value={specialtyId}
+                        required
                         onChange={(e: any) => setSpecialtyId(e.target.value)}
                       >
-                        <option value="">Chọn chuyên khoa</option>
+                        <option value="">Chọn 1 chuyên khoa chính</option>
                         {apiSpecialties?.map((s) => (
                           <option key={s.id} value={String(s.id)}>{s.name}</option>
                         ))}
                       </SelectWithIcon>
+                      <p className="mt-1 text-xs text-slate-500">Mỗi bác sĩ chỉ thuộc 1 chuyên khoa để đồng bộ lịch và báo cáo.</p>
                     </div>
                     <div>
                       <label className={labelFieldClass} htmlFor="license">Số chứng chỉ hành nghề</label>
@@ -415,7 +417,7 @@ export default function RegisterPage() {
               <div className="pt-6">
                 <button
                   className={btnPrimaryClass}
-                  disabled={registerMutation.isPending || pwdMismatch || password.length < 6}
+                  disabled={registerMutation.isPending || pwdMismatch || password.length < 6 || (kind === 'doctor' && !specialtyId)}
                   type="submit"
                 >
                   {registerMutation.isPending ? 'Đang xử lý...' : `Đăng ký tài khoản ${kind === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân'}`}

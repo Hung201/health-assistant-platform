@@ -53,6 +53,15 @@ export class DoctorsService {
     return Boolean(user.userRoles?.some((ur) => ur.role?.code === code));
   }
 
+  private async getPrimarySpecialtyLink(doctorUserId: string): Promise<DoctorSpecialty | null> {
+    const links = await this.doctorSpecialtyRepo.find({
+      where: { doctorUserId },
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
+      take: 1,
+    });
+    return links[0] ?? null;
+  }
+
   async listPublicDoctors(params: {
     specialtyId?: number;
     page?: number;
@@ -73,7 +82,7 @@ export class DoctorsService {
       qb.innerJoin(
         DoctorSpecialty,
         'ds_filter',
-        'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid',
+        'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid AND ds_filter.is_primary = TRUE',
         { sid: specialtyId },
       );
     }
@@ -87,7 +96,7 @@ export class DoctorsService {
     const doctorIds = doctors.map((d) => d.userId);
     const links = await this.doctorSpecialtyRepo.find({
       where: doctorIds.map((id) => ({ doctorUserId: id })),
-      order: { isPrimary: 'DESC' },
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
     });
 
     const specIds = Array.from(new Set(links.map((l) => Number(l.specialtyId))));
@@ -101,12 +110,11 @@ export class DoctorsService {
 
     const byDoctor = new Map<string, PublicDoctorCard['specialties']>();
     for (const l of links) {
+      if (byDoctor.has(l.doctorUserId)) continue;
       const sid = Number(l.specialtyId);
       const s = specById.get(sid);
       if (!s) continue;
-      const arr = byDoctor.get(l.doctorUserId) ?? [];
-      arr.push({ id: sid, name: s.name, isPrimary: Boolean(l.isPrimary) });
-      byDoctor.set(l.doctorUserId, arr);
+      byDoctor.set(l.doctorUserId, [{ id: sid, name: s.name, isPrimary: true }]);
     }
 
     const items = doctors.map((d) => ({
@@ -128,11 +136,8 @@ export class DoctorsService {
     });
     if (!d) throw new NotFoundException('Không tìm thấy bác sĩ');
 
-    const links = await this.doctorSpecialtyRepo.find({
-      where: { doctorUserId },
-      order: { isPrimary: 'DESC' },
-    });
-    const specIds = Array.from(new Set(links.map((l) => Number(l.specialtyId))));
+    const primaryLink = await this.getPrimarySpecialtyLink(doctorUserId);
+    const specIds = primaryLink ? [Number(primaryLink.specialtyId)] : [];
     const specs = specIds.length
       ? await this.specialtyRepo.find({
           where: specIds.map((id) => ({ id, status: 'active' })),
@@ -140,14 +145,14 @@ export class DoctorsService {
         })
       : [];
     const specById = new Map(specs.map((s) => [Number(s.id), s]));
-    const specialties = links
-      .map((l) => {
-        const sid = Number(l.specialtyId);
-        const s = specById.get(sid);
-        if (!s) return null;
-        return { id: sid, name: s.name, isPrimary: Boolean(l.isPrimary) };
-      })
-      .filter(Boolean) as Array<{ id: number; name: string; isPrimary: boolean }>;
+    const specialties = primaryLink
+      ? (() => {
+          const sid = Number(primaryLink.specialtyId);
+          const s = specById.get(sid);
+          if (!s) return [];
+          return [{ id: sid, name: s.name, isPrimary: true }];
+        })()
+      : [];
 
     return {
       userId: d.userId,
@@ -236,14 +241,30 @@ export class DoctorsService {
     if (endAt <= startAt) throw new BadRequestException('endAt phải sau startAt');
     if (startAt.getTime() < Date.now()) throw new BadRequestException('startAt phải ở tương lai');
 
-    let specialtyId: number | null = null;
-    if (dto.specialtyId != null) {
-      const spec = await this.specialtyRepo.findOne({ where: { id: dto.specialtyId, status: 'active' } });
-      if (!spec) throw new BadRequestException('Chuyên khoa không hợp lệ');
-      specialtyId = Number(spec.id);
+    const primaryLink = await this.getPrimarySpecialtyLink(currentUser.id);
+    if (!primaryLink) {
+      throw new BadRequestException('Bác sĩ chưa được gán chuyên khoa chính');
     }
+    const spec = await this.specialtyRepo.findOne({
+      where: { id: Number(primaryLink.specialtyId), status: 'active' },
+    });
+    if (!spec) throw new BadRequestException('Chuyên khoa chính không hợp lệ hoặc đã ngưng hoạt động');
+    const specialtyId = Number(spec.id);
 
     const slotDate = new Date(startAt.toISOString().slice(0, 10));
+
+    // Prevent overlapping slot windows for the same doctor.
+    const overlapped = await this.slotRepo
+      .createQueryBuilder('s')
+      .where('s.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
+      .andWhere('s.status <> :cancelled', { cancelled: 'cancelled' })
+      .andWhere('s.start_at < :newEndAt', { newEndAt: endAt.toISOString() })
+      .andWhere('s.end_at > :newStartAt', { newStartAt: startAt.toISOString() })
+      .getOne();
+    if (overlapped) {
+      throw new BadRequestException('Khung giờ bị trùng với slot đã tồn tại');
+    }
+
     const slot = await this.slotRepo.save(
       this.slotRepo.create({
         doctorUserId: currentUser.id,

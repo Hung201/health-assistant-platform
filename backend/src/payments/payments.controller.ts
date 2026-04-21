@@ -10,7 +10,7 @@ export class PaymentsController {
   @Public()
   @Post('momo/ipn')
   @UsePipes(new ValidationPipe({ whitelist: false, forbidNonWhitelisted: false, transform: true }))
-  async momoIpn(@Body() body: Record<string, string | number | undefined>) {
+  async momoIpn(@Body() body?: Record<string, string | number | undefined>) {
     return this.paymentsService.handleMomoIpn(body);
   }
 }

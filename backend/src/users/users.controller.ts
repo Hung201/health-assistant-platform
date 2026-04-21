@@ -33,10 +33,12 @@ export class UsersController {
   async me(@CurrentUser() user: User) {
     const u = await this.usersService.findById(user.id);
     if (!u) return null;
+    const doctorSpecialty = await this.usersService.getDoctorPrimarySpecialty(user.id);
     const roles = u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) || [];
     return {
       ...instanceToPlain(u),
       roles,
+      doctorSpecialty,
       patientProfile: u.patientProfile
         ? {
             emergencyContactName: u.patientProfile.emergencyContactName,
@@ -145,16 +147,20 @@ export class UsersController {
               dto.doctorProfile.isAvailableForBooking === undefined ? undefined : (dto.doctorProfile.isAvailableForBooking as any),
           }
         : undefined,
+      doctorSpecialtyId:
+        dto.doctorProfile?.specialtyId === undefined ? undefined : Number(dto.doctorProfile.specialtyId),
     });
 
     const u = await this.usersService.findById(user.id);
     if (!u) throw new BadRequestException('Không tìm thấy user');
+    const doctorSpecialty = await this.usersService.getDoctorPrimarySpecialty(user.id);
     const roles = u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) || [];
     return {
       ok: true,
       user: {
         ...instanceToPlain(u),
         roles,
+        doctorSpecialty,
         patientProfile: u.patientProfile
           ? {
               emergencyContactName: u.patientProfile.emergencyContactName,

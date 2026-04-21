@@ -47,10 +47,11 @@ export class MomoService {
     return crypto.createHmac('sha256', secret).update(raw).digest('hex');
   }
 
-  verifyIpnSignature(body: Record<string, string | number | undefined>): boolean {
+  verifyIpnSignature(body: Record<string, string | number | undefined> | null | undefined): boolean {
     const secret = this.config.get<string>('MOMO_SECRET_KEY');
     const accessKey = this.config.get<string>('MOMO_ACCESS_KEY');
     if (!secret || !accessKey) return false;
+    if (!body || typeof body !== 'object') return false;
 
     const amount = body.amount;
     const extraData = (body.extraData as string) ?? '';

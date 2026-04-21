@@ -44,6 +44,11 @@ export class BookingsController {
     return this.bookingsService.getMyBookingDetail(user, id);
   }
 
+  @Get('me/:id/payment')
+  myBookingPayment(@CurrentUser() user: User, @Param('id', new ParseUUIDPipe()) id: string) {
+    return this.bookingsService.getMyBookingPayment(user, id);
+  }
+
   @Patch('me/:id/cancel')
   cancelMyBooking(
     @CurrentUser() user: User,

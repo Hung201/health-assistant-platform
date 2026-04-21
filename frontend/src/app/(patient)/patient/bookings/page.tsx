@@ -2,7 +2,20 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, User as UserIcon, Tag, Clock, CircleDollarSign, CheckCircle2, FileText, AlertCircle, Trash2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+  Calendar,
+  User as UserIcon,
+  Clock,
+  CircleDollarSign,
+  CheckCircle2,
+  FileText,
+  AlertCircle,
+  Trash2,
+  X,
+  Wallet,
+  ExternalLink,
+} from 'lucide-react';
 
 import { bookingsApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
@@ -36,12 +49,23 @@ function paymentStatusText(row: { paymentStatus: string; paymentMethod: string }
   return 'Chưa thanh toán';
 }
 
+function paymentBadgeClass(row: { paymentStatus: string; paymentMethod: string }) {
+  if (row.paymentMethod === 'pay_at_clinic') {
+    return 'bg-blue-50 text-blue-700 border border-blue-200';
+  }
+  if (row.paymentStatus === 'paid') return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+  if (row.paymentStatus === 'awaiting_gateway') return 'bg-amber-50 text-amber-700 border border-amber-200';
+  if (row.paymentStatus === 'failed') return 'bg-red-50 text-red-700 border border-red-200';
+  return 'bg-slate-100 text-slate-600 border border-slate-200';
+}
+
 export default function PatientBookingsPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['patient', 'bookings', 'me'],
@@ -56,6 +80,13 @@ export default function PatientBookingsPage() {
     queryFn: () => bookingsApi.detail(selectedId as string),
     enabled: Boolean(selectedId),
     staleTime: 10_000,
+  });
+
+  const { data: paymentInfo, isLoading: isLoadingPaymentInfo } = useQuery({
+    queryKey: ['patient', 'booking', 'payment', selectedId],
+    queryFn: () => bookingsApi.paymentInfo(selectedId as string),
+    enabled: Boolean(selectedId),
+    staleTime: 5_000,
   });
 
   const cancelMutation = useMutation({
@@ -75,6 +106,10 @@ export default function PatientBookingsPage() {
       });
     },
   });
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!selectedId && !cancelId) return;
@@ -175,10 +210,11 @@ export default function PatientBookingsPage() {
       </div>
 
       {/* Detail modal */}
-      {selectedId && selectedRow ? (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" aria-modal="true" role="dialog">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity" onClick={() => setSelectedId(null)} />
-          <div className="relative w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      {isMounted && selectedId && selectedRow
+        ? createPortal(
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6" aria-modal="true" role="dialog">
+            <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[2px] transition-opacity" onClick={() => setSelectedId(null)} />
+            <div className="relative w-full max-w-2xl rounded-[2rem] bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             
             <div className="p-6 sm:p-8 border-b border-slate-100 flex items-start justify-between bg-slate-50/50">
               <div>
@@ -239,6 +275,70 @@ export default function PatientBookingsPage() {
                         <span className="text-lg font-extrabold text-emerald-600">{Number(selectedRow.totalFee).toLocaleString()} ₫</span>
                      </div>
                   </div>
+               </div>
+
+               {/* Payment Center */}
+               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                 <div className="flex items-start justify-between gap-3">
+                   <div>
+                     <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                       <Wallet size={14} />
+                       Thanh toán
+                     </h4>
+                     <p className="mt-2 text-sm font-medium text-slate-600">
+                       {isLoadingPaymentInfo ? 'Đang kiểm tra trạng thái thanh toán…' : paymentInfo?.message ?? '—'}
+                     </p>
+                   </div>
+                   <span
+                     className={cn(
+                       'rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider',
+                       paymentBadgeClass(selectedRow),
+                     )}
+                   >
+                     {paymentStatusText(selectedRow)}
+                   </span>
+                 </div>
+
+                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                   <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bước 1</div>
+                     <div className="mt-1 text-xs font-semibold text-slate-700">Đặt lịch</div>
+                   </div>
+                   <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bước 2</div>
+                     <div className="mt-1 text-xs font-semibold text-slate-700">Bác sĩ xác nhận</div>
+                   </div>
+                   <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+                     <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Bước 3</div>
+                     <div className="mt-1 text-xs font-semibold text-slate-700">Thanh toán hoàn tất</div>
+                   </div>
+                 </div>
+
+                 {paymentInfo?.payUrl ? (
+                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                     <a
+                       href={paymentInfo.payUrl}
+                       target="_blank"
+                       rel="noreferrer"
+                       className={cn(
+                         'inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition-colors',
+                         paymentInfo.canPayNow ? 'bg-[#ae2070] hover:bg-[#961b61]' : 'bg-slate-400 pointer-events-none',
+                       )}
+                     >
+                       Mở MoMo để thanh toán <ExternalLink size={16} />
+                     </a>
+                     <button
+                       type="button"
+                       onClick={() => {
+                         navigator.clipboard?.writeText(paymentInfo.payUrl ?? '');
+                         toast.show({ variant: 'info', title: 'Đã copy', message: 'Đã sao chép liên kết thanh toán.' });
+                       }}
+                       className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                     >
+                       Sao chép link thanh toán
+                     </button>
+                   </div>
+                 ) : null}
                </div>
 
                {/* Additional Details */}
@@ -314,15 +414,18 @@ export default function PatientBookingsPage() {
                 </button>
               ) : null}
             </div>
-          </div>
-        </div>
-      ) : null}
+            </div>
+          </div>,
+          document.body,
+        )
+        : null}
 
       {/* Cancel confirm modal */}
-      {cancelId ? (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" aria-modal="true" role="dialog">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => { setCancelId(null); setCancelReason(''); }} />
-          <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl p-8">
+      {isMounted && cancelId
+        ? createPortal(
+          <div className="fixed inset-0 z-[1010] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+            <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[2px]" onClick={() => { setCancelId(null); setCancelReason(''); }} />
+            <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl p-8">
             <div className="w-16 h-16 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-6">
                <AlertCircle size={32} />
             </div>
@@ -364,9 +467,11 @@ export default function PatientBookingsPage() {
                 Quay lại
               </button>
             </div>
-          </div>
-        </div>
-      ) : null}
+            </div>
+          </div>,
+          document.body,
+        )
+        : null}
     </div>
   );
 }

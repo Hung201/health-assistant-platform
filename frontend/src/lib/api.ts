@@ -82,6 +82,10 @@ export type AuthUser = {
     isVerified: boolean;
     verificationStatus: string;
   };
+  doctorSpecialty?: null | {
+    id: number;
+    name: string;
+  };
   roles: string[];
 };
 
@@ -126,7 +130,18 @@ export const usersApi = {
     return res.json() as Promise<{ ok: boolean; avatarUrl: string }>;
   },
   updateMe: (
-    data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile' | 'doctorProfile'>>,
+    data: Partial<Pick<AuthUser, 'fullName' | 'phone' | 'dateOfBirth' | 'gender' | 'patientProfile'>> & {
+      doctorProfile?: {
+        professionalTitle?: string | null;
+        licenseNumber?: string | null;
+        yearsOfExperience?: number | null;
+        bio?: string | null;
+        workplaceName?: string | null;
+        consultationFee?: string | number | null;
+        isAvailableForBooking?: boolean | null;
+        specialtyId?: number | null;
+      };
+    },
   ) =>
     api<{ ok: boolean; user: AuthUser }>('/users/me', {
       method: 'PATCH',
@@ -216,9 +231,21 @@ export type MyBookingDetail = MyBookingRow & {
   updatedAt: string;
 };
 
+export type MyBookingPaymentInfo = {
+  bookingId: string;
+  bookingCode: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  canPayNow: boolean;
+  payUrl: string | null;
+  providerOrderId: string | null;
+  message: string;
+};
+
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
   detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
+  paymentInfo: (id: string) => api<MyBookingPaymentInfo>(`/bookings/me/${encodeURIComponent(id)}/payment`),
   create: (data: {
     availableSlotId: number;
     specialtyId?: number;
@@ -260,6 +287,9 @@ export const bookingsApi = {
 export type DoctorSlotRow = PublicDoctorSlot;
 export type DoctorBookingRow = MyBookingRow & {
   patientUserId: string | null;
+  patientFullName: string | null;
+  patientEmail: string | null;
+  patientPhone: string | null;
   guestFullName: string | null;
   guestPhone: string | null;
   guestEmail: string | null;
@@ -267,7 +297,7 @@ export type DoctorBookingRow = MyBookingRow & {
 
 export const doctorApi = {
   mySlots: () => api<DoctorSlotRow[]>('/doctor/slots'),
-  createSlot: (data: { startAt: string; endAt: string; maxBookings: number; specialtyId?: number }) =>
+  createSlot: (data: { startAt: string; endAt: string; maxBookings: number }) =>
     api<{ ok: boolean; id: number }>('/doctor/slots', { method: 'POST', body: JSON.stringify(data) }),
   cancelSlot: (id: number) =>
     api<{ ok: boolean; id: number; status: string }>(`/doctor/slots/${id}/cancel`, { method: 'PATCH' }),

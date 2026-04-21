@@ -39,15 +39,12 @@ function GuestBookingPage() {
     staleTime: 30_000,
   });
 
-  const primarySpecId = useMemo(() => {
-    const s = doctor?.specialties?.find((x) => x.isPrimary) ?? doctor?.specialties?.[0];
-    return s?.id;
-  }, [doctor]);
+  const doctorSpecialtyId = doctor?.specialties?.[0]?.id;
 
   const { data: slots } = useQuery({
-    queryKey: ['public', 'doctorSlots', doctorUserId, primarySpecId],
-    queryFn: () => doctorsApi.slots(doctorUserId, { specialtyId: primarySpecId }),
-    enabled: Boolean(doctorUserId && primarySpecId),
+    queryKey: ['public', 'doctorSlots', doctorUserId],
+    queryFn: () => doctorsApi.slots(doctorUserId),
+    enabled: Boolean(doctorUserId),
     staleTime: 10_000,
   });
 
@@ -78,7 +75,7 @@ function GuestBookingPage() {
       if (selectedSlotId == null) throw new Error('Chọn khung giờ');
       return bookingsApi.createGuest({
         availableSlotId: selectedSlotId,
-        specialtyId: primarySpecId,
+        specialtyId: doctorSpecialtyId,
         patientNote: patientNote.trim() || undefined,
         guestFullName: guestFullName.trim(),
         guestPhone: guestPhone.trim(),

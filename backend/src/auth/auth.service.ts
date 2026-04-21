@@ -86,6 +86,9 @@ export class AuthService {
       });
     } else if (roleCode === 'doctor') {
       const manager = this.userRoleRepository.manager;
+      if (dto.specialtyId == null || Number.isNaN(Number(dto.specialtyId))) {
+        throw new BadRequestException('Bác sĩ phải chọn 1 chuyên khoa chính');
+      }
       const license =
         dto.licenseNumber != null && dto.licenseNumber.trim() !== ''
           ? dto.licenseNumber.trim()
@@ -94,20 +97,18 @@ export class AuthService {
         userId: savedUser.id,
         licenseNumber: license,
       });
-      if (dto.specialtyId != null) {
-        const spec = await manager.getRepository(Specialty).findOne({
-          where: { id: dto.specialtyId, status: 'active' },
-        });
-        if (!spec) {
-          throw new BadRequestException('Chuyên khoa không hợp lệ hoặc đã ngưng hoạt động');
-        }
-        const sid = typeof spec.id === 'string' ? Number(spec.id) : spec.id;
-        await manager.getRepository(DoctorSpecialty).save({
-          doctorUserId: savedUser.id,
-          specialtyId: sid,
-          isPrimary: true,
-        });
+      const spec = await manager.getRepository(Specialty).findOne({
+        where: { id: dto.specialtyId, status: 'active' },
+      });
+      if (!spec) {
+        throw new BadRequestException('Chuyên khoa không hợp lệ hoặc đã ngưng hoạt động');
       }
+      const sid = typeof spec.id === 'string' ? Number(spec.id) : spec.id;
+      await manager.getRepository(DoctorSpecialty).save({
+        doctorUserId: savedUser.id,
+        specialtyId: sid,
+        isPrimary: true,
+      });
     }
 
     const token = this.generateToken(savedUser.id, savedUser.email, [role.code]);
