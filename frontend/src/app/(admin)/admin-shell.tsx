@@ -6,7 +6,6 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { adminApi, authApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 
 const ADMIN_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDUMP08rYqsRC6ewEBgMsxpA7wgUXnnD0_tJeg2dhExPM2ln1Ca3iMmxnPBUW0UmmB3DEYtdNbJB1xAim7gPzNrVJU53gmTfuzIBL3S7OOTR42zSB5a1iGavXy8d-cQAVKTTb_uPOC5OTogepdSKi45wCd3XyTYt09oA2yneo4gz5dtjmRBrEbPorEN6XXxH-RbO5clcwFIn_ntipfYZgFS5BOFmjCt8mgzaOg6IYm-z1xnAhgNTWClY6c52k0uZZOqQhbD2IMGrgBu';
@@ -17,8 +16,8 @@ const NAV: { href: string; icon: string; label: string; badgeFrom?: 'pendingPost
   { href: '/admin/doctors/pending', icon: 'stethoscope', label: 'Duyệt bác sĩ', badgeFrom: 'pendingDoctors' },
   { href: '/admin/posts/pending', icon: 'article', label: 'Duyệt bài viết', badgeFrom: 'pendingPosts' },
   { href: '/admin/specialties', icon: 'category', label: 'Chuyên khoa' },
-  { href: '/admin/settings', icon: 'settings', label: 'Cài đặt' },
   { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
+  { href: '/admin/settings', icon: 'settings', label: 'Cài đặt' },
 ];
 
 function navActive(pathname: string, href: string) {
@@ -59,9 +58,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               MediAI
             </Link>
             <p className="text-xs text-muted-foreground">Quản trị</p>
-          </div>
-          <div className="ml-auto">
-            <ModeToggle />
           </div>
         </div>
         <nav className="flex-1 space-y-1 px-4">

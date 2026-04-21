@@ -2,14 +2,20 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { adminApi } from '@/lib/api';
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
-  const limit = 15;
+  const [limit, setLimit] = useState(15);
   const qc = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'patient' | 'doctor' | 'admin'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'disabled'>('all');
+  const [dense, setDense] = useState(false);
+  const [showPhone, setShowPhone] = useState(false);
+  const [showCreatedAt, setShowCreatedAt] = useState(true);
 
   const [detailId, setDetailId] = useState<string | null>(null);
   const [openCreate, setOpenCreate] = useState(false);
@@ -61,6 +67,10 @@ export default function AdminUsersPage() {
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
 
+  useEffect(() => {
+    setPage(1);
+  }, [limit]);
+
   function roleBadgeClass(role: string) {
     if (role === 'admin') return 'bg-amber-500/20 text-amber-700 dark:text-amber-300';
     if (role === 'doctor') return 'bg-indigo-500/15 text-indigo-700 dark:text-indigo-300';
@@ -68,14 +78,23 @@ export default function AdminUsersPage() {
     return 'bg-muted text-foreground';
   }
 
+  const filteredItems = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (data?.items ?? []).filter((u) => {
+      if (roleFilter !== 'all' && !u.roles.includes(roleFilter)) return false;
+      if (statusFilter !== 'all' && u.status !== statusFilter) return false;
+      if (!q) return true;
+      const hay = `${u.email} ${u.fullName} ${u.phone ?? ''} ${u.roles.join(' ')}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [data?.items, roleFilter, statusFilter, search]);
+
   return (
     <>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Người dùng</h2>
-          <p className="text-sm text-muted-foreground">
-            <code className="rounded bg-muted px-1 text-xs">GET /admin/users?page=&limit=</code>
-          </p>
+          <p className="text-sm text-muted-foreground">Quản lý tài khoản hệ thống, lọc nhanh và tuỳ biến bảng hiển thị.</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -96,6 +115,90 @@ export default function AdminUsersPage() {
           {(error as Error).message}
         </div>
       ) : null}
+
+      <div className="mb-6 rounded-xl border border-border bg-card p-4 shadow-sm">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+          <div className="md:col-span-2">
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tìm kiếm</label>
+            <input
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              placeholder="Email, họ tên, phone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Vai trò</label>
+            <select
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
+            >
+              <option value="all">Tất cả</option>
+              <option value="admin">admin</option>
+              <option value="doctor">doctor</option>
+              <option value="patient">patient</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Trạng thái</label>
+            <select
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+            >
+              <option value="all">Tất cả</option>
+              <option value="active">active</option>
+              <option value="disabled">disabled</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">Số dòng / trang</label>
+            <select
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+          <span className="rounded-full bg-muted px-2.5 py-1 font-semibold text-muted-foreground">
+            Trên trang này: {filteredItems.length}/{data?.items.length ?? 0}
+          </span>
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={dense} onChange={(e) => setDense(e.target.checked)} />
+            Mật độ dày
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={showPhone} onChange={(e) => setShowPhone(e.target.checked)} />
+            Hiện cột Phone
+          </label>
+          <label className="inline-flex items-center gap-2">
+            <input type="checkbox" checked={showCreatedAt} onChange={(e) => setShowCreatedAt(e.target.checked)} />
+            Hiện cột Tạo lúc
+          </label>
+          <button
+            className="rounded-lg border border-border bg-card px-2 py-1 font-semibold hover:bg-muted"
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setRoleFilter('all');
+              setStatusFilter('all');
+              setDense(false);
+              setShowPhone(false);
+              setShowCreatedAt(true);
+            }}
+          >
+            Reset bộ lọc
+          </button>
+        </div>
+      </div>
 
       {openCreate ? (
         <div className="mb-6 rounded-xl border border-border bg-card p-5 shadow-sm">
@@ -315,25 +418,33 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3">Họ tên</th>
                 <th className="px-4 py-3">Vai trò</th>
                 <th className="px-4 py-3">Trạng thái</th>
-                <th className="px-4 py-3">Tạo lúc</th>
+                {showPhone ? <th className="px-4 py-3">Phone</th> : null}
+                {showCreatedAt ? <th className="px-4 py-3">Tạo lúc</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={5}>
+                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4 + Number(showPhone) + Number(showCreatedAt)}>
                     Đang tải…
                   </td>
                 </tr>
               ) : null}
-              {data?.items.map((u) => (
+              {!isLoading && filteredItems.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4 + Number(showPhone) + Number(showCreatedAt)}>
+                    Không có người dùng phù hợp bộ lọc trên trang hiện tại.
+                  </td>
+                </tr>
+              ) : null}
+              {filteredItems.map((u) => (
                 <tr
                   className="cursor-pointer hover:bg-muted"
                   key={u.id}
                   onClick={() => setDetailId(u.id)}
                 >
-                  <td className="px-4 py-3 font-mono text-xs">{u.email}</td>
-                  <td className="px-4 py-3">{u.fullName}</td>
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'} font-mono text-xs`}>{u.email}</td>
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>{u.fullName}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
                       {u.roles.map((r) => (
@@ -346,10 +457,13 @@ export default function AdminUsersPage() {
                       ))}
                     </div>
                   </td>
-                  <td className="px-4 py-3">{u.status}</td>
-                  <td className="px-4 py-3 text-xs text-muted-foreground">
-                    {new Date(u.createdAt).toLocaleString('vi-VN')}
-                  </td>
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>{u.status}</td>
+                  {showPhone ? <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs text-muted-foreground`}>{u.phone ?? '—'}</td> : null}
+                  {showCreatedAt ? (
+                    <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs text-muted-foreground`}>
+                      {new Date(u.createdAt).toLocaleString('vi-VN')}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>
