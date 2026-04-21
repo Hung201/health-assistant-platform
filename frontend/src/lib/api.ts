@@ -104,9 +104,19 @@ export const authApi = {
     licenseNumber?: string;
     specialtyId?: number;
   }) =>
-    apiPublic<{ ok: boolean }>('/auth/register', {
+    apiPublic<{ ok: boolean; requiresEmailVerification?: boolean; email?: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ ...data, email: data.email.trim().toLowerCase() }),
+    }),
+  verifyPatientEmail: (data: { email: string; code: string }) =>
+    apiPublic<{ ok: boolean }>('/auth/register/patient/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ email: data.email.trim().toLowerCase(), code: data.code.trim() }),
+    }),
+  resendPatientCode: (email: string) =>
+    apiPublic<{ ok: boolean }>('/auth/register/patient/resend-code', {
+      method: 'POST',
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
     }),
   specialties: () =>
     apiPublic<{ id: number; name: string; slug: string }[]>('/auth/specialties'),

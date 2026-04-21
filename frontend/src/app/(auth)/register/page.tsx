@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { User, Mail, Stethoscope, BadgeIcon as Badge, Lock, CloudUpload, Activity } from 'lucide-react';
 
 import { authApi, usersApi } from '@/lib/api';
@@ -15,9 +15,9 @@ const ease = 'ease-out';
 const dur = 'duration-200';
 const durCard = 'duration-300';
 
-const labelFieldClass = 'block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2';
+const labelFieldClass = 'block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5';
 
-const btnPrimaryClass = `w-full rounded-xl bg-[#71d4c8] py-4 text-base font-bold text-white shadow-sm transition-all ${dur} ${ease} hover:bg-[#5bc2b6] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60`;
+const btnPrimaryClass = `w-full rounded-xl bg-[#71d4c8] py-3 text-sm font-bold text-white shadow-sm transition-all ${dur} ${ease} hover:bg-[#5bc2b6] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60`;
 
 const cardElevatedClass = `overflow-hidden rounded-2xl bg-white shadow-xl shadow-slate-200/50 transition-all ${durCard} ${ease}`;
 
@@ -29,7 +29,7 @@ function InputWithIcon({ icon: Icon, ...props }: any) {
       </div>
       <input
         {...props}
-        className={`w-full rounded-xl border border-teal-100 bg-[#f4fcfb] pl-12 pr-4 py-3.5 text-slate-900 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white focus:border-transparent ${props.className || ''}`}
+        className={`w-full rounded-xl border border-teal-100 bg-[#f4fcfb] pl-11 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white focus:border-transparent ${props.className || ''}`}
       />
     </div>
   );
@@ -43,7 +43,7 @@ function SelectWithIcon({ icon: Icon, children, ...props }: any) {
       </div>
       <select
         {...props}
-        className={`w-full appearance-none rounded-xl border border-teal-100 bg-[#f4fcfb] pl-12 pr-4 py-3.5 text-slate-900 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white focus:border-transparent ${props.className || ''}`}
+        className={`w-full appearance-none rounded-xl border border-teal-100 bg-[#f4fcfb] pl-11 pr-4 py-2.5 text-slate-900 placeholder:text-slate-400 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 focus:bg-white focus:border-transparent ${props.className || ''}`}
       >
         {children}
       </select>
@@ -104,6 +104,10 @@ function TabBar({
   );
 }
 
+function RequiredMark() {
+  return <span className="ml-1 text-red-500">*</span>;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const setSession = useAuthStore((s) => s.setSession);
@@ -118,6 +122,11 @@ export default function RegisterPage() {
   const [specialtyId, setSpecialtyId] = useState('');
   const [certificateFile, setCertificateFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [passwordUnlocked, setPasswordUnlocked] = useState(false);
+
+  useEffect(() => {
+    setPasswordUnlocked(false);
+  }, [kind]);
 
   const { data: apiSpecialties, isError: specialtiesLoadError } = useQuery({
     queryKey: ['register-specialties'],
@@ -147,7 +156,12 @@ export default function RegisterPage() {
         phone: p ? p : undefined,
       });
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      if (kind === 'patient' && result.requiresEmailVerification) {
+        const verifiedEmail = result.email ?? email.trim().toLowerCase();
+        router.push(`/register/verify?email=${encodeURIComponent(verifiedEmail)}`);
+        return;
+      }
       const me = await usersApi.me();
       setSession({ user: me });
       syncAuthToLegacyStorage({ accessToken: null, user: me });
@@ -183,16 +197,16 @@ export default function RegisterPage() {
     <div className="flex min-h-screen flex-col bg-[#eefaf8] font-sans">
       <RegisterSiteHeader />
 
-      <main className="flex flex-grow items-center justify-center px-4 pt-20 pb-16">
-        <div className={`w-full ${kind === 'doctor' ? 'max-w-3xl' : 'max-w-md'} ${cardElevatedClass}`}>
+      <main className="flex flex-grow items-center justify-center px-4 pt-16 pb-8">
+        <div className={`w-full ${kind === 'doctor' ? 'max-w-3xl' : 'max-w-2xl'} ${cardElevatedClass}`}>
           <TabBar kind={kind} onChange={setKind} />
           
-          <div className="p-8 md:p-12">
-            <div className="mb-8 text-center md:text-left">
-              <h1 className="mb-2 text-3xl font-extrabold tracking-tight text-slate-800">
+          <div className="p-5 md:p-7">
+            <div className="mb-5 text-center md:text-left">
+              <h1 className="mb-1 text-2xl font-extrabold tracking-tight text-slate-800">
                 {kind === 'doctor' ? 'Đăng ký tài khoản Bác sĩ' : 'Bắt đầu hành trình'}
               </h1>
-              <p className="text-slate-500 text-sm">
+              <p className="text-slate-500 text-xs">
                 {kind === 'doctor' 
                   ? 'Vui lòng cung cấp thông tin chuyên môn để bắt đầu quá trình xác thực' 
                   : 'Đăng ký để truy cập hồ sơ sức khỏe của bạn'}
@@ -212,21 +226,41 @@ export default function RegisterPage() {
             ) : null}
 
             <form
-              className="space-y-6"
+              className="space-y-4"
+              autoComplete="off"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (pwdMismatch || password.length < 6) return;
                 registerMutation.mutate();
               }}
             >
+              {/* Honeypot fields to discourage browser autofill on actual password inputs */}
+              <input
+                type="text"
+                name="fake_username"
+                autoComplete="username"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="absolute -left-[9999px] top-auto h-0 w-0 opacity-0"
+              />
+              <input
+                type="password"
+                name="fake_password"
+                autoComplete="current-password"
+                tabIndex={-1}
+                aria-hidden="true"
+                className="absolute -left-[9999px] top-auto h-0 w-0 opacity-0"
+              />
+
               {kind === 'doctor' ? (
                 <>
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={labelFieldClass} htmlFor="doc-fullName">Họ và Tên</label>
+                      <label className={labelFieldClass} htmlFor="doc-fullName">Họ và Tên<RequiredMark /></label>
                       <InputWithIcon 
                         icon={User}
                         id="doc-fullName"
+                        autoComplete="off"
                         placeholder="BS. Nguyễn Văn A"
                         required
                         value={fullName}
@@ -234,11 +268,12 @@ export default function RegisterPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelFieldClass} htmlFor="doc-email">Email chuyên môn</label>
+                      <label className={labelFieldClass} htmlFor="doc-email">Email chuyên môn<RequiredMark /></label>
                       <InputWithIcon 
                         icon={Mail}
                         id="doc-email"
                         type="email"
+                        autoComplete="off"
                         placeholder="doctor@hospital.vn"
                         required
                         value={email}
@@ -247,9 +282,9 @@ export default function RegisterPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={labelFieldClass} htmlFor="specialty">Chuyên khoa chính</label>
+                      <label className={labelFieldClass} htmlFor="specialty">Chuyên khoa chính<RequiredMark /></label>
                       <SelectWithIcon 
                         icon={Stethoscope}
                         id="specialty"
@@ -265,24 +300,30 @@ export default function RegisterPage() {
                       <p className="mt-1 text-xs text-slate-500">Mỗi bác sĩ chỉ thuộc 1 chuyên khoa để đồng bộ lịch và báo cáo.</p>
                     </div>
                     <div>
-                      <label className={labelFieldClass} htmlFor="license">Số chứng chỉ hành nghề</label>
+                      <label className={labelFieldClass} htmlFor="license">Số chứng chỉ hành nghề<RequiredMark /></label>
                       <InputWithIcon 
                         icon={Badge}
                         id="license"
+                        autoComplete="off"
                         placeholder="VD: 123456/CCHN"
+                        required
                         value={licenseNumber}
                         onChange={(e: any) => setLicenseNumber(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label className={labelFieldClass} htmlFor="doc-password">Mật khẩu</label>
+                      <label className={labelFieldClass} htmlFor="doc-password">Mật khẩu<RequiredMark /></label>
                       <InputWithIcon 
                         icon={Lock}
                         id="doc-password"
+                        name="doctor_new_password"
                         type="password"
+                        autoComplete="new-password"
+                        readOnly={!passwordUnlocked}
+                        onFocus={() => setPasswordUnlocked(true)}
                         placeholder="Tối thiểu 6 ký tự"
                         required
                         minLength={6}
@@ -291,11 +332,15 @@ export default function RegisterPage() {
                       />
                     </div>
                     <div>
-                      <label className={labelFieldClass} htmlFor="doc-confirm">Xác nhận mật khẩu</label>
+                      <label className={labelFieldClass} htmlFor="doc-confirm">Xác nhận mật khẩu<RequiredMark /></label>
                       <InputWithIcon 
                         icon={Lock}
                         id="doc-confirm"
+                        name="doctor_new_password_confirm"
                         type="password"
+                        autoComplete="new-password"
+                        readOnly={!passwordUnlocked}
+                        onFocus={() => setPasswordUnlocked(true)}
                         placeholder="••••••••"
                         required
                         value={confirm}
@@ -320,7 +365,7 @@ export default function RegisterPage() {
                       type="file"
                     />
                     <div
-                      className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-teal-200 bg-[#f4fcfb] py-10 px-4 transition-all ${dur} ${ease} hover:border-teal-400 hover:bg-teal-50 ${
+                      className={`group relative flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-teal-200 bg-[#f4fcfb] py-6 px-4 transition-all ${dur} ${ease} hover:border-teal-400 hover:bg-teal-50 ${
                         dragActive ? 'border-teal-500 bg-teal-50 shadow-inner' : ''
                       }`}
                       onDragLeave={() => setDragActive(false)}
@@ -331,10 +376,10 @@ export default function RegisterPage() {
                       onDrop={onDrop}
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-teal-100 text-teal-600 transition-transform group-hover:-translate-y-1">
-                        <CloudUpload size={28} />
+                      <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-teal-100 text-teal-600 transition-transform group-hover:-translate-y-1">
+                        <CloudUpload size={24} />
                       </div>
-                      <p className="text-center text-sm text-slate-600">
+                      <p className="text-center text-xs text-slate-600">
                         Kéo thả tệp vào đây hoặc <span className="font-bold text-teal-600">chọn tệp</span>
                       </p>
                       <p className="mt-1 text-center text-xs text-slate-400">
@@ -350,74 +395,93 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  <div>
-                    <label className={labelFieldClass} htmlFor="fullName">Họ và Tên</label>
-                    <InputWithIcon 
-                      icon={User}
-                      id="fullName"
-                      placeholder="Nguyễn Văn A"
-                      required
-                      value={fullName}
-                      onChange={(e: any) => setFullName(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelFieldClass} htmlFor="email">Email</label>
-                    <InputWithIcon 
-                      icon={Mail}
-                      id="email"
-                      type="email"
-                      placeholder="example@precision.com"
-                      required
-                      value={email}
-                      onChange={(e: any) => setEmail(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelFieldClass} htmlFor="phone">Số điện thoại</label>
-                    <InputWithIcon 
-                      icon={User} // Fallback icon since Phone wasn't imported
-                      id="phone"
-                      type="tel"
-                      placeholder="0123 456 789"
-                      value={phone}
-                      onChange={(e: any) => setPhone(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelFieldClass} htmlFor="password">Mật khẩu</label>
-                    <InputWithIcon 
-                      icon={Lock}
-                      id="password"
-                      type="password"
-                      placeholder="Tối thiểu 6 ký tự"
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e: any) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <label className={labelFieldClass} htmlFor="confirm">Xác nhận mật khẩu</label>
-                    <InputWithIcon 
-                      icon={Lock}
-                      id="confirm"
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      value={confirm}
-                      className={pwdMismatch ? 'ring-2 ring-red-400 border-transparent focus:ring-red-500' : ''}
-                      onChange={(e: any) => setConfirm(e.target.value)}
-                    />
-                    {pwdMismatch && <p className="mt-1 text-xs text-red-500">Mật khẩu không khớp.</p>}
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                      <label className={labelFieldClass} htmlFor="fullName">Họ và Tên<RequiredMark /></label>
+                      <InputWithIcon
+                        icon={User}
+                        id="fullName"
+                        autoComplete="off"
+                        placeholder="Nguyễn Văn A"
+                        required
+                        value={fullName}
+                        onChange={(e: any) => setFullName(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelFieldClass} htmlFor="email">Email<RequiredMark /></label>
+                      <InputWithIcon
+                        icon={Mail}
+                        id="email"
+                        type="email"
+                        autoComplete="off"
+                        placeholder="example@precision.com"
+                        required
+                        value={email}
+                        onChange={(e: any) => setEmail(e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className={labelFieldClass} htmlFor="phone">Số điện thoại<RequiredMark /></label>
+                      <InputWithIcon
+                        icon={User}
+                        id="phone"
+                        type="tel"
+                        autoComplete="off"
+                        placeholder="0123 456 789"
+                        required
+                        value={phone}
+                        onChange={(e: any) => setPhone(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelFieldClass} htmlFor="password">Mật khẩu<RequiredMark /></label>
+                      <InputWithIcon
+                        icon={Lock}
+                        id="password"
+                        name="patient_new_password"
+                        type="password"
+                        autoComplete="new-password"
+                        readOnly={!passwordUnlocked}
+                        onFocus={() => setPasswordUnlocked(true)}
+                        placeholder="Tối thiểu 6 ký tự"
+                        required
+                        minLength={6}
+                        value={password}
+                        onChange={(e: any) => setPassword(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelFieldClass} htmlFor="confirm">Xác nhận mật khẩu<RequiredMark /></label>
+                      <InputWithIcon
+                        icon={Lock}
+                        id="confirm"
+                        name="patient_new_password_confirm"
+                        type="password"
+                        autoComplete="new-password"
+                        readOnly={!passwordUnlocked}
+                        onFocus={() => setPasswordUnlocked(true)}
+                        placeholder="••••••••"
+                        required
+                        value={confirm}
+                        className={pwdMismatch ? 'ring-2 ring-red-400 border-transparent focus:ring-red-500' : ''}
+                        onChange={(e: any) => setConfirm(e.target.value)}
+                      />
+                      {pwdMismatch && <p className="mt-1 text-xs text-red-500">Mật khẩu không khớp.</p>}
+                    </div>
                   </div>
                 </>
               )}
 
-              <div className="pt-6">
+              <div className="pt-2">
                 <button
                   className={btnPrimaryClass}
-                  disabled={registerMutation.isPending || pwdMismatch || password.length < 6 || (kind === 'doctor' && !specialtyId)}
+                  disabled={
+                    registerMutation.isPending ||
+                    pwdMismatch ||
+                    password.length < 6 ||
+                    (kind === 'doctor' && !specialtyId)
+                  }
                   type="submit"
                 >
                   {registerMutation.isPending ? 'Đang xử lý...' : `Đăng ký tài khoản ${kind === 'doctor' ? 'Bác sĩ' : 'Bệnh nhân'}`}

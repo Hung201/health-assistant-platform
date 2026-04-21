@@ -4,11 +4,13 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { SignOptions } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomInt } from 'crypto';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';
@@ -17,9 +19,13 @@ import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
+import { PatientEmailVerification } from '../entities/patient-email-verification.entity';
+import { MailService } from '../mail/mail.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import type { GoogleAuthUser } from './strategies/google.strategy';
+import { VerifyPatientEmailDto } from './dto/verify-patient-email.dto';
+import { ResendPatientEmailCodeDto } from './dto/resend-patient-email-code.dto';
 
 @Injectable()
 export class AuthService {
@@ -30,8 +36,62 @@ export class AuthService {
     private readonly userRoleRepository: Repository<UserRole>,
     @InjectRepository(UserIdentity)
     private readonly userIdentityRepository: Repository<UserIdentity>,
+    @InjectRepository(PatientEmailVerification)
+    private readonly patientEmailVerificationRepository: Repository<PatientEmailVerification>,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
+
+  private getEmailCodeExpiresMinutes(): number {
+    const n = Number(this.configService.get<string>('PATIENT_VERIFY_CODE_EXPIRES_MINUTES') ?? '10');
+    if (!Number.isFinite(n) || n < 1) return 10;
+    return Math.min(60, Math.round(n));
+  }
+
+  private generateEmailCode(): string {
+    return String(randomInt(0, 1_000_000)).padStart(6, '0');
+  }
+
+  private hashEmailCode(email: string, code: string): string {
+    const secret = this.configService.get<string>('JWT_SECRET') || 'email-code-secret';
+    return createHash('sha256')
+      .update(`${email.toLowerCase()}|${code}|${secret}`)
+      .digest('hex');
+  }
+
+  private async issuePatientEmailCode(user: User) {
+    const code = this.generateEmailCode();
+    const expiresMinutes = this.getEmailCodeExpiresMinutes();
+    const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
+    const codeHash = this.hashEmailCode(user.email, code);
+
+    const existing = await this.patientEmailVerificationRepository.findOne({ where: { userId: user.id } });
+    if (existing) {
+      existing.email = user.email;
+      existing.codeHash = codeHash;
+      existing.expiresAt = expiresAt;
+      existing.attempts = 0;
+      await this.patientEmailVerificationRepository.save(existing);
+    } else {
+      await this.patientEmailVerificationRepository.save(
+        this.patientEmailVerificationRepository.create({
+          userId: user.id,
+          email: user.email,
+          codeHash,
+          expiresAt,
+          attempts: 0,
+        }),
+      );
+    }
+
+    await this.mailService.sendPatientVerifyCode({
+      to: user.email,
+      fullName: user.fullName,
+      code,
+      expiresMinutes,
+    });
+  }
 
   async register(dto: RegisterDto) {
     const roleCode = dto.role ?? 'patient';
@@ -66,11 +126,12 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
+    const initialStatus = roleCode === 'patient' ? 'pending_email_verification' : 'active';
     const user = this.userRepository.create({
       email: dto.email.toLowerCase(),
       fullName: dto.fullName,
       passwordHash,
-      status: 'active',
+      status: initialStatus,
       phone,
     });
     const savedUser = await this.userRepository.save(user);
@@ -111,6 +172,14 @@ export class AuthService {
       });
     }
 
+    if (roleCode === 'patient') {
+      await this.issuePatientEmailCode(savedUser);
+      return {
+        requiresEmailVerification: true,
+        email: savedUser.email,
+      };
+    }
+
     const token = this.generateToken(savedUser.id, savedUser.email, [role.code]);
     return {
       access_token: token,
@@ -120,6 +189,7 @@ export class AuthService {
         fullName: savedUser.fullName,
         roles: [role.code],
       },
+      requiresEmailVerification: false,
     };
   }
 
@@ -139,6 +209,9 @@ export class AuthService {
       lastLoginAt: new Date(),
     });
     const roles = user.userRoles?.map((ur) => ur.role?.code) || [];
+    if (roles.includes('patient') && !user.emailVerifiedAt) {
+      throw new UnauthorizedException('Tài khoản chưa xác thực email. Vui lòng nhập mã xác thực đã gửi về email.');
+    }
     const token = this.generateToken(user.id, user.email, roles.filter(Boolean) as string[]);
     return {
       access_token: token,
@@ -162,6 +235,63 @@ export class AuthService {
       name: s.name,
       slug: s.slug,
     }));
+  }
+
+  async verifyPatientEmail(dto: VerifyPatientEmailDto) {
+    const email = dto.email.trim().toLowerCase();
+    const code = dto.code.trim();
+    const user = await this.userRepository.findOne({
+      where: { email },
+      relations: ['userRoles', 'userRoles.role'],
+    });
+    if (!user) throw new BadRequestException('Email hoặc mã xác thực không đúng');
+    if (user.status === 'disabled') throw new BadRequestException('Tài khoản đã bị khóa');
+
+    const roles = (user.userRoles?.map((ur) => ur.role?.code).filter(Boolean) as string[]) ?? [];
+    if (!roles.includes('patient')) throw new BadRequestException('Tính năng này chỉ áp dụng cho tài khoản bệnh nhân');
+    if (user.emailVerifiedAt) {
+      const token = this.generateToken(user.id, user.email, roles);
+      return { access_token: token, alreadyVerified: true };
+    }
+
+    const verification = await this.patientEmailVerificationRepository.findOne({
+      where: { userId: user.id },
+    });
+    if (!verification) throw new BadRequestException('Không tìm thấy mã xác thực. Vui lòng gửi lại mã mới.');
+    if (verification.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Mã xác thực đã hết hạn. Vui lòng gửi lại mã mới.');
+    }
+
+    const expectedHash = this.hashEmailCode(email, code);
+    if (verification.codeHash !== expectedHash) {
+      verification.attempts += 1;
+      await this.patientEmailVerificationRepository.save(verification);
+      throw new BadRequestException('Mã xác thực không đúng');
+    }
+
+    user.emailVerifiedAt = new Date();
+    user.status = 'active';
+    user.lastLoginAt = new Date();
+    await this.userRepository.save(user);
+    await this.patientEmailVerificationRepository.delete({ userId: user.id });
+
+    const token = this.generateToken(user.id, user.email, roles);
+    return { access_token: token, alreadyVerified: false };
+  }
+
+  async resendPatientEmailCode(dto: ResendPatientEmailCodeDto) {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.userRepository.findOne({
+      where: { email },
+      relations: ['userRoles', 'userRoles.role'],
+    });
+    if (!user) return { ok: true };
+    if (user.status === 'disabled') return { ok: true };
+    const roles = (user.userRoles?.map((ur) => ur.role?.code).filter(Boolean) as string[]) ?? [];
+    if (!roles.includes('patient') || user.emailVerifiedAt) return { ok: true };
+
+    await this.issuePatientEmailCode(user);
+    return { ok: true };
   }
 
   async validateUser(userId: string): Promise<User | null> {

@@ -12,6 +12,7 @@ import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
+import { PatientEmailVerification } from '../entities/patient-email-verification.entity';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
@@ -28,6 +29,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
       DoctorProfile,
       Specialty,
       DoctorSpecialty,
+      PatientEmailVerification,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
