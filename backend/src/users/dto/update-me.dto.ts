@@ -91,6 +91,11 @@ export class UpdateMyDoctorProfileDto {
   @IsOptional()
   @IsBoolean()
   isAvailableForBooking?: boolean | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  specialtyId?: number;
 }
 
 export class UpdateMeDto {

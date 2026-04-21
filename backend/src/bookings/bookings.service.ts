@@ -14,6 +14,7 @@ import { BookingStatusLog } from '../entities/booking-status-log.entity';
 import { DoctorAvailableSlot } from '../entities/doctor-available-slot.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
+import { Payment } from '../entities/payment.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
 import { PaymentsService } from '../payments/payments.service';
@@ -74,6 +75,8 @@ export class BookingsService {
     private readonly patientRepo: Repository<PatientProfile>,
     @InjectRepository(Specialty)
     private readonly specialtyRepo: Repository<Specialty>,
+    @InjectRepository(Payment)
+    private readonly paymentRepo: Repository<Payment>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly paymentsService: PaymentsService,
@@ -430,6 +433,65 @@ export class BookingsService {
     };
   }
 
+  async getMyBookingPayment(currentUser: User, bookingId: string) {
+    if (!hasRole(currentUser, 'patient')) {
+      throw new ForbiddenException('Chỉ bệnh nhân mới có thể xem thanh toán của lịch hẹn');
+    }
+
+    const booking = await this.bookingRepo.findOne({
+      where: { id: bookingId, patientUserId: currentUser.id },
+    });
+    if (!booking) throw new NotFoundException('Không tìm thấy lịch hẹn');
+
+    if (booking.paymentMethod === 'pay_at_clinic') {
+      return {
+        bookingId: booking.id,
+        bookingCode: booking.bookingCode,
+        paymentMethod: booking.paymentMethod,
+        paymentStatus: booking.paymentStatus,
+        canPayNow: false,
+        payUrl: null as string | null,
+        message: 'Bạn đã chọn thanh toán tại viện.',
+      };
+    }
+
+    const latestPayment = await this.paymentRepo.findOne({
+      where: { bookingId: booking.id },
+      order: { createdAt: 'DESC' },
+    });
+
+    let payUrl: string | null = null;
+    if (latestPayment?.rawCreateResponse) {
+      try {
+        const parsed = JSON.parse(latestPayment.rawCreateResponse) as { payUrl?: unknown };
+        payUrl = typeof parsed.payUrl === 'string' ? parsed.payUrl : null;
+      } catch {
+        payUrl = null;
+      }
+    }
+
+    const canPayNow =
+      booking.status === 'approved' &&
+      (booking.paymentStatus === 'awaiting_gateway' || booking.paymentStatus === 'failed' || booking.paymentStatus === 'unpaid') &&
+      Boolean(payUrl);
+
+    return {
+      bookingId: booking.id,
+      bookingCode: booking.bookingCode,
+      paymentMethod: booking.paymentMethod,
+      paymentStatus: booking.paymentStatus,
+      canPayNow,
+      payUrl,
+      providerOrderId: latestPayment?.providerOrderId ?? null,
+      message:
+        booking.status === 'pending'
+          ? 'Bác sĩ chưa duyệt lịch, hệ thống chưa mở thanh toán.'
+          : canPayNow
+            ? 'Bạn có thể mở MoMo để hoàn tất thanh toán.'
+            : 'Hiện chưa có liên kết thanh toán khả dụng.',
+    };
+  }
+
   async cancelMyBooking(currentUser: User, bookingId: string, dto: CancelBookingDto) {
     if (!hasRole(currentUser, 'patient')) {
       throw new ForbiddenException('Chỉ bệnh nhân mới có thể huỷ lịch hẹn của mình');
@@ -492,12 +554,30 @@ export class BookingsService {
       order: { createdAt: 'DESC' },
       take: 200,
     });
-    return rows.map((b) => ({
+
+    const patientIds = Array.from(
+      new Set(rows.map((b) => b.patientUserId).filter((id): id is string => typeof id === 'string' && id.length > 0)),
+    );
+    const patientUsers = patientIds.length
+      ? await this.userRepo.find({
+          where: patientIds.map((id) => ({ id })),
+          select: ['id', 'fullName', 'email', 'phone'],
+        })
+      : [];
+    const patientById = new Map(patientUsers.map((u) => [u.id, u]));
+
+    return rows.map((b) => {
+      const patient = b.patientUserId ? patientById.get(b.patientUserId) : undefined;
+      return {
       ...mapBookingRow(b),
       patientUserId: b.patientUserId,
+      patientFullName: patient?.fullName ?? null,
+      patientEmail: patient?.email ?? null,
+      patientPhone: patient?.phone ?? null,
       guestFullName: b.guestFullName,
       guestPhone: b.guestPhone,
       guestEmail: b.guestEmail,
-    }));
+      };
+    });
   }
 }

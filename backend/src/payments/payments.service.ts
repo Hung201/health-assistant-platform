@@ -93,15 +93,22 @@ export class PaymentsService {
     this.logger.log(`Payment row ${payment.id} created for booking ${booking.id}`);
   }
 
-  async handleMomoIpn(body: Record<string, string | number | undefined>): Promise<{ resultCode: number; message: string }> {
+  async handleMomoIpn(
+    body: Record<string, string | number | undefined> | null | undefined,
+  ): Promise<{ resultCode: number; message: string }> {
     if (!this.momo.verifyIpnSignature(body)) {
       this.logger.warn('MoMo IPN signature invalid');
       return { resultCode: 1, message: 'Invalid signature' };
     }
+    if (!body) {
+      this.logger.warn('MoMo IPN body missing');
+      return { resultCode: 1, message: 'Invalid payload' };
+    }
+    const payload = body as Record<string, string | number | undefined>;
 
-    const orderId = body.orderId as string | undefined;
-    const resultCode = Number(body.resultCode ?? -1);
-    const transId = body.transId != null ? String(body.transId) : null;
+    const orderId = payload.orderId as string | undefined;
+    const resultCode = Number(payload.resultCode ?? -1);
+    const transId = payload.transId != null ? String(payload.transId) : null;
 
     if (!orderId) {
       return { resultCode: 1, message: 'Missing orderId' };
@@ -113,7 +120,7 @@ export class PaymentsService {
       return { resultCode: 0, message: 'success' };
     }
 
-    payment.rawIpnBody = JSON.stringify(body);
+    payment.rawIpnBody = JSON.stringify(payload);
     if (resultCode === 0) {
       payment.status = 'paid';
       payment.providerTransId = transId;

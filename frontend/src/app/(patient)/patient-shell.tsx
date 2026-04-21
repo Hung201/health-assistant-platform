@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Search, Bell, User as UserIcon } from 'lucide-react';
 
 import { useAuthStore } from '@/stores/auth.store';
-import { ModeToggle } from '@/components/ui/mode-toggle';
 
 const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/patient', icon: 'dashboard', label: 'Tổng quan' },
