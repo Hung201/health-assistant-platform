@@ -14,6 +14,7 @@ export default function PatientDoctorDetailPage() {
   const doctorUserId = params.doctorUserId;
 
   const [patientNote, setPatientNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'momo' | 'pay_at_clinic'>('momo');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +71,7 @@ export default function PatientDoctorDetailPage() {
         availableSlotId,
         specialtyId: primarySpecId,
         patientNote: patientNote.trim() || undefined,
+        paymentMethod,
       }),
     onSuccess: () => {
       router.push('/patient/bookings');
@@ -294,6 +296,18 @@ export default function PatientDoctorDetailPage() {
                  </p>
                );
              })()}
+
+             <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-slate-500 mb-3">Hình thức thanh toán</p>
+                <label className="flex items-center gap-3 py-2 cursor-pointer">
+                  <input type="radio" name="pm" checked={paymentMethod === 'momo'} onChange={() => setPaymentMethod('momo')} className="h-4 w-4" />
+                  <span className="text-sm font-semibold text-slate-800">MoMo (sau khi bác sĩ duyệt, email kèm QR)</span>
+                </label>
+                <label className="flex items-center gap-3 py-2 cursor-pointer">
+                  <input type="radio" name="pm" checked={paymentMethod === 'pay_at_clinic'} onChange={() => setPaymentMethod('pay_at_clinic')} className="h-4 w-4" />
+                  <span className="text-sm font-semibold text-slate-800">Thanh toán tại viện</span>
+                </label>
+             </div>
 
              <div className="mb-8">
                 <label className="text-sm font-extrabold text-slate-700 block mb-2">Ghi chú cho bác sĩ <span className="text-slate-400 font-medium">(Tùy chọn)</span></label>

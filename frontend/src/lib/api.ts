@@ -193,6 +193,8 @@ export type MyBookingRow = {
   id: string;
   bookingCode: string;
   status: string;
+  paymentMethod: string;
+  paymentStatus: string;
   appointmentDate: string;
   appointmentStartAt: string;
   appointmentEndAt: string;
@@ -217,11 +219,37 @@ export type MyBookingDetail = MyBookingRow & {
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
   detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
-  create: (data: { availableSlotId: number; specialtyId?: number; patientNote?: string }) =>
-    api<{ ok: boolean; id: string; bookingCode: string; status: string }>('/bookings', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  create: (data: {
+    availableSlotId: number;
+    specialtyId?: number;
+    patientNote?: string;
+    paymentMethod?: 'momo' | 'pay_at_clinic';
+  }) =>
+    api<{ ok: boolean; id: string; bookingCode: string; status: string; paymentMethod: string; paymentStatus: string }>(
+      '/bookings',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    ),
+  createGuest: (data: {
+    availableSlotId: number;
+    specialtyId?: number;
+    patientNote?: string;
+    guestFullName: string;
+    guestPhone: string;
+    guestEmail: string;
+    paymentMethod: 'momo' | 'pay_at_clinic';
+  }) =>
+    apiPublic<{
+      ok: boolean;
+      id: string;
+      bookingCode: string;
+      status: string;
+      guestLookupToken: string;
+      paymentMethod: string;
+      paymentStatus: string;
+    }>('/bookings/guest', { method: 'POST', body: JSON.stringify(data) }),
   cancel: (id: string, reason?: string) =>
     api<{ ok: boolean; id: string; status: string }>(`/bookings/me/${encodeURIComponent(id)}/cancel`, {
       method: 'PATCH',
@@ -230,7 +258,12 @@ export const bookingsApi = {
 };
 
 export type DoctorSlotRow = PublicDoctorSlot;
-export type DoctorBookingRow = MyBookingRow & { patientUserId: string };
+export type DoctorBookingRow = MyBookingRow & {
+  patientUserId: string | null;
+  guestFullName: string | null;
+  guestPhone: string | null;
+  guestEmail: string | null;
+};
 
 export const doctorApi = {
   mySlots: () => api<DoctorSlotRow[]>('/doctor/slots'),
@@ -239,6 +272,16 @@ export const doctorApi = {
   cancelSlot: (id: number) =>
     api<{ ok: boolean; id: number; status: string }>(`/doctor/slots/${id}/cancel`, { method: 'PATCH' }),
   myBookings: () => api<DoctorBookingRow[]>('/doctor/bookings'),
+  approveBooking: (bookingId: string) =>
+    api<{ ok: boolean; id: string; status: string; paymentStatus: string }>(
+      `/doctor/bookings/${encodeURIComponent(bookingId)}/approve`,
+      { method: 'PATCH', body: '{}' },
+    ),
+  rejectBooking: (bookingId: string, reason?: string) =>
+    api<{ ok: boolean; id: string; status: string }>(
+      `/doctor/bookings/${encodeURIComponent(bookingId)}/reject`,
+      { method: 'PATCH', body: JSON.stringify({ reason: reason?.trim() || undefined }) },
+    ),
 };
 
 export type DoctorPostRow = {

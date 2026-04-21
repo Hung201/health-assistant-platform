@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateBookingDto {
   @Type(() => Number)
@@ -16,5 +16,10 @@ export class CreateBookingDto {
   @IsString()
   @MaxLength(2000)
   patientNote?: string;
+
+  /** Thanh toán online (MoMo sau khi bác sĩ duyệt) hoặc tại viện. */
+  @IsOptional()
+  @IsIn(['momo', 'pay_at_clinic'])
+  paymentMethod?: 'momo' | 'pay_at_clinic';
 }
 

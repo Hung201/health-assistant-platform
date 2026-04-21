@@ -8,6 +8,7 @@ import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
+import { PaymentsModule } from '../payments/payments.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 
@@ -22,6 +23,7 @@ import { BookingsService } from './bookings.service';
       Specialty,
       User,
     ]),
+    PaymentsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

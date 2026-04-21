@@ -24,6 +24,18 @@ function statusBadgeText(status: string) {
   return status;
 }
 
+function paymentStatusText(row: { paymentStatus: string; paymentMethod: string }) {
+  const { paymentStatus, paymentMethod } = row;
+  if (paymentMethod === 'pay_at_clinic') {
+    if (paymentStatus === 'pay_at_clinic') return 'Thanh toán tại viện';
+    return paymentStatus;
+  }
+  if (paymentStatus === 'paid') return 'Đã thanh toán MoMo';
+  if (paymentStatus === 'awaiting_gateway') return 'Chờ thanh toán MoMo';
+  if (paymentStatus === 'failed') return 'Thanh toán thất bại';
+  return 'Chưa thanh toán';
+}
+
 export default function PatientBookingsPage() {
   const toast = useToast();
   const qc = useQueryClient();
@@ -133,9 +145,14 @@ export default function PatientBookingsPage() {
                  </div>
                  
                  <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-2 pl-16 md:pl-0">
-                    <span className={cn('px-3 py-1 text-xs font-bold rounded-full shadow-sm', statusBadgeClass(b.status))}>
-                      {statusBadgeText(b.status)}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={cn('px-3 py-1 text-xs font-bold rounded-full shadow-sm', statusBadgeClass(b.status))}>
+                        {statusBadgeText(b.status)}
+                      </span>
+                      <span className="max-w-[200px] text-right text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                        {paymentStatusText(b)}
+                      </span>
+                    </div>
                     <span className="text-sm font-bold text-slate-400 group-hover:text-teal-600 transition-colors flex items-center gap-1">
                        Chi tiết <span className="font-sans">→</span>
                     </span>

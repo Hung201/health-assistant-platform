@@ -11,6 +11,7 @@ import { BookingsModule } from './bookings/bookings.module';
 import { DoctorPortalModule } from './doctor-portal/doctor-portal.module';
 import { PostsModule } from './posts/posts.module';
 import { AiModule } from './ai/ai.module';
+import { MailModule } from './mail/mail.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -19,6 +20,7 @@ import { AppService } from './app.service';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(getDatabaseConfig()),
+    MailModule,
     AuthModule,
     UsersModule,
     AdminModule,
