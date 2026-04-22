@@ -36,6 +36,10 @@ File: `frontend/src/app/(patient)/patient/doctors/page.tsx`
 - Added `Near you` toggle button:
   - Uses `patientProfile.provinceCode` and `patientProfile.districtCode`
   - Prioritizes doctors in same district, then same province
+- Added map toggle (`Bật map`):
+  - Shows embedded Google Maps panel in-page
+  - Lets user focus map on a selected doctor via quick chips
+  - Each doctor card has `Map` action to jump/focus on that doctor location
 - Kept existing filters:
   - Name search
   - Specialty
