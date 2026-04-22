@@ -1,0 +1,4 @@
+ALTER TABLE doctor_profiles
+  ALTER COLUMN province_code TYPE VARCHAR(120),
+  ALTER COLUMN district_code TYPE VARCHAR(120),
+  ALTER COLUMN ward_code TYPE VARCHAR(120);

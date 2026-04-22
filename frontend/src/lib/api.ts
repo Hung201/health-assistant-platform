@@ -77,6 +77,10 @@ export type AuthUser = {
     yearsOfExperience: number | null;
     bio: string | null;
     workplaceName: string | null;
+    workplaceAddress: string | null;
+    provinceCode: string | null;
+    districtCode: string | null;
+    wardCode: string | null;
     consultationFee: string;
     isAvailableForBooking: boolean;
     isVerified: boolean;
@@ -147,6 +151,10 @@ export const usersApi = {
         yearsOfExperience?: number | null;
         bio?: string | null;
         workplaceName?: string | null;
+        workplaceAddress?: string | null;
+        provinceCode?: string | null;
+        districtCode?: string | null;
+        wardCode?: string | null;
         consultationFee?: string | number | null;
         isAvailableForBooking?: boolean | null;
         specialtyId?: number | null;
@@ -170,6 +178,10 @@ export type PublicDoctorCard = {
   avatarUrl: string | null;
   professionalTitle: string | null;
   workplaceName: string | null;
+  workplaceAddress: string | null;
+  provinceCode: string | null;
+  districtCode: string | null;
+  wardCode: string | null;
   consultationFee: string;
   specialties: Array<{ id: number; name: string; isPrimary: boolean }>;
 };
@@ -192,9 +204,17 @@ export type PublicDoctorSlot = {
 };
 
 export const doctorsApi = {
-  list: (params?: { specialtyId?: number; page?: number; limit?: number }) => {
+  list: (params?: {
+    specialtyId?: number;
+    provinceCode?: string;
+    districtCode?: string;
+    page?: number;
+    limit?: number;
+  }) => {
     const q = new URLSearchParams();
     if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
+    if (params?.provinceCode) q.set('provinceCode', params.provinceCode);
+    if (params?.districtCode) q.set('districtCode', params.districtCode);
     if (params?.page != null) q.set('page', String(params.page));
     if (params?.limit != null) q.set('limit', String(params.limit));
     const qs = q.toString();

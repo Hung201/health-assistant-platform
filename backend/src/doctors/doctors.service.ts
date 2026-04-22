@@ -15,6 +15,10 @@ export type PublicDoctorCard = {
   avatarUrl: string | null;
   professionalTitle: string | null;
   workplaceName: string | null;
+  workplaceAddress: string | null;
+  provinceCode: string | null;
+  districtCode: string | null;
+  wardCode: string | null;
   consultationFee: string;
   specialties: Array<{ id: number; name: string; isPrimary: boolean }>;
 };
@@ -64,6 +68,8 @@ export class DoctorsService {
 
   async listPublicDoctors(params: {
     specialtyId?: number;
+    provinceCode?: string;
+    districtCode?: string;
     page?: number;
     limit?: number;
   }): Promise<{ items: PublicDoctorCard[]; total: number; page: number; limit: number }> {
@@ -85,6 +91,12 @@ export class DoctorsService {
         'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid AND ds_filter.is_primary = TRUE',
         { sid: specialtyId },
       );
+    }
+    if (params.provinceCode) {
+      qb.andWhere('d.province_code = :provinceCode', { provinceCode: params.provinceCode });
+    }
+    if (params.districtCode) {
+      qb.andWhere('d.district_code = :districtCode', { districtCode: params.districtCode });
     }
 
     const total = await qb.getCount();
@@ -123,6 +135,10 @@ export class DoctorsService {
       avatarUrl: d.user?.avatarUrl ?? null,
       professionalTitle: d.professionalTitle,
       workplaceName: d.workplaceName,
+      workplaceAddress: d.workplaceAddress,
+      provinceCode: d.provinceCode,
+      districtCode: d.districtCode,
+      wardCode: d.wardCode,
       consultationFee: d.consultationFee,
       specialties: byDoctor.get(d.userId) ?? [],
     }));
@@ -160,6 +176,10 @@ export class DoctorsService {
       avatarUrl: d.user?.avatarUrl ?? null,
       professionalTitle: d.professionalTitle,
       workplaceName: d.workplaceName,
+      workplaceAddress: d.workplaceAddress,
+      provinceCode: d.provinceCode,
+      districtCode: d.districtCode,
+      wardCode: d.wardCode,
       consultationFee: d.consultationFee,
       specialties,
       bio: d.bio,

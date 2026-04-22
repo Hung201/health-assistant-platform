@@ -58,6 +58,10 @@ export class UsersController {
             yearsOfExperience: u.doctorProfile.yearsOfExperience,
             bio: u.doctorProfile.bio,
             workplaceName: u.doctorProfile.workplaceName,
+            workplaceAddress: u.doctorProfile.workplaceAddress,
+            provinceCode: u.doctorProfile.provinceCode,
+            districtCode: u.doctorProfile.districtCode,
+            wardCode: u.doctorProfile.wardCode,
             consultationFee: u.doctorProfile.consultationFee,
             isAvailableForBooking: u.doctorProfile.isAvailableForBooking,
             isVerified: u.doctorProfile.isVerified,
@@ -138,6 +142,10 @@ export class UsersController {
             yearsOfExperience:
               dto.doctorProfile.yearsOfExperience === undefined ? undefined : (dto.doctorProfile.yearsOfExperience as any),
             workplaceName: (normalizeNull(dto.doctorProfile.workplaceName) as string | null) ?? undefined,
+            workplaceAddress: (normalizeNull(dto.doctorProfile.workplaceAddress) as string | null) ?? undefined,
+            provinceCode: (normalizeNull(dto.doctorProfile.provinceCode) as string | null) ?? undefined,
+            districtCode: (normalizeNull(dto.doctorProfile.districtCode) as string | null) ?? undefined,
+            wardCode: (normalizeNull(dto.doctorProfile.wardCode) as string | null) ?? undefined,
             consultationFee:
               dto.doctorProfile.consultationFee === undefined || dto.doctorProfile.consultationFee == null
                 ? undefined
@@ -180,6 +188,10 @@ export class UsersController {
               yearsOfExperience: u.doctorProfile.yearsOfExperience,
               bio: u.doctorProfile.bio,
               workplaceName: u.doctorProfile.workplaceName,
+              workplaceAddress: u.doctorProfile.workplaceAddress,
+              provinceCode: u.doctorProfile.provinceCode,
+              districtCode: u.doctorProfile.districtCode,
+              wardCode: u.doctorProfile.wardCode,
               consultationFee: u.doctorProfile.consultationFee,
               isAvailableForBooking: u.doctorProfile.isAvailableForBooking,
               isVerified: u.doctorProfile.isVerified,

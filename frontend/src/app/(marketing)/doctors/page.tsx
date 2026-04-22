@@ -5,9 +5,13 @@ import Link from 'next/link';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { Activity, Search, MapPin, BadgeCheck, Stethoscope } from 'lucide-react';
+import Select from 'react-select';
 
 import { authApi, doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import { fetchVnDistricts, fetchVnProvinces } from '@/lib/vn-location';
+
+type LocationOption = { value: string; label: string };
 
 export default function DoctorsPage() {
   const router = useRouter();
@@ -16,6 +20,8 @@ export default function DoctorsPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
+  const [provinceCode, setProvinceCode] = useState('');
+  const [districtCode, setDistrictCode] = useState('');
   const [priceFilter, setPriceFilter] = useState<string>('all');
 
   const logoutMutation = useMutation({
@@ -32,9 +38,41 @@ export default function DoctorsPage() {
   });
 
   const { data: doctorsData, isLoading } = useQuery({
-    queryKey: ['public-doctors', selectedSpecialty],
-    queryFn: () => doctorsApi.list({ specialtyId: selectedSpecialty || undefined, limit: 100 }),
+    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode],
+    queryFn: () =>
+      doctorsApi.list({
+        specialtyId: selectedSpecialty || undefined,
+        provinceCode: provinceCode.trim() || undefined,
+        districtCode: districtCode.trim() || undefined,
+        limit: 100,
+      }),
   });
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['vn-location', 'provinces', 'doctor-page'],
+    queryFn: fetchVnProvinces,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: districts = [] } = useQuery({
+    queryKey: ['vn-location', 'districts', provinceCode, 'doctor-page'],
+    queryFn: () => fetchVnDistricts(provinceCode),
+    enabled: Boolean(provinceCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const provinceOptions = provinces.map((p) => ({ value: String(p.code), label: p.name }));
+  const districtOptions = districts.map((d) => ({ value: String(d.code), label: d.name }));
+  const currentProvinceOption = provinceOptions.find((o) => o.value === provinceCode) ?? null;
+  const currentDistrictOption = districtOptions.find((o) => o.value === districtCode) ?? null;
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minHeight: 50,
+      borderRadius: 12,
+      borderColor: state.isFocused ? '#2dd4bf' : '#e2e8f0',
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(45,212,191,0.2)' : 'none',
+      backgroundColor: '#f8fafc',
+    }),
+    menu: (base: any) => ({ ...base, zIndex: 30 }),
+  };
 
   const appHref = user?.roles?.includes('admin')
     ? '/admin'
@@ -48,7 +86,11 @@ export default function DoctorsPage() {
 
   // Client-side filtering by name and price
   const filteredDoctors = doctorsData?.items?.filter((doc) => {
-    const matchName = doc.fullName.toLowerCase().includes(searchTerm.toLowerCase());
+    const search = searchTerm.toLowerCase();
+    const matchName =
+      doc.fullName.toLowerCase().includes(search) ||
+      (doc.workplaceName ?? '').toLowerCase().includes(search) ||
+      (doc.workplaceAddress ?? '').toLowerCase().includes(search);
     const fee = Number(doc.consultationFee);
     let matchPrice = true;
     if (priceFilter === 'under500') matchPrice = fee < 500000;
@@ -127,7 +169,7 @@ export default function DoctorsPage() {
           </div>
 
           {/* Filter and Search Section */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200 mb-10 flex flex-col md:flex-row gap-6">
+          <div className="rounded-2xl bg-white p-6 shadow-sm border border-slate-200 mb-10 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
             <div className="flex-1 relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                 <Search size={20} />
@@ -140,8 +182,8 @@ export default function DoctorsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
-            <div className="md:w-64">
+
+            <div>
               <select
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 px-4 text-sm outline-none transition-all focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 appearance-none"
                 value={selectedSpecialty || ''}
@@ -156,7 +198,33 @@ export default function DoctorsPage() {
               </select>
             </div>
 
-            <div className="md:w-64">
+            <div>
+              <Select<LocationOption, false>
+                isClearable
+                options={provinceOptions}
+                value={currentProvinceOption}
+                placeholder="Lọc theo Tỉnh/Thành"
+                styles={selectStyles}
+                onChange={(opt) => {
+                  setProvinceCode(opt?.value ?? '');
+                  setDistrictCode('');
+                }}
+              />
+            </div>
+
+            <div>
+              <Select<LocationOption, false>
+                isClearable
+                isDisabled={!provinceCode}
+                options={districtOptions}
+                value={currentDistrictOption}
+                placeholder={provinceCode ? 'Lọc theo Quận/Huyện' : 'Chọn Tỉnh/Thành trước'}
+                styles={selectStyles}
+                onChange={(opt) => setDistrictCode(opt?.value ?? '')}
+              />
+            </div>
+
+            <div>
               <select
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 px-4 text-sm outline-none transition-all focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100 appearance-none"
                 value={priceFilter}
@@ -183,7 +251,13 @@ export default function DoctorsPage() {
                 <h3 className="text-lg font-bold text-slate-700 mb-2">Không tìm thấy bác sĩ</h3>
                 <p>Không có bác sĩ nào khớp với điều kiện tìm kiếm của bạn.</p>
                 <button 
-                  onClick={() => { setSearchTerm(''); setSelectedSpecialty(null); setPriceFilter('all'); }}
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedSpecialty(null);
+                    setProvinceCode('');
+                    setDistrictCode('');
+                    setPriceFilter('all');
+                  }}
                   className="mt-4 text-teal-600 font-bold hover:underline"
                 >
                   Xóa bộ lọc
@@ -221,7 +295,11 @@ export default function DoctorsPage() {
                     
                     <div className="flex items-start gap-1.5 text-sm text-slate-500 mb-4 line-clamp-2">
                       <MapPin size={16} className="shrink-0 mt-0.5 text-slate-400" />
-                      <span>{doctor.workplaceName || 'Phòng khám Clinical Precision'}</span>
+                      <span>
+                        {doctor.workplaceAddress ||
+                          [doctor.workplaceName, doctor.districtCode, doctor.provinceCode].filter(Boolean).join(', ') ||
+                          'Phòng khám Clinical Precision'}
+                      </span>
                     </div>
                     
                     <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">

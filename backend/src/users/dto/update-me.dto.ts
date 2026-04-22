@@ -29,17 +29,17 @@ export class UpdateMyPatientProfileDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(120)
   provinceCode?: string | null;
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(120)
   districtCode?: string | null;
 
   @IsOptional()
   @IsString()
-  @MaxLength(20)
+  @MaxLength(120)
   wardCode?: string | null;
 
   @IsOptional()
@@ -75,6 +75,26 @@ export class UpdateMyDoctorProfileDto {
   @IsString()
   @MaxLength(255)
   workplaceName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  workplaceAddress?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  provinceCode?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  districtCode?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  wardCode?: string | null;
 
   @IsOptional()
   @Type(() => Number)
