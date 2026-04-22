@@ -25,7 +25,7 @@ import {
   Radio,
 } from 'lucide-react';
 
-import { authApi, doctorsApi, livestreamsApi, publicPostsApi } from '@/lib/api';
+import { authApi, doctorsApi, livestreamsApi, publicPostsApi, qaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
 const SPECIALTIES = [
@@ -60,6 +60,11 @@ export default function Home() {
   const { data: blogsData } = useQuery({
     queryKey: ['public-posts-home'],
     queryFn: () => publicPostsApi.list(1, 3),
+  });
+
+  const { data: qaData } = useQuery({
+    queryKey: ['public-qa-home'],
+    queryFn: () => qaApi.listPublic(1, 4),
   });
 
   const { data: liveStreams } = useQuery({
@@ -213,6 +218,59 @@ export default function Home() {
             </div>
           </section>
         ) : null}
+
+        <section className="border-b border-slate-200 bg-[#f6fbfb] py-16">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-8">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600">Bác sĩ hỏi đáp</h3>
+              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">Hỏi bác sĩ miễn phí & Cẩm nang hỏi đáp</h2>
+              <p className="mt-3 max-w-3xl text-slate-600">
+                Đặt câu hỏi trực tuyến để bác sĩ giải đáp, đồng thời tra cứu kho bài viết chăm sóc sức khỏe phù hợp từng vấn đề.
+              </p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+              <Link href="/hoi-bac-si-mien-phi" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
+                <div className="overflow-hidden rounded-2xl">
+                  <img
+                    src="https://images.unsplash.com/photo-1584516150909-c43483ee7930?q=80&w=1200&auto=format&fit=crop"
+                    alt="Hỏi bác sĩ miễn phí"
+                    className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <h4 className="mt-4 text-3xl font-extrabold text-[#003f87]">Hỏi bác sĩ miễn phí</h4>
+                <p className="mt-2 text-sm text-slate-600">Gửi câu hỏi của bạn và nhận phản hồi trực tiếp từ bác sĩ trên hệ thống.</p>
+              </Link>
+              <Link href="/cam-nang-hoi-dap" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
+                <div className="overflow-hidden rounded-2xl">
+                  <img
+                    src="https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=1200&auto=format&fit=crop"
+                    alt="Cẩm nang hỏi đáp"
+                    className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </div>
+                <h4 className="mt-4 text-3xl font-extrabold text-[#003f87]">Cẩm nang hỏi đáp</h4>
+                <p className="mt-2 text-sm text-slate-600">Tổng hợp các bài viết thực tế từ bác sĩ giúp bạn hiểu bệnh và xử lý đúng cách.</p>
+              </Link>
+            </div>
+
+            {qaData?.items?.length ? (
+              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h4 className="text-lg font-extrabold text-slate-900">Câu hỏi mới trong cộng đồng</h4>
+                  <Link href="/hoi-bac-si-mien-phi" className="text-sm font-bold text-teal-600 hover:text-teal-700">Xem tất cả →</Link>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {qaData.items.slice(0, 4).map((q) => (
+                    <Link key={q.id} href={`/hoi-bac-si-mien-phi/${q.id}`} className="rounded-xl border border-slate-200 bg-[#fafafb] p-4 hover:border-teal-300">
+                      <p className="line-clamp-2 text-sm font-bold text-slate-900">{q.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{q.status === 'answered' ? 'Đã có bác sĩ trả lời' : 'Đang chờ bác sĩ phản hồi'}</p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         {/* Specialties Section */}
         <section className="bg-white py-24">

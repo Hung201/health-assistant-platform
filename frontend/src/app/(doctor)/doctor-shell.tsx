@@ -12,6 +12,7 @@ const NAV: { href: string; icon: string; label: string }[] = [
   { href: '/doctor/slots', icon: 'schedule', label: 'Lịch trống' },
   { href: '/doctor/bookings', icon: 'event_note', label: 'Lịch hẹn' },
   { href: '/doctor/live', icon: 'videocam', label: 'Phát trực tiếp' },
+  { href: '/doctor/qa', icon: 'forum', label: 'Hỏi đáp cộng đồng' },
   { href: '/doctor/posts', icon: 'article', label: 'Bài viết của tôi' },
   { href: '/doctor/profile', icon: 'stethoscope', label: 'Hồ sơ hành nghề' },
   { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
