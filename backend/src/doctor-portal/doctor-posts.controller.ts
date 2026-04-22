@@ -14,6 +14,7 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { DoctorGuard } from '../auth/guards/doctor.guard';
 import { User } from '../entities/user.entity';
 import { DoctorPostsService } from './doctor-posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -23,6 +24,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 // Tạm thời ở đây dựa trên @CurrentUser(), user.role (từ jwt) sẽ xác định. 
 
 @Controller('doctor/posts')
+@UseGuards(DoctorGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 export class DoctorPostsController {
   constructor(private readonly doctorPostsService: DoctorPostsService) {}
