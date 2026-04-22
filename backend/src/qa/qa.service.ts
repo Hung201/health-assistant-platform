@@ -6,6 +6,13 @@ import { DoctorQuestion } from '../entities/doctor-question.entity';
 import { User } from '../entities/user.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 
+const QA_STATUS = {
+  PENDING_REVIEW: 'pending_review',
+  APPROVED: 'approved',
+  ANSWERED: 'answered',
+  REJECTED: 'rejected',
+} as const;
+
 function hasRole(user: User, code: string): boolean {
   return Boolean(user.userRoles?.some((ur) => ur.role?.code === code));
 }
@@ -50,6 +57,9 @@ export class QaService {
       .createQueryBuilder('q')
       .leftJoinAndSelect('q.patientUser', 'patientUser')
       .leftJoinAndSelect('q.doctorUser', 'doctorUser')
+      .where('q.status IN (:...publicStatuses)', {
+        publicStatuses: [QA_STATUS.APPROVED, QA_STATUS.ANSWERED],
+      })
       .orderBy('q.answeredAt', 'DESC', 'NULLS LAST')
       .addOrderBy('q.createdAt', 'DESC')
       .skip((safePage - 1) * safeLimit)
@@ -69,10 +79,15 @@ export class QaService {
   }
 
   async getPublicDetail(id: string) {
-    const q = await this.questionRepo.findOne({
-      where: { id },
-      relations: ['patientUser', 'doctorUser'],
-    });
+    const q = await this.questionRepo
+      .createQueryBuilder('q')
+      .leftJoinAndSelect('q.patientUser', 'patientUser')
+      .leftJoinAndSelect('q.doctorUser', 'doctorUser')
+      .where('q.id = :id', { id })
+      .andWhere('q.status IN (:...publicStatuses)', {
+        publicStatuses: [QA_STATUS.APPROVED, QA_STATUS.ANSWERED],
+      })
+      .getOne();
     if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
     return mapQuestionRow(q);
   }
@@ -88,7 +103,7 @@ export class QaService {
         title: input.title.trim(),
         questionContent: input.content.trim(),
         category: input.category?.trim() || null,
-        status: 'pending',
+        status: QA_STATUS.PENDING_REVIEW,
         answerContent: null,
         answeredAt: null,
       }),
@@ -109,12 +124,17 @@ export class QaService {
       .createQueryBuilder('q')
       .leftJoinAndSelect('q.patientUser', 'patientUser')
       .leftJoinAndSelect('q.doctorUser', 'doctorUser')
+      .where('q.status IN (:...doctorStatuses)', {
+        doctorStatuses: [QA_STATUS.APPROVED, QA_STATUS.ANSWERED],
+      })
       .orderBy('q.createdAt', 'DESC')
       .skip((safePage - 1) * safeLimit)
       .take(safeLimit);
 
-    if (status === 'pending' || status === 'answered') {
-      qb.andWhere('q.status = :status', { status });
+    if (status === 'pending' || status === QA_STATUS.APPROVED) {
+      qb.andWhere('q.status = :status', { status: QA_STATUS.APPROVED });
+    } else if (status === QA_STATUS.ANSWERED) {
+      qb.andWhere('q.status = :status', { status: QA_STATUS.ANSWERED });
     }
 
     const [rows, total] = await qb.getManyAndCount();
@@ -135,11 +155,11 @@ export class QaService {
       relations: ['patientUser', 'doctorUser'],
     });
     if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
-    if (q.status === 'answered') {
-      throw new BadRequestException('Câu hỏi này đã được trả lời');
+    if (q.status !== QA_STATUS.APPROVED) {
+      throw new BadRequestException('Câu hỏi chưa được admin duyệt hoặc đã xử lý');
     }
 
-    q.status = 'answered';
+    q.status = QA_STATUS.ANSWERED;
     q.answerContent = answerContent.trim();
     q.answeredAt = new Date();
     q.doctorUserId = user.id;

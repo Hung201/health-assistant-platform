@@ -43,6 +43,7 @@ const quickLinks = [
   { href: '/admin/users', label: 'Danh sách người dùng', desc: 'GET /admin/users', icon: 'group' },
   { href: '/admin/doctors/pending', label: 'Bác sĩ chờ duyệt', desc: 'GET /admin/doctors/pending', icon: 'stethoscope' },
   { href: '/admin/posts/pending', label: 'Bài viết chờ duyệt', desc: 'GET /admin/posts/pending', icon: 'article' },
+  { href: '/admin/questions/pending', label: 'Câu hỏi chờ duyệt', desc: 'GET /admin/questions/pending', icon: 'forum' },
   { href: '/admin/specialties', label: 'Chuyên khoa (read-only)', desc: 'GET /admin/specialties', icon: 'category' },
   { href: '/admin/settings', label: 'Cài đặt', desc: 'Chưa có API', icon: 'settings' },
 ];

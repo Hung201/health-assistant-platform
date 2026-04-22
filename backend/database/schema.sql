@@ -188,7 +188,7 @@ CREATE TABLE bookings (
     rejection_reason TEXT,
     cancel_reason TEXT,
 
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending_review',
     payment_method VARCHAR(30) NOT NULL DEFAULT 'momo',
     payment_status VARCHAR(30) NOT NULL DEFAULT 'unpaid',
     guest_full_name VARCHAR(255),
@@ -353,7 +353,7 @@ CREATE TABLE IF NOT EXISTS doctor_questions (
     answered_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending', 'answered'))
+    CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending_review', 'approved', 'answered', 'rejected'))
 );
 
 -- ============================================================

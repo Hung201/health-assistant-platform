@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -100,6 +101,24 @@ export class AdminController {
     @Body() dto: RejectPostDto,
   ) {
     return this.adminService.rejectPost(id, admin.id, dto.reason);
+  }
+
+  @Get('questions/pending')
+  listPendingQuestions(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+  ) {
+    return this.adminService.listPendingQuestions(page, limit);
+  }
+
+  @Patch('questions/:id/approve')
+  approveQuestion(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.adminService.approveQuestion(id);
+  }
+
+  @Patch('questions/:id/reject')
+  rejectQuestion(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: RejectPostDto) {
+    return this.adminService.rejectQuestion(id, dto.reason);
   }
 
   @Get('specialties')

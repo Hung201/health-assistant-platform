@@ -40,7 +40,7 @@ export class DoctorQuestion {
   @Column({ type: 'varchar', length: 100, nullable: true })
   category: string | null;
 
-  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  @Column({ type: 'varchar', length: 20, default: 'pending_review' })
   status: string;
 
   @Column({ name: 'answered_at', type: 'timestamptz', nullable: true })
