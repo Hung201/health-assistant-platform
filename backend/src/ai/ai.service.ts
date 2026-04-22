@@ -1,11 +1,13 @@
 import { BadGatewayException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 
+import { DoctorsService } from '../doctors/doctors.service';
 import { ChronicCondition } from '../entities/chronic-condition.entity';
 import { MedicalProfile } from '../entities/medical-profile.entity';
 import { PatientChronicCondition } from '../entities/patient-chronic-condition.entity';
+import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
 import { AiChatDto } from './dto/ai-chat.dto';
 
@@ -21,10 +23,13 @@ type PatientContextPayload = {
 export class AiService {
   constructor(
     private readonly config: ConfigService,
+    private readonly doctorsService: DoctorsService,
     @InjectRepository(MedicalProfile)
     private readonly medicalProfileRepo: Repository<MedicalProfile>,
     @InjectRepository(PatientChronicCondition)
     private readonly patientConditionRepo: Repository<PatientChronicCondition>,
+    @InjectRepository(Specialty)
+    private readonly specialtyRepo: Repository<Specialty>,
   ) {}
 
   async chat(currentUser: User, dto: AiChatDto) {
@@ -48,7 +53,7 @@ export class AiService {
       );
     });
 
-    const data = (await response.json().catch(() => null)) as unknown;
+    const data = (await response.json().catch(() => null)) as any;
     if (!response.ok) {
       throw new BadGatewayException({
         message: 'AI service tra ve loi',
@@ -56,6 +61,19 @@ export class AiService {
         detail: data,
       });
     }
+
+    // Process doctor recommendation if there's a suggested specialty
+    const suggestedSpecialty = data?.final_result?.top_diseases?.[0]?.suggested_specialty;
+    if (suggestedSpecialty && typeof suggestedSpecialty === 'string') {
+      const spec = await this.specialtyRepo.findOne({
+        where: { name: ILike(`%${suggestedSpecialty}%`), status: 'active' },
+      });
+      if (spec) {
+        const recommendedDoctors = await this.doctorsService.recommendDoctors(Number(spec.id), 3);
+        data.doctor_recommendations = recommendedDoctors;
+      }
+    }
+
     return data;
   }
 
