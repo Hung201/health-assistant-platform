@@ -1,0 +1,5 @@
+ALTER TABLE doctor_profiles
+  ADD COLUMN IF NOT EXISTS workplace_address TEXT,
+  ADD COLUMN IF NOT EXISTS province_code VARCHAR(120),
+  ADD COLUMN IF NOT EXISTS district_code VARCHAR(120),
+  ADD COLUMN IF NOT EXISTS ward_code VARCHAR(120);

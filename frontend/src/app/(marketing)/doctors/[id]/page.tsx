@@ -7,6 +7,7 @@ import { Activity, MapPin, BadgeCheck, Stethoscope, Star, Clock, GraduationCap, 
 
 import { authApi, doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import { fetchVnDistricts, fetchVnProvinces, fetchVnWards } from '@/lib/vn-location';
 
 export default function DoctorDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -25,6 +26,23 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     queryKey: ['public-doctor', params.id],
     queryFn: () => doctorsApi.detail(params.id),
   });
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['vn-location', 'provinces', 'doctor-detail'],
+    queryFn: fetchVnProvinces,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: districts = [] } = useQuery({
+    queryKey: ['vn-location', 'districts', doctor?.provinceCode, 'doctor-detail'],
+    queryFn: () => fetchVnDistricts(doctor?.provinceCode ?? ''),
+    enabled: Boolean(doctor?.provinceCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: wards = [] } = useQuery({
+    queryKey: ['vn-location', 'wards', doctor?.districtCode, 'doctor-detail'],
+    queryFn: () => fetchVnWards(doctor?.districtCode ?? ''),
+    enabled: Boolean(doctor?.districtCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
 
   const appHref = user?.roles?.includes('admin')
     ? '/admin'
@@ -35,6 +53,17 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
         : '/login';
 
   const aiHref = user ? '/patient/ai-assistant' : '/ai';
+  const provinceName = provinces.find((p) => String(p.code) === doctor?.provinceCode)?.name ?? doctor?.provinceCode;
+  const districtName = districts.find((d) => String(d.code) === doctor?.districtCode)?.name ?? doctor?.districtCode;
+  const wardName = wards.find((w) => String(w.code) === doctor?.wardCode)?.name ?? doctor?.wardCode;
+  const doctorAddress = [
+    doctor?.workplaceAddress,
+    wardName,
+    districtName,
+    provinceName,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans flex flex-col">
@@ -155,6 +184,17 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                         <div>
                           <p className="font-semibold text-slate-800">Nơi công tác</p>
                           <p>{doctor.workplaceName || 'Phòng khám Clinical Precision'}</p>
+                          <p className="mt-1">{doctorAddress || 'Địa chỉ đang cập nhật'}</p>
+                          {doctorAddress ? (
+                            <a
+                              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctorAddress)}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-flex text-xs font-bold text-teal-700 hover:text-teal-800 hover:underline"
+                            >
+                              Mở trên Google Maps
+                            </a>
+                          ) : null}
                         </div>
                       </div>
                       

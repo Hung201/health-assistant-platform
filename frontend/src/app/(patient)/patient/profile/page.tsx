@@ -1,10 +1,15 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Select from 'react-select';
 import { usersApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth.store';
 import { User, Phone, Calendar, Heart, MapPin, Briefcase, Camera, Save, AlertCircle } from 'lucide-react';
+import { fetchVnDistricts, fetchVnProvinces, fetchVnWards } from '@/lib/vn-location';
+
+type LocationOption = { value: string; label: string };
 
 function Field({
   label,
@@ -48,6 +53,7 @@ export default function PatientProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const initial = useMemo(() => {
     const p = user?.patientProfile ?? null;
@@ -68,6 +74,42 @@ export default function PatientProfilePage() {
   }, [user]);
 
   const [form, setForm] = useState(initial);
+
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['vn-location', 'provinces', 'patient-profile'],
+    queryFn: fetchVnProvinces,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: districts = [] } = useQuery({
+    queryKey: ['vn-location', 'districts', form.provinceCode, 'patient-profile'],
+    queryFn: () => fetchVnDistricts(form.provinceCode),
+    enabled: Boolean(form.provinceCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: wards = [] } = useQuery({
+    queryKey: ['vn-location', 'wards', form.districtCode, 'patient-profile'],
+    queryFn: () => fetchVnWards(form.districtCode),
+    enabled: Boolean(form.districtCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const provinceOptions = provinces.map((p) => ({ value: String(p.code), label: p.name }));
+  const districtOptions = districts.map((d) => ({ value: String(d.code), label: d.name }));
+  const wardOptions = wards.map((w) => ({ value: String(w.code), label: w.name }));
+  const currentProvinceOption = provinceOptions.find((o) => o.value === form.provinceCode) ?? null;
+  const currentDistrictOption = districtOptions.find((o) => o.value === form.districtCode) ?? null;
+  const currentWardOption = wardOptions.find((o) => o.value === form.wardCode) ?? null;
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minHeight: 52,
+      borderRadius: 16,
+      borderColor: state.isFocused ? '#003f87' : '#e2e8f0',
+      boxShadow: state.isFocused ? '0 0 0 4px rgba(0,63,135,0.1)' : 'none',
+      backgroundColor: '#f8fafc',
+      '&:hover': { borderColor: '#003f87' },
+    }),
+    menu: (base: any) => ({ ...base, zIndex: 30 }),
+  };
 
   if (
     form.fullName === '' &&
@@ -95,6 +137,12 @@ export default function PatientProfilePage() {
         <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-3">
           <AlertCircle className="text-red-600" />
           <div className="text-sm font-medium text-red-800">{error}</div>
+        </div>
+      ) : null}
+      {locationError ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-center gap-3">
+          <AlertCircle className="text-amber-600" />
+          <div className="text-sm font-medium text-amber-800">{locationError}</div>
         </div>
       ) : null}
 
@@ -269,27 +317,66 @@ export default function PatientProfilePage() {
                     placeholder="Số nhà, tên đường..."
                   />
                 </div>
-                <Field
-                  label="Mã Tỉnh / Thành phố"
-                  value={form.provinceCode}
-                  disabled={saving}
-                  onChange={(v) => setForm((s) => ({ ...s, provinceCode: v }))}
-                  placeholder="Ví dụ: 01"
-                />
-                <Field
-                  label="Mã Quận / Huyện"
-                  value={form.districtCode}
-                  disabled={saving}
-                  onChange={(v) => setForm((s) => ({ ...s, districtCode: v }))}
-                  placeholder="Ví dụ: 001"
-                />
-                <Field
-                  label="Mã Phường / Xã"
-                  value={form.wardCode}
-                  disabled={saving}
-                  onChange={(v) => setForm((s) => ({ ...s, wardCode: v }))}
-                  placeholder="Ví dụ: 00001"
-                />
+                <label className="block">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Tỉnh / Thành phố
+                  </div>
+                  <Select<LocationOption, false>
+                    isClearable
+                    isDisabled={saving}
+                    options={provinceOptions}
+                    value={currentProvinceOption}
+                    placeholder="Chọn Tỉnh/Thành"
+                    styles={selectStyles}
+                    onChange={(opt) => {
+                      setLocationError(null);
+                      setForm((s) => ({
+                        ...s,
+                        provinceCode: opt?.value ?? '',
+                        districtCode: '',
+                        wardCode: '',
+                      }));
+                    }}
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Quận / Huyện
+                  </div>
+                  <Select<LocationOption, false>
+                    isClearable
+                    isDisabled={saving || !form.provinceCode}
+                    options={districtOptions}
+                    value={currentDistrictOption}
+                    placeholder={form.provinceCode ? 'Chọn Quận/Huyện' : 'Chọn Tỉnh/Thành trước'}
+                    styles={selectStyles}
+                    onChange={(opt) => {
+                      setLocationError(null);
+                      setForm((s) => ({
+                        ...s,
+                        districtCode: opt?.value ?? '',
+                        wardCode: '',
+                      }));
+                    }}
+                  />
+                </label>
+                <label className="block">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    Phường / Xã
+                  </div>
+                  <Select<LocationOption, false>
+                    isClearable
+                    isDisabled={saving || !form.districtCode}
+                    options={wardOptions}
+                    value={currentWardOption}
+                    placeholder={form.districtCode ? 'Chọn Phường/Xã' : 'Chọn Quận/Huyện trước'}
+                    styles={selectStyles}
+                    onChange={(opt) => {
+                      setLocationError(null);
+                      setForm((s) => ({ ...s, wardCode: opt?.value ?? '' }));
+                    }}
+                  />
+                </label>
               </div>
             </div>
 
@@ -333,8 +420,13 @@ export default function PatientProfilePage() {
                 type="button"
                 onClick={async () => {
                   setError(null);
+                  setLocationError(null);
                   setSaving(true);
                   try {
+                    if ((form.districtCode && !form.provinceCode) || (form.wardCode && !form.districtCode)) {
+                      setLocationError('Vui lòng chọn địa chỉ theo đúng thứ tự: Tỉnh/Thành -> Quận/Huyện -> Phường/Xã.');
+                      return;
+                    }
                     const payload = {
                       fullName: form.fullName.trim(),
                       phone: form.phone.trim() || null,

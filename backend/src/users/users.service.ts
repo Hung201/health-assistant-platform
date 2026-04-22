@@ -102,6 +102,10 @@ export class UsersService {
       | 'yearsOfExperience'
       | 'bio'
       | 'workplaceName'
+      | 'workplaceAddress'
+      | 'provinceCode'
+      | 'districtCode'
+      | 'wardCode'
       | 'consultationFee'
       | 'isAvailableForBooking'
     >>;
