@@ -10,6 +10,8 @@ export default function AIAssistantPage() {
   const messages = useChatStore((s) => s.messages);
   const isLoading = useChatStore((s) => s.isLoading);
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const finalResult = useChatStore((s) => s.finalResult);
+  const doctorRecommendations = useChatStore((s) => s.doctorRecommendations);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -128,55 +130,62 @@ export default function AIAssistantPage() {
       {/* Right Column: Diagnostics & History */}
       <div className="flex flex-[1] flex-col gap-6">
         {/* Diagnostics Card */}
-        <div className="rounded-2xl bg-white shadow-sm border-l-4 border-l-[#003f87] border-y border-r border-slate-200 p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-[#003f87] mb-1">Kết quả chẩn đoán dự kiến</h3>
-          <p className="text-xs text-slate-500 mb-6">Dựa trên các triệu chứng được cung cấp</p>
+        {finalResult ? (
+          <div className="rounded-2xl bg-white shadow-sm border-l-4 border-l-[#003f87] border-y border-r border-slate-200 p-6 flex flex-col">
+            <h3 className="text-lg font-bold text-[#003f87] mb-1">Kết quả chẩn đoán dự kiến</h3>
+            <p className="text-xs text-slate-500 mb-6">Dựa trên các triệu chứng được cung cấp</p>
 
-          <div className="space-y-5 mb-8">
-            {/* Progress Item 1 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Đau thắt ngực (Angina)</span>
-                <span className="text-lg font-bold text-[#003f87]">65%</span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-[#003f87]" style={{ width: '65%' }}></div>
-              </div>
+            <div className="space-y-5 mb-8">
+              {finalResult.top_diseases.map((disease, idx) => {
+                const percentage = Math.round(disease.match_score * 100);
+                const colors = ['bg-[#003f87]', 'bg-slate-400', 'bg-slate-300'];
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm font-bold text-slate-800">{disease.disease}</span>
+                      <span className={`text-lg font-bold ${idx === 0 ? 'text-[#003f87]' : 'text-slate-600'}`}>{percentage}%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full rounded-full ${colors[idx % colors.length]}`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {/* Progress Item 2 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Rối loạn lo âu</span>
-                <span className="text-lg font-bold text-slate-600">25%</span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-slate-400" style={{ width: '25%' }}></div>
-              </div>
+
+            <div className="rounded-xl border border-red-100 bg-red-50 p-4 flex gap-3 mb-6">
+              <AlertTriangle className="text-red-500 shrink-0" size={20} />
+              <p className="text-xs font-semibold text-red-700 leading-relaxed italic">
+                {finalResult.disclaimer || 'Kết quả chỉ mang tính tham khảo. AI không thay thế chẩn đoán chuyên môn của bác sĩ.'}
+              </p>
             </div>
-            {/* Progress Item 3 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Trào ngược dạ dày</span>
-                <span className="text-lg font-bold text-slate-600">10%</span>
+
+            {doctorRecommendations && doctorRecommendations.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-bold text-slate-800 mb-3">Bác sĩ chuyên khoa gợi ý:</h4>
+                <div className="space-y-3">
+                  {doctorRecommendations.map((doc: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between rounded-xl border border-slate-100 p-3 bg-slate-50">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{doc.fullName}</p>
+                        <p className="text-xs text-slate-500">{doc.specialties?.[0]?.name || 'Bác sĩ'}</p>
+                      </div>
+                      <a href={`/patient/doctors/${doc.userId}`} className="rounded-lg bg-[#003f87] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0056b3]">
+                        Đặt lịch
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-slate-300" style={{ width: '10%' }}></div>
-              </div>
-            </div>
+            )}
           </div>
-
-          <div className="rounded-xl border border-red-100 bg-red-50 p-4 flex gap-3 mb-6">
-            <AlertTriangle className="text-red-500 shrink-0" size={20} />
-            <p className="text-xs font-semibold text-red-700 leading-relaxed italic">
-              Kết quả chỉ mang tính tham khảo. AI không thay thế chẩn đoán chuyên môn của bác sĩ. Vui lòng đến cơ sở y tế gần nhất nếu triệu chứng trầm trọng.
-            </p>
+        ) : (
+          <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center h-48">
+            <Bot size={40} className="text-slate-300 mb-3" />
+            <h3 className="text-sm font-bold text-slate-500">Chưa có kết quả chẩn đoán</h3>
+            <p className="text-xs text-slate-400 mt-1">Hãy tiếp tục trò chuyện để AI thu thập thêm thông tin.</p>
           </div>
-
-          <button className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-100/50 py-3.5 text-sm font-bold text-[#003f87] transition-all hover:bg-indigo-100">
-            <UserSearch size={18} />
-            Tìm bác sĩ chuyên khoa phù hợp
-          </button>
-        </div>
+        )}
 
         {/* History Card */}
         <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex-1 flex flex-col min-h-0">

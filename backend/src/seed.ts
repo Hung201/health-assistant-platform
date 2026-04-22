@@ -123,6 +123,13 @@ async function seed() {
       { slug: 'nhi-khoa', name: 'Nhi khoa', description: 'Khám và theo dõi sức khỏe trẻ em.', status: 'active' },
       { slug: 'ngoai-khoa', name: 'Ngoại khoa', description: 'Tư vấn và can thiệp ngoại khoa.', status: 'active' },
       { slug: 'da-lieu', name: 'Da liễu', description: 'Điều trị các vấn đề về da.', status: 'active' },
+      { slug: 'tieu-hoa', name: 'Tiêu hoá', description: 'Bệnh lý dạ dày, đại tràng, gan mật.', status: 'active' },
+      { slug: 'ho-hap', name: 'Hô hấp', description: 'Bệnh lý phổi và đường hô hấp.', status: 'active' },
+      { slug: 'tai-mui-hong', name: 'Tai Mũi Họng', description: 'Bệnh lý về tai, mũi và cổ họng.', status: 'active' },
+      { slug: 'co-xuong-khop', name: 'Cơ xương khớp', description: 'Bệnh lý xương khớp và chấn thương chỉnh hình.', status: 'active' },
+      { slug: 'than-kinh', name: 'Thần kinh', description: 'Bệnh lý thần kinh sọ não và tuỷ sống.', status: 'active' },
+      { slug: 'san-phu-khoa', name: 'Sản phụ khoa', description: 'Khám thai và bệnh lý phụ khoa.', status: 'active' },
+      { slug: 'nhan-khoa', name: 'Nhãn khoa', description: 'Chăm sóc và điều trị bệnh lý về mắt.', status: 'active' },
     ];
     for (const s of specialtiesSeed) {
       const existing = await txSpecialtyRepo.findOne({ where: { slug: s.slug } });

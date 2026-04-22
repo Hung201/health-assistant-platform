@@ -22,11 +22,28 @@ export interface HospitalSuggestion {
   location_used: string;
 }
 
+export interface DiseaseCandidate {
+  rank: number;
+  disease: string;
+  match_score: number;
+  reasoning: string;
+  suggested_specialty: string;
+}
+
+export interface DiagnosticResult {
+  disclaimer: string;
+  top_diseases: DiseaseCandidate[];
+  emergency_warning: string | null;
+  general_advice: string;
+}
+
 interface ChatState {
   messages: ChatMessage[];
   sessionId: string | null;
   isLoading: boolean;
   hospitalSuggestion: HospitalSuggestion | null;
+  finalResult: DiagnosticResult | null;
+  doctorRecommendations: any[] | null;
   
   // Actions
   sendMessage: (message: string, location?: string) => Promise<void>;
@@ -43,13 +60,17 @@ export const useChatStore = create<ChatState>()(
       sessionId: null,
       isLoading: false,
       hospitalSuggestion: null,
+      finalResult: null,
+      doctorRecommendations: null,
 
       setSessionId: (id) => set({ sessionId: id }),
 
       resetChat: () => set({ 
         messages: [], 
         sessionId: null, 
-        hospitalSuggestion: null 
+        hospitalSuggestion: null,
+        finalResult: null,
+        doctorRecommendations: null,
       }),
 
       sendMessage: async (message: string, location?: string) => {
@@ -66,7 +87,9 @@ export const useChatStore = create<ChatState>()(
         set({ 
           messages: [...currentMessages, userMsg],
           isLoading: true,
-          hospitalSuggestion: null // Clear old suggestions
+          hospitalSuggestion: null, // Clear old suggestions
+          finalResult: null,
+          doctorRecommendations: null,
         });
 
         try {
@@ -101,6 +124,8 @@ export const useChatStore = create<ChatState>()(
             messages: [...get().messages, aiMsg],
             sessionId: data.session_id,
             hospitalSuggestion: data.hospital_suggestion,
+            finalResult: data.final_result,
+            doctorRecommendations: data.doctor_recommendations,
             isLoading: false
           });
         } catch (error) {

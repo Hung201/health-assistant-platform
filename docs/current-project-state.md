@@ -1,6 +1,6 @@
 # Current Project State
 
-Ghi chu nay phan anh hien trang sau khi pull `origin/main` toi commit `5610720`.
+Ghi chu nay phan anh hien trang sau khi pull `origin/main` toi commit `9529133`.
 
 Du an hien la MVP cho nen tang ho tro suc khoe gom 3 phan chinh:
 
@@ -18,32 +18,32 @@ Docker hien co 1 service PostgreSQL:
 
 ## Recent Pull Changes
 
-Pull moi tu GitHub them/sua nhieu UI frontend, backend gan nhu khong doi domain logic.
+Pull moi tu GitHub tich hop nhieu tinh nang lon (payment, livestream, hoi dap, map) va nang cap toan dien giao dien.
 
-File moi dang chu y:
+Cac tinh nang moi dang chu y:
 
-- `frontend/src/app/(marketing)/ai/page.tsx`
-- `frontend/src/app/(marketing)/doctors/page.tsx`
-- `frontend/src/app/(marketing)/doctors/[id]/page.tsx`
+- **Thanh toan MoMo (MoMo Payment)**: Tich hop MoMo IPN, version 1 va 2 cho viec thanh toan truc tuyen.
+- **Livestream cho Bac si**: Bac si co the tao va quan ly phong live studio, admin co the quan ly quyen livestream.
+- **Hoi Dap Mien Phi (Q&A)**: Nguoi dung dat cau hoi mien phi, bac si co giao dien tra loi, admin kiem duyet cau hoi.
+- **Ban Do & Loc Dia Chi**: Tich hop ban do va tinh nang loc theo dia chi cho danh sach bac si.
+- **Thong Bao (Notifications)**: He thong thong bao in-app cho cac su kien.
+- **Thong ke & Cai dat (Stats & Settings)**: Them trang dashboard thong ke va cai dat rieng cho Admin va Doctor.
+- **Responsive & UI**: Nang cap giao dien Responsive cho tat ca cac portal, kem theo Module Blog, Header.
+- **AI Chat Service**: Tich hop AI chat voi Pydantic schemas, Zustand store va API backend moi.
 
-File duoc lam lai dang chu y:
+File/Folder moi dang chu y:
 
-- `frontend/src/app/(marketing)/page.tsx`
-- `frontend/src/app/(marketing)/blog/page.tsx`
-- `frontend/src/app/(marketing)/blog/[slug]/page.tsx`
-- `frontend/src/app/(patient)/patient-shell.tsx`
-- `frontend/src/app/(patient)/patient/ai-assistant/page.tsx`
-- `frontend/src/app/(patient)/patient/doctors/page.tsx`
-- `frontend/src/app/(patient)/patient/doctors/[doctorUserId]/page.tsx`
-- `frontend/src/app/(patient)/patient/bookings/page.tsx`
-- `frontend/src/app/(patient)/patient/profile/page.tsx`
-- `frontend/src/app/(patient)/patient/security/page.tsx`
-- `frontend/src/app/(auth)/login/page.tsx`
-- `frontend/src/app/(auth)/register/page.tsx`
-
-Backend pull chi thay doi nho lien quan DTO update post:
-
-- `backend/src/doctor-portal/dto/update-post.dto.ts`
+- `backend/src/momo/`: Module thanh toan MoMo.
+- `backend/src/lives/`: Module quan ly livestream.
+- `backend/src/questions/`: Module hoi dap mien phi.
+- `backend/src/notifications/`: Module thong bao.
+- `frontend/src/app/(marketing)/dat-lich/`
+- `frontend/src/app/(marketing)/hoi-bac-si-mien-phi/`
+- `frontend/src/app/(marketing)/live/[streamId]/`
+- `frontend/src/app/(doctor)/doctor/live/`
+- `frontend/src/app/(doctor)/doctor/qa/`
+- `frontend/src/app/(admin)/admin/lives/`
+- `frontend/src/app/(admin)/admin/questions/`
 
 ## Frontend
 
@@ -66,7 +66,11 @@ Public/marketing routes hien co:
 - `/doctors/[id]`: public doctor detail.
 - `/blog`: public blog list.
 - `/blog/[slug]`: public blog detail.
-- `/login`, `/register`, `/oauth/google`: auth pages.
+- `/hoi-bac-si-mien-phi`: public trang dat cau hoi va xem hoi dap.
+- `/cam-nang-hoi-dap`: public trang cam nang.
+- `/dat-lich`: public trang huong dan dat lich.
+- `/live/[streamId]`: public trang xem livestream cua bac si.
+- `/login`, `/register`, `/register/verify`, `/oauth/google`: auth pages.
 
 Portal routes hien co:
 
@@ -77,17 +81,23 @@ Portal routes hien co:
 - `/patient/bookings`: danh sach booking cua patient + detail/cancel modal.
 - `/patient/profile`: patient profile.
 - `/patient/security`: doi mat khau/security.
-- `/doctor`: doctor dashboard.
+- `/doctor`: doctor dashboard (co them thong ke).
 - `/doctor/slots`: quan ly slot.
 - `/doctor/bookings`: quan ly booking cua doctor.
 - `/doctor/profile`: doctor profile.
 - `/doctor/posts`: quan ly post cua doctor.
-- `/admin`: admin dashboard.
+- `/doctor/live`: quan ly livestream studio cua bac si.
+- `/doctor/qa`: tra loi cau hoi cua benh nhan.
+- `/doctor/settings`: cai dat rieng cua bac si.
+- `/doctor/security`: bao mat.
+- `/admin`: admin dashboard (co them thong ke).
 - `/admin/users`: quan ly users.
 - `/admin/doctors/pending`: duyet doctor.
 - `/admin/posts/pending`: duyet posts.
 - `/admin/specialties`: quan ly specialties.
-- `/admin/settings`: settings.
+- `/admin/questions/pending`: kiem duyet cau hoi cua benh nhan.
+- `/admin/lives`: quan ly phien livestream.
+- `/admin/settings`: cai dat rieng cua admin.
 
 ### Public Marketing Pages
 
@@ -254,6 +264,10 @@ Module chinh:
 - `PostsModule`: public posts/comments/reactions.
 - `AdminModule`: dashboard, users, doctor approval, post approval, specialties.
 - `AiModule`: backend proxy `POST /ai/chat`, gan user da xac thuc va enrich patient context truoc khi goi AI service.
+- `MomoModule`: thanh toan IPN va API tich hop MoMo.
+- `LivesModule`: quan ly livestream va quyen live cho bac si.
+- `QuestionsModule`: quan ly hoi dap mien phi.
+- `NotificationsModule`: gui va lay thong bao in-app.
 
 Endpoint bac si hien co:
 
