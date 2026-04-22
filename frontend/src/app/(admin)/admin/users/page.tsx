@@ -4,7 +4,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
-import { adminApi } from '@/lib/api';
+import { adminApi, type AdminUserFeaturePermissions, type AdminUserRow } from '@/lib/api';
+
+function rowFeaturePerms(u: AdminUserRow): AdminUserFeaturePermissions {
+  return u.featurePermissions ?? { livestream: false };
+}
+
+function userIsDoctor(roles: string[]): boolean {
+  return roles.includes('doctor');
+}
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
@@ -65,7 +73,17 @@ export default function AdminUsersPage() {
     },
   });
 
+  const updateFeaturesMutation = useMutation({
+    mutationFn: ({ id, livestream }: { id: string; livestream: boolean }) =>
+      adminApi.updateUser(id, { featurePermissions: { livestream } }),
+    onSuccess: async (_, v) => {
+      await qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+      await qc.invalidateQueries({ queryKey: ['admin', 'users', 'detail', v.id] });
+    },
+  });
+
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.limit)) : 1;
+  const tableColCount = 6 + Number(showPhone) + Number(showCreatedAt);
 
   useEffect(() => {
     setPage(1);
@@ -94,7 +112,11 @@ export default function AdminUsersPage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Người dùng</h2>
-          <p className="text-sm text-muted-foreground">Quản lý tài khoản hệ thống, lọc nhanh và tuỳ biến bảng hiển thị.</p>
+          <p className="text-sm text-muted-foreground">
+            Quản lý tài khoản, lọc nhanh. Để <span className="font-medium text-foreground">cấp quyền chức năng</span> (ví dụ
+            phát livestream): chỉ với tài khoản <span className="font-medium text-foreground">bác sĩ</span>. Bấm dòng hoặc «Chi tiết & quyền»,
+            rồi bật/tắt trong khối quyền (không hiện với bệnh nhân / admin).
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -375,6 +397,43 @@ export default function AdminUsersPage() {
             </div>
           </div>
 
+          {userIsDoctor(detail.roles) ? (
+            <div className="mt-6 rounded-lg border border-primary/20 bg-primary/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-primary">Quyền sử dụng chức năng (bác sĩ)</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Chỉ bác sĩ: khi bật «Phát trực tiếp» thì tài khoản mới được tạo phiên live / vào phòng LiveKit.
+              </p>
+              <label className="mt-4 flex cursor-pointer items-start justify-between gap-4 rounded-lg border border-border bg-card px-4 py-3">
+                <span>
+                  <span className="block text-sm font-semibold text-foreground">Phát trực tiếp (Livestream)</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Tắt nếu chưa muốn mở live cho bác sĩ này.
+                  </span>
+                </span>
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-border accent-primary"
+                  checked={(detail.featurePermissions ?? { livestream: false }).livestream}
+                  disabled={updateFeaturesMutation.isPending}
+                  onChange={(e) =>
+                    updateFeaturesMutation.mutate({ id: detail.id, livestream: e.target.checked })
+                  }
+                />
+              </label>
+              {updateFeaturesMutation.isError ? (
+                <p className="mt-2 text-xs text-destructive">{(updateFeaturesMutation.error as Error).message}</p>
+              ) : null}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Quyền livestream</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Chỉ tài khoản có vai trò <span className="font-medium text-foreground">bác sĩ</span> mới được cấp quyền phát trực tiếp. Tài
+                khoản này không có vai trò bác sĩ nên không hiển thị công tắc cấp quyền.
+              </p>
+            </div>
+          )}
+
           {detail.doctorProfile ? (
             <div className="mt-6 rounded-lg border border-border bg-muted p-4">
               <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Doctor Profile</p>
@@ -417,22 +476,24 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Họ tên</th>
                 <th className="px-4 py-3">Vai trò</th>
+                <th className="px-4 py-3">Livestream (BS)</th>
                 <th className="px-4 py-3">Trạng thái</th>
                 {showPhone ? <th className="px-4 py-3">Phone</th> : null}
                 {showCreatedAt ? <th className="px-4 py-3">Tạo lúc</th> : null}
+                <th className="px-4 py-3 text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4 + Number(showPhone) + Number(showCreatedAt)}>
+                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={tableColCount}>
                     Đang tải…
                   </td>
                 </tr>
               ) : null}
               {!isLoading && filteredItems.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4 + Number(showPhone) + Number(showCreatedAt)}>
+                  <td className="px-4 py-8 text-center text-muted-foreground" colSpan={tableColCount}>
                     Không có người dùng phù hợp bộ lọc trên trang hiện tại.
                   </td>
                 </tr>
@@ -457,6 +518,21 @@ export default function AdminUsersPage() {
                       ))}
                     </div>
                   </td>
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs`}>
+                    {userIsDoctor(u.roles) ? (
+                      <span
+                        className={
+                          rowFeaturePerms(u).livestream
+                            ? 'font-medium text-emerald-700 dark:text-emerald-300'
+                            : 'text-muted-foreground'
+                        }
+                      >
+                        {rowFeaturePerms(u).livestream ? 'Được phép' : 'Tắt'}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
                   <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>{u.status}</td>
                   {showPhone ? <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs text-muted-foreground`}>{u.phone ?? '—'}</td> : null}
                   {showCreatedAt ? (
@@ -464,6 +540,18 @@ export default function AdminUsersPage() {
                       {new Date(u.createdAt).toLocaleString('vi-VN')}
                     </td>
                   ) : null}
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-right`}>
+                    <button
+                      type="button"
+                      className="rounded-lg border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailId(u.id);
+                      }}
+                    >
+                      Chi tiết & quyền
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
