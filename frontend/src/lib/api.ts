@@ -387,6 +387,53 @@ export const doctorPostsApi = {
   delete: (id: string) => api<{ ok: boolean }>(`/doctor/posts/${id}`, { method: 'DELETE' }),
 };
 
+export type LiveStreamRow = {
+  id: string;
+  doctorUserId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  roomName: string;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PublicLiveStream = {
+  id: string;
+  title: string;
+  doctorName: string;
+  startedAt: string | null;
+};
+
+export type PublicLiveJoin = PublicLiveStream & {
+  serverUrl: string;
+  token: string;
+};
+
+export const livestreamsApi = {
+  listLive: () => apiPublic<PublicLiveStream[]>('/livestreams'),
+  join: (id: string) => apiPublic<PublicLiveJoin>(`/livestreams/${id}`),
+};
+
+export const doctorLivestreamsApi = {
+  create: (data: { title: string; description?: string }) =>
+    api<LiveStreamRow>('/doctor/livestreams', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  goLive: (id: string) =>
+    api<{ stream: LiveStreamRow; serverUrl: string; token: string }>(`/doctor/livestreams/${id}/go-live`, {
+      method: 'PATCH',
+    }),
+  end: (id: string) => api<LiveStreamRow>(`/doctor/livestreams/${id}/end`, { method: 'PATCH' }),
+  publisherToken: (id: string) =>
+    api<{ serverUrl: string; token: string }>(`/doctor/livestreams/${id}/publisher-token`),
+  mine: (page = 1, limit = 20) =>
+    api<{ items: LiveStreamRow[]; total: number }>(`/doctor/livestreams/mine/list?page=${page}&limit=${limit}`),
+};
+
 export type PublicPostRow = {
   id: string;
   title: string;

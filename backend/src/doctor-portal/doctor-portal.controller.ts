@@ -8,10 +8,12 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { DoctorGuard } from '../auth/guards/doctor.guard';
 import { User } from '../entities/user.entity';
 import { DoctorsService } from '../doctors/doctors.service';
 import { CreateSlotDto } from '../doctors/dto/create-slot.dto';
@@ -19,6 +21,7 @@ import { BookingsService } from '../bookings/bookings.service';
 import { RejectBookingDto } from './dto/reject-booking.dto';
 
 @Controller('doctor')
+@UseGuards(DoctorGuard)
 @UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 export class DoctorPortalController {
   constructor(
