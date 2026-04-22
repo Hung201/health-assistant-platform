@@ -4,13 +4,21 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MedicalProfile } from '../entities/medical-profile.entity';
 import { PatientChronicCondition } from '../entities/patient-chronic-condition.entity';
 import { Specialty } from '../entities/specialty.entity';
+import { ChatSession } from '../entities/chat-session.entity';
+import { ChatMessage } from '../entities/chat-message.entity';
 import { DoctorsModule } from '../doctors/doctors.module';
 import { AiController } from './ai.controller';
 import { AiService } from './ai.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MedicalProfile, PatientChronicCondition, Specialty]),
+    TypeOrmModule.forFeature([
+      MedicalProfile,
+      PatientChronicCondition,
+      Specialty,
+      ChatSession,
+      ChatMessage,
+    ]),
     DoctorsModule,
   ],
   controllers: [AiController],

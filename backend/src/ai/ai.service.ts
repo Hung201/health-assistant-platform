@@ -1,13 +1,15 @@
-import { BadGatewayException, Injectable } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { ILike, IsNull, Repository } from 'typeorm';
 
 import { DoctorsService } from '../doctors/doctors.service';
 import { ChronicCondition } from '../entities/chronic-condition.entity';
 import { MedicalProfile } from '../entities/medical-profile.entity';
 import { PatientChronicCondition } from '../entities/patient-chronic-condition.entity';
 import { Specialty } from '../entities/specialty.entity';
+import { ChatSession } from '../entities/chat-session.entity';
+import { ChatMessage } from '../entities/chat-message.entity';
 import { User } from '../entities/user.entity';
 import { AiChatDto } from './dto/ai-chat.dto';
 
@@ -21,6 +23,7 @@ type PatientContextPayload = {
 
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
   constructor(
     private readonly config: ConfigService,
     private readonly doctorsService: DoctorsService,
@@ -30,6 +33,10 @@ export class AiService {
     private readonly patientConditionRepo: Repository<PatientChronicCondition>,
     @InjectRepository(Specialty)
     private readonly specialtyRepo: Repository<Specialty>,
+    @InjectRepository(ChatSession)
+    private readonly sessionRepo: Repository<ChatSession>,
+    @InjectRepository(ChatMessage)
+    private readonly messageRepo: Repository<ChatMessage>,
   ) {}
 
   async chat(currentUser: User, dto: AiChatDto) {
@@ -75,6 +82,24 @@ export class AiService {
     }
 
     return data;
+  }
+
+  async getSessions(userId: string) {
+    this.logger.log(`Fetching sessions for user: ${userId}`);
+    return this.sessionRepo.find({
+      where: [
+        { userId },
+        { userId: IsNull() } // Tam thoi lay ca session NULL de hien thi du lieu cu
+      ],
+      order: { updatedAt: 'DESC' },
+    });
+  }
+
+  async getSessionMessages(sessionId: string) {
+    return this.messageRepo.find({
+      where: { sessionId },
+      order: { createdAt: 'ASC' },
+    });
   }
 
   private async buildPatientContext(user: User): Promise<PatientContextPayload | null> {
