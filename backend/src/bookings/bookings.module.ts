@@ -6,8 +6,10 @@ import { BookingStatusLog } from '../entities/booking-status-log.entity';
 import { DoctorAvailableSlot } from '../entities/doctor-available-slot.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
+import { Payment } from '../entities/payment.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
+import { PaymentsModule } from '../payments/payments.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 
@@ -19,9 +21,11 @@ import { BookingsService } from './bookings.service';
       DoctorAvailableSlot,
       DoctorProfile,
       PatientProfile,
+      Payment,
       Specialty,
       User,
     ]),
+    PaymentsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],

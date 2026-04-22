@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsISO8601, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsInt, IsISO8601, Max, Min } from 'class-validator';
 
 export class CreateSlotDto {
   @IsISO8601()
@@ -7,11 +7,6 @@ export class CreateSlotDto {
 
   @IsISO8601()
   endAt: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  specialtyId?: number;
 
   @Type(() => Number)
   @IsInt()

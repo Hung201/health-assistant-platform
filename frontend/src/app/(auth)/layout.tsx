@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
+import { LightOnly } from '@/components/theme/light-only';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
-  return <div className="min-h-screen bg-background-light">{children}</div>;
+  return <LightOnly className="bg-background-light">{children}</LightOnly>;
 }

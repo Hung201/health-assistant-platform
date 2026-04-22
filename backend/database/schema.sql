@@ -17,7 +17,7 @@ CREATE TABLE users (
     avatar_public_id VARCHAR(255),
     date_of_birth DATE,
     gender VARCHAR(20),
-    status VARCHAR(20) NOT NULL DEFAULT 'active',
+    status VARCHAR(40) NOT NULL DEFAULT 'active',
     email_verified_at TIMESTAMPTZ,
     phone_verified_at TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
@@ -37,6 +37,18 @@ CREATE TABLE user_identities (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (provider, provider_sub)
+);
+
+-- 1.2) patient_email_verifications (OTP xác thực email lúc đăng ký bệnh nhân)
+CREATE TABLE patient_email_verifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL,
+    code_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- 2) roles
@@ -166,7 +178,7 @@ CREATE TABLE doctor_available_slots (
 CREATE TABLE bookings (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_code VARCHAR(30) UNIQUE NOT NULL,
-    patient_user_id UUID NOT NULL REFERENCES patient_profiles(user_id) ON DELETE CASCADE,
+    patient_user_id UUID REFERENCES patient_profiles(user_id) ON DELETE CASCADE,
     doctor_user_id UUID NOT NULL REFERENCES doctor_profiles(user_id) ON DELETE CASCADE,
     specialty_id BIGINT NOT NULL REFERENCES specialties(id),
     available_slot_id BIGINT REFERENCES doctor_available_slots(id) ON DELETE SET NULL,
@@ -177,6 +189,12 @@ CREATE TABLE bookings (
     cancel_reason TEXT,
 
     status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    payment_method VARCHAR(30) NOT NULL DEFAULT 'momo',
+    payment_status VARCHAR(30) NOT NULL DEFAULT 'unpaid',
+    guest_full_name VARCHAR(255),
+    guest_phone VARCHAR(30),
+    guest_email VARCHAR(255),
+    guest_lookup_token VARCHAR(64) UNIQUE,
 
     appointment_date DATE NOT NULL,
     appointment_start_at TIMESTAMPTZ NOT NULL,
@@ -192,8 +210,30 @@ CREATE TABLE bookings (
     approved_at TIMESTAMPTZ,
     approved_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT bookings_patient_or_guest CHECK (
+        patient_user_id IS NOT NULL
+        OR (guest_full_name IS NOT NULL AND guest_phone IS NOT NULL AND guest_email IS NOT NULL)
+    )
+);
+
+-- 12b) payments (MoMo / cổng khác)
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    booking_id UUID NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+    provider VARCHAR(30) NOT NULL DEFAULT 'momo',
+    amount NUMERIC(12,2) NOT NULL,
+    currency VARCHAR(10) NOT NULL DEFAULT 'VND',
+    status VARCHAR(30) NOT NULL DEFAULT 'pending',
+    provider_order_id VARCHAR(100) UNIQUE NOT NULL,
+    provider_trans_id VARCHAR(100),
+    raw_create_response TEXT,
+    raw_ipn_body TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_payments_booking_id ON payments(booking_id);
 
 -- 13) booking_status_logs
 CREATE TABLE booking_status_logs (

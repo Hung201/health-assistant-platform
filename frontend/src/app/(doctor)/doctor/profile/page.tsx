@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from 'react';
 
-import { usersApi } from '@/lib/api';
+import { authApi, usersApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth.store';
+import { useQuery } from '@tanstack/react-query';
 
 export default function DoctorProfilePage() {
   const user = useAuthStore((s) => s.user);
@@ -21,11 +22,17 @@ export default function DoctorProfilePage() {
       consultationFee: d?.consultationFee ?? '0',
       bio: d?.bio ?? '',
       isAvailableForBooking: d?.isAvailableForBooking ?? true,
+      specialtyId: user?.doctorSpecialty?.id != null ? String(user.doctorSpecialty.id) : '',
     };
   }, [user]);
 
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const { data: specialties } = useQuery({
+    queryKey: ['public', 'specialties', 'doctor-profile'],
+    queryFn: authApi.specialties,
+    staleTime: 60_000,
+  });
 
   return (
     <div className="space-y-4">
@@ -106,6 +113,24 @@ export default function DoctorProfilePage() {
             />
           </label>
 
+          <label className="block">
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Chuyên khoa chính</div>
+            <select
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:opacity-70"
+              value={form.specialtyId}
+              onChange={(e) => setForm((s) => ({ ...s, specialtyId: e.target.value }))}
+              disabled={saving}
+            >
+              <option value="">Chọn chuyên khoa</option>
+              {(specialties ?? []).map((s) => (
+                <option key={s.id} value={String(s.id)}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">Mỗi bác sĩ chỉ thuộc 1 chuyên khoa để đồng bộ lịch khám.</p>
+          </label>
+
           <label className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
             <div>
               <div className="text-sm font-semibold text-foreground">Cho phép đặt lịch</div>
@@ -149,10 +174,19 @@ export default function DoctorProfilePage() {
             onClick={async () => {
               setSaving(true);
               try {
+                if (!form.specialtyId) {
+                  toast.show({
+                    variant: 'error',
+                    title: 'Thiếu chuyên khoa',
+                    message: 'Vui lòng chọn chuyên khoa chính trước khi lưu hồ sơ.',
+                  });
+                  return;
+                }
                 const years =
                   form.yearsOfExperience.trim() === '' ? null : Number(form.yearsOfExperience.trim());
                 const fee =
                   form.consultationFee.trim() === '' ? null : Number(form.consultationFee.trim());
+                const specialtyId = Number(form.specialtyId);
 
                 const res = await usersApi.updateMe({
                   doctorProfile: {
@@ -163,7 +197,8 @@ export default function DoctorProfilePage() {
                     consultationFee: Number.isFinite(fee as number) ? String(fee) : null,
                     bio: form.bio.trim() || null,
                     isAvailableForBooking: form.isAvailableForBooking,
-                  } as any,
+                    specialtyId,
+                  },
                 });
                 setSession({ user: res.user });
                 toast.show({ variant: 'success', title: 'Đã lưu', message: 'Cập nhật hồ sơ hành nghề thành công.' });

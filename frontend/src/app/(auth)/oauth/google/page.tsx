@@ -74,7 +74,7 @@ function GoogleOauthCallbackContent() {
   }, [nextSafe, router, setSession]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background-light px-6 text-slate-700">
+    <div className="force-light flex min-h-screen items-center justify-center bg-background-light px-6 text-slate-700">
       <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="text-lg font-semibold">Đang hoàn tất đăng nhập Google…</div>
         <div className="mt-2 text-sm text-slate-500">
@@ -92,7 +92,7 @@ function GoogleOauthCallbackContent() {
 
 export default function GoogleOauthCallbackPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-background-light px-6 text-slate-700">Đang tải...</div>}>
+    <Suspense fallback={<div className="force-light flex min-h-screen items-center justify-center bg-background-light px-6 text-slate-700">Đang tải...</div>}>
       <GoogleOauthCallbackContent />
     </Suspense>
   );

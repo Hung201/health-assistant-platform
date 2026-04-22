@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { UserIdentity } from '../entities/user-identity.entity';
+import { DoctorSpecialty } from '../entities/doctor-specialty.entity';
+import { Specialty } from '../entities/specialty.entity';
 
 @Injectable()
 export class UsersService {
@@ -17,6 +19,10 @@ export class UsersService {
     private readonly doctorProfileRepository: Repository<DoctorProfile>,
     @InjectRepository(UserIdentity)
     private readonly userIdentityRepository: Repository<UserIdentity>,
+    @InjectRepository(DoctorSpecialty)
+    private readonly doctorSpecialtyRepository: Repository<DoctorSpecialty>,
+    @InjectRepository(Specialty)
+    private readonly specialtyRepository: Repository<Specialty>,
   ) {}
 
   async findById(id: string) {
@@ -59,6 +65,21 @@ export class UsersService {
     return await this.doctorProfileRepository.save(this.doctorProfileRepository.create({ userId }));
   }
 
+  async getDoctorPrimarySpecialty(userId: string): Promise<{ id: number; name: string } | null> {
+    const link = await this.doctorSpecialtyRepository.findOne({
+      where: { doctorUserId: userId },
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
+    });
+    if (!link) return null;
+    const sid = Number(link.specialtyId);
+    const spec = await this.specialtyRepository.findOne({
+      where: { id: sid, status: 'active' },
+      select: ['id', 'name'],
+    });
+    if (!spec) return null;
+    return { id: Number(spec.id), name: spec.name };
+  }
+
   async updateMe(params: {
     userId: string;
     fullName?: string;
@@ -84,6 +105,7 @@ export class UsersService {
       | 'consultationFee'
       | 'isAvailableForBooking'
     >>;
+    doctorSpecialtyId?: number;
   }) {
     const { userId } = params;
 
@@ -105,6 +127,25 @@ export class UsersService {
     if (params.doctorProfile) {
       await this.ensureDoctorProfile(userId);
       await this.doctorProfileRepository.update({ userId }, params.doctorProfile);
+    }
+
+    if (params.doctorSpecialtyId !== undefined) {
+      const sid = Number(params.doctorSpecialtyId);
+      if (!Number.isFinite(sid)) throw new BadRequestException('Chuyên khoa không hợp lệ');
+      const specialty = await this.specialtyRepository.findOne({
+        where: { id: sid, status: 'active' },
+        select: ['id'],
+      });
+      if (!specialty) throw new BadRequestException('Chuyên khoa không hợp lệ hoặc đã ngưng hoạt động');
+
+      await this.doctorSpecialtyRepository.delete({ doctorUserId: userId });
+      await this.doctorSpecialtyRepository.save(
+        this.doctorSpecialtyRepository.create({
+          doctorUserId: userId,
+          specialtyId: sid,
+          isPrimary: true,
+        }),
+      );
     }
   }
 

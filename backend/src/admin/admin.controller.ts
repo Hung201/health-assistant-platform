@@ -29,8 +29,9 @@ export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
   @Get('dashboard/summary')
-  dashboardSummary() {
-    return this.adminService.dashboardSummary();
+  dashboardSummary(@Query('days') days?: string) {
+    const parsedDays = days ? Number(days) : undefined;
+    return this.adminService.dashboardSummary(Number.isFinite(parsedDays) ? parsedDays : undefined);
   }
 
   @Get('users')
