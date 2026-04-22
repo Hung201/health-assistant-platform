@@ -252,6 +252,30 @@ export type MyBookingPaymentInfo = {
   message: string;
 };
 
+export type UserNotificationPriority = 'low' | 'normal' | 'high';
+
+export type UserNotificationRow = {
+  id: string;
+  type: string;
+  priority: UserNotificationPriority;
+  title: string;
+  message: string;
+  link: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type UserNotificationsResponse = {
+  items: UserNotificationRow[];
+  total: number;
+  unreadCount: number;
+  filter: 'all' | 'unread';
+  limit: number;
+  offset: number;
+};
+
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
   detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
@@ -292,6 +316,22 @@ export const bookingsApi = {
       method: 'PATCH',
       body: JSON.stringify({ reason: reason?.trim() || undefined }),
     }),
+};
+
+export const notificationsApi = {
+  my: (filter: 'all' | 'unread' = 'all', limit = 20, offset = 0) =>
+    api<UserNotificationsResponse>(`/notifications/me?filter=${filter}&limit=${limit}&offset=${offset}`),
+  markRead: (id: string) =>
+    api<{ ok: boolean; id: string; isRead: boolean }>(`/notifications/${encodeURIComponent(id)}/read`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+  markAllRead: () =>
+    api<{ ok: boolean }>('/notifications/me/read-all', {
+      method: 'PATCH',
+      body: '{}',
+    }),
+  streamUrl: () => `${API_BASE}/notifications/stream`,
 };
 
 export type DoctorSlotRow = PublicDoctorSlot;

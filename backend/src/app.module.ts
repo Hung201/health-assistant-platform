@@ -13,6 +13,7 @@ import { PostsModule } from './posts/posts.module';
 import { AiModule } from './ai/ai.module';
 import { MailModule } from './mail/mail.module';
 import { LivestreamsModule } from './livestreams/livestreams.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     PostsModule,
     AiModule,
     LivestreamsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { authApi, usersApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
@@ -11,6 +11,7 @@ export default function DoctorProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setSession = useAuthStore((s) => s.setSession);
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const initial = useMemo(() => {
     const d = user?.doctorProfile ?? null;
@@ -28,6 +29,7 @@ export default function DoctorProfilePage() {
 
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { data: specialties } = useQuery({
     queryKey: ['public', 'specialties', 'doctor-profile'],
     queryFn: authApi.specialties,
@@ -42,6 +44,88 @@ export default function DoctorProfilePage() {
       </header>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-5 rounded-xl border border-border/70 bg-muted/20 p-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const inputEl = e.currentTarget;
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (!file.type.startsWith('image/')) {
+                toast.show({
+                  variant: 'error',
+                  title: 'File không hợp lệ',
+                  message: 'Vui lòng chọn file ảnh.',
+                });
+                inputEl.value = '';
+                return;
+              }
+              if (file.size > 5 * 1024 * 1024) {
+                toast.show({
+                  variant: 'error',
+                  title: 'Ảnh quá lớn',
+                  message: 'Dung lượng tối đa 5MB.',
+                });
+                inputEl.value = '';
+                return;
+              }
+
+              setUploadingAvatar(true);
+              try {
+                const res = await usersApi.uploadAvatar(file);
+                if (user) setSession({ user: { ...user, avatarUrl: res.avatarUrl } });
+                toast.show({
+                  variant: 'success',
+                  title: 'Đã cập nhật ảnh',
+                  message: 'Ảnh đại diện đã được lưu lên hệ thống.',
+                });
+              } catch (err) {
+                toast.show({
+                  variant: 'error',
+                  title: 'Tải ảnh thất bại',
+                  message: err instanceof Error ? err.message : 'Không thể tải ảnh. Vui lòng thử lại.',
+                });
+              } finally {
+                setUploadingAvatar(false);
+                inputEl.value = '';
+              }
+            }}
+            disabled={uploadingAvatar || saving}
+          />
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                className="relative h-20 w-20 overflow-hidden rounded-full border border-border bg-muted transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={uploadingAvatar || saving}
+                onClick={() => fileInputRef.current?.click()}
+                title="Bấm để đổi ảnh đại diện"
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.fullName ?? 'Bác sĩ'} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">
+                    No avatar
+                  </div>
+                )}
+                <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-[10px] font-semibold text-white">
+                  {uploadingAvatar ? 'Đang tải…' : 'Đổi ảnh'}
+                </span>
+              </button>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Ảnh đại diện bác sĩ</div>
+                <p className="text-xs text-muted-foreground">
+                  Bấm trực tiếp vào avatar tròn để đổi ảnh. Hỗ trợ JPG/PNG/WebP, tối đa 5MB.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Họ tên</div>
