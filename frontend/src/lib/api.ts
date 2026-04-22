@@ -505,6 +505,27 @@ export type CommentRow = {
   replies: CommentRow[];
 };
 
+export type QaQuestionRow = {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+  status: 'pending' | 'answered' | string;
+  answerContent: string | null;
+  answeredAt: string | null;
+  createdAt: string;
+  patient: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  doctor: null | {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+};
+
 export const publicPostsApi = {
   list: (page = 1, limit = 20) => apiPublic<Paginated<PublicPostRow>>(`/posts?page=${page}&limit=${limit}`),
   detail: (slug: string) => apiPublic<PublicPostDetail>(`/posts/${slug}`),
@@ -517,6 +538,29 @@ export const publicPostsApi = {
   reactComment: (commentId: string) =>
     api<{ liked: boolean }>(`/posts/comments/${commentId}/react`, {
       method: 'POST',
+    }),
+};
+
+export const qaApi = {
+  listPublic: (page = 1, limit = 20, category?: string) =>
+    apiPublic<Paginated<QaQuestionRow>>(
+      `/qa/questions?page=${page}&limit=${limit}${category?.trim() ? `&category=${encodeURIComponent(category.trim())}` : ''}`,
+    ),
+  detailPublic: (id: string) =>
+    apiPublic<QaQuestionRow>(`/qa/questions/${encodeURIComponent(id)}`),
+  ask: (data: { title: string; content: string; category?: string }) =>
+    api<QaQuestionRow>('/qa/questions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  doctorInbox: (status: 'all' | 'pending' | 'answered' = 'all', page = 1, limit = 20) =>
+    api<Paginated<QaQuestionRow>>(
+      `/qa/doctor/inbox?page=${page}&limit=${limit}${status === 'all' ? '' : `&status=${status}`}`,
+    ),
+  answer: (id: string, data: { content: string }) =>
+    api<QaQuestionRow>(`/qa/doctor/questions/${encodeURIComponent(id)}/answer`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
 };
 

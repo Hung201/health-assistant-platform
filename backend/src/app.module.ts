@@ -14,6 +14,7 @@ import { AiModule } from './ai/ai.module';
 import { MailModule } from './mail/mail.module';
 import { LivestreamsModule } from './livestreams/livestreams.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { QaModule } from './qa/qa.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     AiModule,
     LivestreamsModule,
     NotificationsModule,
+    QaModule,
   ],
   controllers: [AppController],
   providers: [
