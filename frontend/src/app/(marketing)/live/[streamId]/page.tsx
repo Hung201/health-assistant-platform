@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { LiveKitRoom, VideoConference } from '@livekit/components-react';
+import { LiveKitRoom, StartAudio, VideoConference } from '@livekit/components-react';
 import '@livekit/components-styles';
 
 import { livestreamsApi } from '@/lib/api';
@@ -43,22 +43,29 @@ export default function PublicLiveViewerPage() {
               <h1 className="text-xl font-bold text-slate-900">{data.title}</h1>
               <p className="text-sm text-slate-600">Bác sĩ: {data.doctorName}</p>
             </div>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-black shadow-lg">
-              <div className="min-h-[360px] w-full sm:min-h-[480px]">
-                <LiveKitRoom
-                  serverUrl={data.serverUrl}
-                  token={data.token}
-                  connect
-                  audio
-                  video={false}
-                  className="h-[min(75vh,640px)] w-full"
-                >
-                  <VideoConference />
-                </LiveKitRoom>
-              </div>
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-lg">
+              <LiveKitRoom
+                serverUrl={data.serverUrl}
+                token={data.token}
+                connect
+                audio={false}
+                video={false}
+                className="flex h-[min(78vh,680px)] min-h-[440px] w-full flex-col bg-black"
+                onError={(e) => {
+                  console.error('[live viewer]', e);
+                }}
+              >
+                <div className="relative flex min-h-0 w-full flex-1 flex-col">
+                  <VideoConference className="h-full min-h-0 w-full flex-1" />
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-3 [&>button]:pointer-events-auto">
+                    <StartAudio label="Bật âm thanh (nếu trình duyệt chặn tự phát)" />
+                  </div>
+                </div>
+              </LiveKitRoom>
             </div>
             <p className="mt-4 text-center text-xs text-slate-500">
-              Nội dung mang tính thông tin, không thay thế khám trực tiếp tại cơ sở y tế.
+              Nếu vẫn đen: thử tải lại trang, đợi bác sĩ đã bật camera, hoặc bấm «Bật âm thanh». Nội dung mang tính thông tin,
+              không thay thế khám trực tiếp tại cơ sở y tế.
             </p>
           </>
         ) : null}
