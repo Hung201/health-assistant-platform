@@ -3,7 +3,8 @@
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useTheme } from 'next-themes';
 import { User, Lock, Eye, EyeOff, Activity, ArrowLeft } from 'lucide-react';
 
 import { authApi, usersApi } from '@/lib/api';
@@ -18,9 +19,23 @@ function LoginPageContent() {
   const searchParams = useSearchParams();
   const nextParam = searchParams.get('next');
   const setSession = useAuthStore((s) => s.setSession);
+  const { setTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const raw = typeof window !== 'undefined' ? window.localStorage.getItem('theme') : null;
+    const previous: 'light' | 'dark' | 'system' | null =
+      raw === 'light' || raw === 'dark' || raw === 'system' ? raw : null;
+
+    setTheme('light');
+
+    return () => {
+      if (previous) setTheme(previous);
+      else setTheme('system');
+    };
+  }, [setTheme]);
 
   const pickRedirect = (roles: string[], next: string | null) => {
     const canGo =
@@ -62,8 +77,16 @@ function LoginPageContent() {
         ? 'Đăng nhập thất bại'
         : null;
 
+  // Khớp message backend AuthService.login (patient chưa email_verified_at)
+  const showVerifyEmailCta = Boolean(errorMessage?.includes('chưa xác thực email'));
+
+  const verifyHref = (() => {
+    const e = email.trim().toLowerCase();
+    return e ? `/register/verify?email=${encodeURIComponent(e)}` : '/register/verify';
+  })();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#eefaf8] p-4 font-sans">
+    <div className="force-light scheme-light flex min-h-screen items-center justify-center bg-[#eefaf8] p-4 font-sans text-slate-900">
       <div className="relative flex w-full max-w-[1000px] overflow-hidden rounded-2xl border border-teal-100 bg-white shadow-xl shadow-slate-200/50">
         <div className="absolute right-4 top-4 z-50 pointer-events-auto">
           <Link
@@ -93,8 +116,21 @@ function LoginPageContent() {
           </div>
 
           {errorMessage ? (
-            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-              {errorMessage}
+            <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <p>{errorMessage}</p>
+              {showVerifyEmailCta ? (
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-red-600/90">
+                    Nhập đúng email ở trên, rồi mở trang xác thực để nhập mã 6 số (hoặc gửi lại mã).
+                  </p>
+                  <Link
+                    className="inline-flex shrink-0 items-center justify-center rounded-lg bg-teal-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition-colors hover:bg-teal-700"
+                    href={verifyHref}
+                  >
+                    Đi tới xác thực email
+                  </Link>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -160,11 +196,11 @@ function LoginPageContent() {
             <div className="flex items-center justify-between text-sm">
               <label className="flex cursor-pointer items-center gap-2">
                 <input
-                  className="h-4 w-4 rounded border-teal-200 text-teal-600 focus:ring-teal-500"
+                  className="h-4 w-4 shrink-0 rounded border-slate-300 bg-white text-teal-600 accent-teal-600 focus:ring-2 focus:ring-teal-500 focus:ring-offset-0"
                   name="remember"
                   type="checkbox"
                 />
-                <span className="text-slate-500 font-medium">Ghi nhớ đăng nhập</span>
+                <span className="font-medium text-slate-600">Ghi nhớ đăng nhập</span>
               </label>
               <Link className="font-bold text-teal-600 hover:text-teal-700" href="#">
                 Quên mật khẩu?

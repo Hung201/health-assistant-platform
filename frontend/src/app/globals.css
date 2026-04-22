@@ -83,6 +83,8 @@
 
   /* Force a subtree to use light theme variables even when html is .dark */
   .force-light {
+    color-scheme: light;
+
     --background: oklch(0.985 0.01 255);
     --foreground: oklch(0.22 0.02 255);
     --card: oklch(1 0 0);
