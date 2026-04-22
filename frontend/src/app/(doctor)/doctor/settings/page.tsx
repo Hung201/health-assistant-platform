@@ -46,9 +46,8 @@ export default function DoctorSettingsPage() {
           <button
             type="button"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`self-start inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors sm:self-auto ${
-              isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
-            }`}
+            className={`self-start inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors sm:self-auto ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
+              }`}
             aria-label="Bật tắt chế độ sáng tối"
             title="Bật tắt chế độ sáng tối"
           >
@@ -81,11 +80,10 @@ export default function DoctorSettingsPage() {
                   key={minute}
                   type="button"
                   disabled={!settings.reminderEnabled}
-                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                    settings.reminderLeadMinutes === minute
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${settings.reminderLeadMinutes === minute
                       ? 'border-primary bg-primary/10 text-primary'
                       : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
-                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                    } disabled:cursor-not-allowed disabled:opacity-50`}
                   onClick={() => setSettings((prev) => ({ ...prev, reminderLeadMinutes: minute }))}
                 >
                   {minute} phút

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
-import { AlignJustify, Bell, LogOut, Search, User as UserIcon, UserCircle, X } from 'lucide-react';
+import { AlignJustify, Bell, LogOut, User as UserIcon, UserCircle, X } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
@@ -101,11 +101,10 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6">
           {NAV.map((item) => {
             const active = navActive(pathname, item.href);
-            const className = `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
-              active
+            const className = `flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${active
                 ? 'bg-[#eefaf8] text-teal-700 shadow-sm ring-1 ring-teal-100'
                 : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-            }`;
+              }`;
             return (
               <Link className={className} href={item.href} key={item.href} onClick={closeMobileNav}>
                 <span className={`material-symbols-outlined text-[20px] ${active ? 'text-teal-600' : 'text-slate-400'}`}>
@@ -136,28 +135,16 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
             <h1 className="min-w-0 truncate text-lg font-bold text-[#003f87] sm:text-xl">{pageTitle}</h1>
           </div>
 
-          <div className="flex min-w-0 shrink-0 items-center gap-2 sm:gap-3 md:gap-4 md:border-l md:border-slate-200 md:pl-4 lg:pl-6">
-            <div className="relative hidden min-w-0 md:block md:w-48 lg:w-80">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Search size={16} />
-              </div>
-              <input
-                type="text"
-                placeholder="Tìm kiếm tài liệu..."
-                className="w-full rounded-full border border-slate-200 bg-[#f8f9fa] py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none transition-all focus:border-teal-400 focus:bg-white focus:ring-2 focus:ring-teal-100"
-              />
-            </div>
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-4 md:border-l md:border-slate-200 md:pl-4 lg:pl-6">
+            <button
+              type="button"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+            >
+              <Bell size={20} />
+              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+            </button>
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <button
-                type="button"
-                className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-              >
-                <Bell size={20} />
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-              </button>
-
-              <Menu.Root modal={false}>
+            <Menu.Root modal={false}>
                 <Menu.Trigger
                   type="button"
                   delay={120}
@@ -199,8 +186,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
                     </Menu.Popup>
                   </Menu.Positioner>
                 </Menu.Portal>
-              </Menu.Root>
-            </div>
+            </Menu.Root>
           </div>
         </header>
 
