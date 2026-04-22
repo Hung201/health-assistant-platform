@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChatStore } from '@/stores/chat.store';
-import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon } from 'lucide-react';
+import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon, PlusCircle, RotateCcw } from 'lucide-react';
 
 export default function AIAssistantPage() {
   const [input, setInput] = useState('');
@@ -12,8 +12,17 @@ export default function AIAssistantPage() {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const finalResult = useChatStore((s) => s.finalResult);
   const doctorRecommendations = useChatStore((s) => s.doctorRecommendations);
+  const resetChat = useChatStore((s) => s.resetChat);
+  const sessions = useChatStore((s) => s.sessions);
+  const fetchSessions = useChatStore((s) => s.fetchSessions);
+  const loadSession = useChatStore((s) => s.loadSession);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch sessions on mount
+  useEffect(() => {
+    fetchSessions();
+  }, []);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -32,20 +41,11 @@ export default function AIAssistantPage() {
   };
 
   // Default mock messages if store is empty (to match design)
+  // Initial welcome message if store is empty
   const displayMessages = messages.length > 0 ? messages : [
     {
       role: 'assistant',
-      content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải hoặc tải lên kết quả xét nghiệm để tôi hỗ trợ phân tích ban đầu.',
-      timestamp: new Date().toISOString()
-    },
-    {
-      role: 'user',
-      content: 'Tôi cảm thấy đau tức ngực trái âm ỉ khoảng 2 ngày nay, thỉnh thoảng thấy khó thở khi leo cầu thang.',
-      timestamp: new Date().toISOString()
-    },
-    {
-      role: 'assistant',
-      content: 'Cảm ơn thông tin của bạn. Ngoài đau ngực, bạn có thấy vã mồ hôi, buồn nôn hay đau lan ra cánh tay trái không? Độ tuổi hiện tại của bạn là bao nhiêu?',
+      content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải để tôi có thể hỗ trợ phân tích và gợi ý bác sĩ chuyên khoa phù hợp cho bạn.',
       timestamp: new Date().toISOString()
     }
   ];
@@ -57,12 +57,17 @@ export default function AIAssistantPage() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-teal-500"></span>
+            <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
             <h2 className="font-bold text-slate-800">AI Assistant Trực Tuyến</h2>
           </div>
-          <div className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold tracking-wider text-slate-500">
-            PHIÊN: #DX-2024
-          </div>
+          
+          <button 
+            onClick={() => resetChat()}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-[#003f87]/30 hover:text-[#003f87]"
+          >
+            <PlusCircle size={18} />
+            Phiên mới
+          </button>
         </div>
 
         {/* Messages */}
@@ -195,24 +200,32 @@ export default function AIAssistantPage() {
           </div>
 
           <div className="space-y-3 overflow-y-auto pr-2">
-            {[
-              { title: 'Đau ngực & Khó thở', date: '15/03/2024' },
-              { title: 'Nhức đầu kéo dài', date: '12/03/2024' },
-              { title: 'Ho khan về đêm', date: '08/03/2024' },
-            ].map((item, idx) => (
-              <div key={idx} className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#003f87] group-hover:bg-[#003f87]/10 transition-colors">
-                    <FileText size={18} />
+            {sessions.length > 0 ? (
+              sessions.map((session, idx) => (
+                <div 
+                  key={session.id} 
+                  onClick={() => loadSession(session.id)}
+                  className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#003f87] group-hover:bg-[#003f87]/10 transition-colors">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{session.title || 'Phiên trò chuyện'}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(session.createdAt).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">{item.date}</p>
-                  </div>
+                  <ChevronRight size={16} className="text-slate-400 group-hover:text-[#003f87] transition-colors" />
                 </div>
-                <ChevronRight size={16} className="text-slate-400 group-hover:text-[#003f87] transition-colors" />
+              ))
+            ) : (
+              <div className="py-10 text-center">
+                <p className="text-xs text-slate-400">Chưa có lịch sử phiên hỏi.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

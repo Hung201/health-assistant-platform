@@ -22,9 +22,10 @@ Mô tả: Nền tảng hỗ trợ y tế toàn diện với AI, cho phép đăng
   - Cập nhật thông tin liên hệ khẩn cấp, địa chỉ.
   - Cập nhật Hồ sơ y tế (Medical Profile): Chiều cao, cân nặng, BMI, dị ứng, thuốc đang dùng, tiền sử gia đình.
   - Quản lý Bệnh mãn tính (Chronic Conditions): Ghi nhận thời gian chẩn đoán, mức độ nghiêm trọng.
-- **Trạm AI Chẩn đoán (AI Symptom Checker)**:
   - Nhập triệu chứng bệnh. AI (Gemini) sẽ liên tục hỏi đáp (Chat) để thu thập đủ dữ kiện.
   - AI truy vấn CSDL Y khoa (ChromaDB - RAG) để đưa ra chẩn đoán: danh sách các bệnh có thể mắc, tỷ lệ %, mức độ khẩn cấp, và gợi ý Chuyên khoa cần khám.
+  - **Quản lý phiên (Session Management)**: Hỗ trợ tạo phiên mới hoặc xem lại lịch sử các phiên tư vấn cũ từ Database.
+  - **Gợi ý Bác sĩ nội bộ**: Dựa trên chuyên khoa do AI gợi ý, hệ thống tự động tìm và hiển thị các bác sĩ phù hợp trong hệ thống (đang rảnh và có điểm ưu tiên cao).
 - **Đặt lịch khám (Booking)**:
   - Tìm kiếm Bác sĩ theo: Chuyên khoa, tên, khoảng giá, và địa chỉ (Tỉnh/Thành, Quận/Huyện, Bản đồ).
   - Xem khung giờ trống (Available Slots) của Bác sĩ.
@@ -145,10 +146,8 @@ Dưới đây là chi tiết tất cả các bảng và các trường (Fields) 
 - `workplace_address` (TEXT)
 - `province_code`, `district_code`, `ward_code` (VARCHAR 20)
 - `consultation_fee` (NUMERIC 12,2): Giá khám
-- `priority_score` (INTEGER)
-- `is_available_for_booking` (BOOLEAN)
-- `is_verified` (BOOLEAN)
 - `verification_status` (VARCHAR 20): 'pending', 'approved'
+- `priority_score` (INTEGER): Điểm ưu tiên để sắp xếp trong danh sách recommend (Tính dựa trên Rating, Bài viết, Kinh nghiệm).
 - `created_at`, `updated_at` (TIMESTAMPTZ)
 
 **Bảng `specialties`**: Danh mục chuyên khoa.

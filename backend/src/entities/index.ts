@@ -14,3 +14,5 @@ export * from './booking-status-log.entity';
 export * from './post.entity';
 export * from './comment.entity';
 export * from './comment-reaction.entity';
+export * from './chat-session.entity';
+export * from './chat-message.entity';

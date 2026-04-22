@@ -29,7 +29,7 @@ Cac tinh nang moi dang chu y:
 - **Thong Bao (Notifications)**: He thong thong bao in-app cho cac su kien.
 - **Thong ke & Cai dat (Stats & Settings)**: Them trang dashboard thong ke va cai dat rieng cho Admin va Doctor.
 - **Responsive & UI**: Nang cap giao dien Responsive cho tat ca cac portal, kem theo Module Blog, Header.
-- **AI Chat Service**: Tich hop AI chat voi Pydantic schemas, Zustand store va API backend moi.
+- **AI Chat Service & Recommendation**: Tích hợp AI chat thông minh, tự động phân tích triệu chứng và **gợi ý bác sĩ nội bộ** dựa trên chuyên khoa và lịch trống. Hỗ trợ xem lại **Lịch sử phiên hỏi** và tạo **Phiên mới**.
 
 File/Folder moi dang chu y:
 
@@ -37,6 +37,9 @@ File/Folder moi dang chu y:
 - `backend/src/lives/`: Module quan ly livestream.
 - `backend/src/questions/`: Module hoi dap mien phi.
 - `backend/src/notifications/`: Module thong bao.
+- `backend/src/entities/chat-session.entity.ts`: Entity lưu phiên chat.
+- `backend/src/entities/chat-message.entity.ts`: Entity lưu tin nhắn.
+- `frontend/src/app/(patient)/patient/ai-assistant/`
 - `frontend/src/app/(marketing)/dat-lich/`
 - `frontend/src/app/(marketing)/hoi-bac-si-mien-phi/`
 - `frontend/src/app/(marketing)/live/[streamId]/`
@@ -148,13 +151,14 @@ Patient shell `frontend/src/app/(patient)/patient-shell.tsx`:
 
 Patient AI assistant `frontend/src/app/(patient)/patient/ai-assistant/page.tsx`:
 
-- Van dung `useChatStore`.
-- Chat input goi `sendMessage(text, location)`.
-- Neu store rong, page hien 3 default mock messages de match design.
-- Right sidebar hien card "Ket qua chan doan du kien" voi 3 disease/progress items dang static mock.
-- Nut "Tim bac si chuyen khoa phu hop" hien UI nhung chua gan action.
-- Page nay hien tai khong render `hospitalSuggestion` nua, du `chat.store.ts` van co field do.
-- Bien `location` van ton tai nhung khong co UI input cap nhat location.
+- Sử dụng `useChatStore` đã được nâng cấp.
+- Chat input gọi `sendMessage(text, location)`.
+- **Phiên mới**: Nút "Phiên mới" cho phép reset hội thoại và xóa sessionId.
+- **Lịch sử phiên hỏi**: Sidebar bên phải hiển thị danh sách các phiên chat thực tế từ Database (lấy từ bảng `chat_sessions`).
+- **Xem lại hội thoại**: Click vào phiên cũ sẽ tự động tải lại toàn bộ tin nhắn cũ lên khung chat.
+- **Kết quả chẩn đoán**: Hiển thị biểu đồ bệnh lý (%) trả về từ AI.
+- **Gợi ý bác sĩ**: Hiển thị danh sách bác sĩ chuyên khoa phù hợp (Real data) kèm nút "Đặt lịch" dẫn tới trang của bác sĩ.
+- Page này hiện tại không render `hospitalSuggestion` nữa, ưu tiên gợi ý bác sĩ nội bộ.
 
 Patient doctors list `frontend/src/app/(patient)/patient/doctors/page.tsx`:
 
@@ -208,10 +212,13 @@ File `frontend/src/lib/api.ts`:
 
 File `frontend/src/stores/chat.store.ts`:
 
-- Goi backend proxy `/api/ai/chat`.
-- Luu `messages`, `sessionId`, `hospitalSuggestion` vao Zustand state.
-- Persist `messages` va `sessionId` vao localStorage.
-- Khong gui `history` tu client; AI service dang quan ly history bang DB.
+- Gọi backend proxy `/api/ai/chat`.
+- Lưu `messages`, `sessionId`, `sessions` (lịch sử) vào Zustand state.
+- Persist `messages` và `sessionId` vào localStorage.
+- Action `fetchSessions()`: Lấy danh sách phiên từ Backend.
+- Action `loadSession(id)`: Tải tin nhắn của phiên cụ thể.
+- Action `resetChat()`: Xóa sạch trạng thái để bắt đầu phiên mới.
+- Không gửi `history` từ client; AI service đang quản lý history bằng DB.
 - Request di qua backend nen duoc gan user that bang cookie/JWT.
 - Backend truyen `user_id` da xac thuc va `patient_context` sang AI service.
 - AI service luu `chat_sessions.user_id` va dung `patient_context` de ca nhan hoa hoi dap/chan doan.

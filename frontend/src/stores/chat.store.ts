@@ -44,9 +44,12 @@ interface ChatState {
   hospitalSuggestion: HospitalSuggestion | null;
   finalResult: DiagnosticResult | null;
   doctorRecommendations: any[] | null;
+  sessions: any[];
   
   // Actions
   sendMessage: (message: string, location?: string) => Promise<void>;
+  fetchSessions: () => Promise<void>;
+  loadSession: (sessionId: string) => Promise<void>;
   resetChat: () => void;
   setSessionId: (id: string) => void;
 }
@@ -62,6 +65,7 @@ export const useChatStore = create<ChatState>()(
       hospitalSuggestion: null,
       finalResult: null,
       doctorRecommendations: null,
+      sessions: [],
 
       setSessionId: (id) => set({ sessionId: id }),
 
@@ -139,6 +143,44 @@ export const useChatStore = create<ChatState>()(
             messages: [...get().messages, errorMsg],
             isLoading: false
           });
+        }
+      },
+
+      fetchSessions: async () => {
+        try {
+          const response = await fetch('/api/ai/sessions', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            set({ sessions: data });
+          }
+        } catch (error) {
+          console.error('Lỗi khi tải lịch sử phiên:', error);
+        }
+      },
+
+      loadSession: async (sessionId: string) => {
+        set({ isLoading: true, sessionId });
+        try {
+          const response = await fetch(`/api/ai/sessions/${sessionId}`, { credentials: 'include' });
+          if (response.ok) {
+            const messages = await response.json();
+            // Transform DB messages to store format
+            const chatMessages = messages.map((m: any) => ({
+              role: m.role,
+              content: m.content,
+              timestamp: m.createdAt,
+            }));
+            set({ 
+              messages: chatMessages, 
+              isLoading: false,
+              finalResult: null,
+              doctorRecommendations: null,
+              hospitalSuggestion: null
+            });
+          }
+        } catch (error) {
+          console.error('Lỗi khi tải tin nhắn phiên:', error);
+          set({ isLoading: false });
         }
       },
     }),
