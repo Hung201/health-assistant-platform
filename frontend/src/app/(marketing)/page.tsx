@@ -263,7 +263,7 @@ export default function Home() {
                   {qaData.items.slice(0, 4).map((q) => (
                     <Link key={q.id} href={`/hoi-bac-si-mien-phi/${q.id}`} className="rounded-xl border border-slate-200 bg-[#fafafb] p-4 hover:border-teal-300">
                       <p className="line-clamp-2 text-sm font-bold text-slate-900">{q.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{q.status === 'answered' ? 'Đã có bác sĩ trả lời' : 'Đang chờ bác sĩ phản hồi'}</p>
+                      <p className="mt-1 text-xs text-slate-500">{q.status === 'answered' ? 'Đã có bác sĩ trả lời' : 'Đã duyệt, đang chờ bác sĩ phản hồi'}</p>
                     </Link>
                   ))}
                 </div>

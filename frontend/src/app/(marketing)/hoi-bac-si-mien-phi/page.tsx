@@ -16,6 +16,7 @@ export default function FreeAskDoctorPage() {
   const logout = useAuthStore((s) => s.logout);
   const [page, setPage] = useState(1);
   const [openAsk, setOpenAsk] = useState(false);
+  const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', content: '', category: '' });
 
   const appHref = user?.roles?.includes('admin')
@@ -45,6 +46,7 @@ export default function FreeAskDoctorPage() {
     onSuccess: async () => {
       setOpenAsk(false);
       setForm({ title: '', content: '', category: '' });
+      setSubmitNotice('Đã gửi câu hỏi. Admin sẽ duyệt trước khi hiển thị công khai.');
       await qc.invalidateQueries({ queryKey: ['qa', 'public'] });
     },
   });
@@ -133,6 +135,11 @@ export default function FreeAskDoctorPage() {
             Đặt câu hỏi
           </button>
         </div>
+        {submitNotice ? (
+          <div className="mb-5 rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm font-semibold text-teal-700">
+            {submitNotice}
+          </div>
+        ) : null}
 
         <div className="space-y-4">
           {isLoading ? (
@@ -148,7 +155,7 @@ export default function FreeAskDoctorPage() {
                   <span
                     className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${q.status === 'answered' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
                   >
-                    {q.status === 'answered' ? 'Đã trả lời' : 'Chờ bác sĩ'}
+                    {q.status === 'answered' ? 'Đã trả lời' : 'Đã duyệt, chờ bác sĩ'}
                   </span>
                   {q.category ? <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">{q.category}</span> : null}
                 </div>

@@ -510,7 +510,7 @@ export type QaQuestionRow = {
   title: string;
   content: string;
   category: string | null;
-  status: 'pending' | 'answered' | string;
+  status: 'pending_review' | 'approved' | 'answered' | 'rejected' | string;
   answerContent: string | null;
   answeredAt: string | null;
   createdAt: string;
@@ -649,6 +649,20 @@ export type AdminPendingPost = {
   authorEmail: string | null;
 };
 
+export type AdminPendingQuestion = {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+  status: string;
+  createdAt: string;
+  patient: {
+    id: string;
+    fullName: string;
+    email: string | null;
+  };
+};
+
 export type AdminPostDetail = AdminPendingPost & {
   content: string;
   thumbnailUrl: string | null;
@@ -767,6 +781,21 @@ export const adminApi = {
 
   rejectPost: (id: number, reason?: string) =>
     api<{ ok: boolean }>(`/admin/posts/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason ?? undefined }),
+    }),
+
+  listPendingQuestions: (page = 1, limit = 20) =>
+    api<Paginated<AdminPendingQuestion>>(`/admin/questions/pending?page=${page}&limit=${limit}`),
+
+  approveQuestion: (id: string) =>
+    api<{ ok: boolean }>(`/admin/questions/${encodeURIComponent(id)}/approve`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+
+  rejectQuestion: (id: string, reason?: string) =>
+    api<{ ok: boolean }>(`/admin/questions/${encodeURIComponent(id)}/reject`, {
       method: 'PATCH',
       body: JSON.stringify({ reason: reason ?? undefined }),
     }),

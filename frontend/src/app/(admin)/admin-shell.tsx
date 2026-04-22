@@ -17,6 +17,7 @@ const NAV: { href: string; icon: string; label: string; badgeFrom?: 'pendingPost
   { href: '/admin/users', icon: 'group', label: 'Người dùng' },
   { href: '/admin/doctors/pending', icon: 'stethoscope', label: 'Duyệt bác sĩ', badgeFrom: 'pendingDoctors' },
   { href: '/admin/posts/pending', icon: 'article', label: 'Duyệt bài viết', badgeFrom: 'pendingPosts' },
+  { href: '/admin/questions/pending', icon: 'forum', label: 'Duyệt hỏi đáp' },
   { href: '/admin/specialties', icon: 'category', label: 'Chuyên khoa' },
   { href: '/blog', icon: 'menu_book', label: 'Kiến thức y khoa' },
   { href: '/admin/settings', icon: 'settings', label: 'Cài đặt' },

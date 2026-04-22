@@ -51,7 +51,7 @@ export default function QaDetailPage() {
                 <span
                   className={`rounded-full px-2.5 py-1 text-xs font-bold ${data.status === 'answered' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}
                 >
-                  {data.status === 'answered' ? 'Đã trả lời' : 'Đang chờ bác sĩ trả lời'}
+                  {data.status === 'answered' ? 'Đã trả lời' : 'Đã duyệt, chờ bác sĩ trả lời'}
                 </span>
                 {data.category ? <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{data.category}</span> : null}
               </div>

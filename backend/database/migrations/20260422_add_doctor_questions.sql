@@ -6,11 +6,11 @@ CREATE TABLE IF NOT EXISTS doctor_questions (
     question_content TEXT NOT NULL,
     answer_content TEXT,
     category VARCHAR(100),
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending_review',
     answered_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending', 'answered'))
+    CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending_review', 'approved', 'answered', 'rejected'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_created

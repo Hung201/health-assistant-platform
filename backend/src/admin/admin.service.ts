@@ -14,11 +14,16 @@ import { Specialty } from '../entities/specialty.entity';
 import { Booking } from '../entities/booking.entity';
 import { Role } from '../entities/role.entity';
 import { UserRole } from '../entities/user-role.entity';
+import { DoctorQuestion } from '../entities/doctor-question.entity';
 import { mergeFeaturePermissions, normalizeFeaturePermissions } from '../common/user-feature-permissions';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 /** Bài viết chờ admin duyệt (bác sĩ gửi từ luồng soạn thảo). */
 export const POST_STATUS_PENDING_REVIEW = 'pending_review';
+export const QA_STATUS_PENDING_REVIEW = 'pending_review';
+export const QA_STATUS_APPROVED = 'approved';
+export const QA_STATUS_ANSWERED = 'answered';
+export const QA_STATUS_REJECTED = 'rejected';
 
 @Injectable()
 export class AdminService {
@@ -35,6 +40,8 @@ export class AdminService {
     private readonly specialtyRepo: Repository<Specialty>,
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(DoctorQuestion)
+    private readonly questionRepo: Repository<DoctorQuestion>,
   ) { }
 
   private userHasDoctorRole(u: User): boolean {
@@ -540,6 +547,61 @@ export class AdminService {
     post.rejectionReason = reason ?? null;
     await this.postRepo.save(post);
     return { ok: true, id: postId, status: post.status };
+  }
+
+  async listPendingQuestions(page = 1, limit = 20) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const [rows, total] = await this.questionRepo.findAndCount({
+      where: { status: QA_STATUS_PENDING_REVIEW },
+      relations: ['patientUser'],
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    });
+    return {
+      items: rows.map((q) => ({
+        id: q.id,
+        title: q.title,
+        content: q.questionContent,
+        category: q.category,
+        status: q.status,
+        createdAt: q.createdAt,
+        patient: {
+          id: q.patientUserId,
+          fullName: q.patientUser?.fullName ?? 'Bệnh nhân',
+          email: q.patientUser?.email ?? null,
+        },
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
+  async approveQuestion(questionId: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (q.status !== QA_STATUS_PENDING_REVIEW) {
+      throw new BadRequestException('Câu hỏi không ở trạng thái chờ duyệt');
+    }
+    q.status = QA_STATUS_APPROVED;
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
+  }
+
+  async rejectQuestion(questionId: string, reason?: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (q.status !== QA_STATUS_PENDING_REVIEW) {
+      throw new BadRequestException('Câu hỏi không ở trạng thái chờ duyệt');
+    }
+    q.status = QA_STATUS_REJECTED;
+    if (reason && reason.trim()) {
+      q.answerContent = `Câu hỏi chưa được duyệt: ${reason.trim()}`;
+    }
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
   }
 
   async listSpecialties(page = 1, limit = 50) {
