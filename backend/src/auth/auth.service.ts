@@ -195,7 +195,7 @@ export class AuthService {
 
   async login(dto: LoginDto) {
     const user = await this.userRepository.findOne({
-      where: { email: dto.email.toLowerCase(), status: 'active' },
+      where: { email: dto.email.toLowerCase() },
       relations: ['userRoles', 'userRoles.role'],
     });
     if (!user) {
@@ -205,13 +205,24 @@ export class AuthService {
     if (!isMatch) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
-    await this.userRepository.update(user.id, {
-      lastLoginAt: new Date(),
-    });
+    if (user.status === 'disabled') {
+      throw new UnauthorizedException('Tài khoản đã bị khóa');
+    }
+    if (user.status === 'pending_email_verification') {
+      throw new UnauthorizedException(
+        'Tài khoản chưa xác thực email (đang chờ kích hoạt). Vui lòng nhập mã đã gửi về email hoặc gửi lại mã trên trang xác thực.',
+      );
+    }
+    if (user.status !== 'active') {
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
     const roles = user.userRoles?.map((ur) => ur.role?.code) || [];
     if (roles.includes('patient') && !user.emailVerifiedAt) {
       throw new UnauthorizedException('Tài khoản chưa xác thực email. Vui lòng nhập mã xác thực đã gửi về email.');
     }
+    await this.userRepository.update(user.id, {
+      lastLoginAt: new Date(),
+    });
     const token = this.generateToken(user.id, user.email, roles.filter(Boolean) as string[]);
     return {
       access_token: token,

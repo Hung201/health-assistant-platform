@@ -396,6 +396,8 @@ async function seed() {
       phone: '0900 000 003',
     });
     await ensureUserRole(patientUser.id, 'patient');
+    // Demo patient must be email-verified so POST /auth/login succeeds (see AuthService.login).
+    await txUserRepo.update({ id: patientUser.id }, { emailVerifiedAt: new Date() });
     const existingPatientProfile = await txPatientRepo.findOne({ where: { userId: patientUser.id } });
     if (!existingPatientProfile) {
       await txPatientRepo.save(
