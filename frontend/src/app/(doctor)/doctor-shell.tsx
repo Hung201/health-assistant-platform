@@ -50,9 +50,8 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
       <nav className="flex-1 space-y-1 px-4">
         {NAV.map((item) => {
           const active = navActive(pathname, item.href);
-          const className = `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            active ? 'bg-primary text-primary-foreground' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
-          }`;
+          const className = `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+            }`;
           return (
             <Link className={className} href={item.href} key={item.href} onClick={() => setMobileOpen(false)}>
               <span className="material-symbols-outlined">{item.icon}</span>

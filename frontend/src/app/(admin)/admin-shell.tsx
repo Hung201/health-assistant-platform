@@ -75,18 +75,16 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 ? summary.pendingPosts
                 : summary.pendingDoctors
               : null;
-          const className = `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-            active ? 'bg-primary text-primary-foreground' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
-          }`;
+          const className = `flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${active ? 'bg-primary text-primary-foreground' : 'text-foreground/80 hover:bg-muted hover:text-foreground'
+            }`;
           return (
             <Link className={className} href={item.href} key={item.href} onClick={() => setMobileOpen(false)}>
               <span className="material-symbols-outlined">{item.icon}</span>
               <span className="flex-1">{item.label}</span>
               {badge != null && badge > 0 ? (
                 <span
-                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                    active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-destructive/15 text-destructive'
-                  }`}
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-destructive/15 text-destructive'
+                    }`}
                 >
                   {badge > 99 ? '99+' : badge}
                 </span>
