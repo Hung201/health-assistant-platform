@@ -10,6 +10,7 @@ import { Payment } from '../entities/payment.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
 import { PaymentsModule } from '../payments/payments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { BookingsController } from './bookings.controller';
 import { BookingsService } from './bookings.service';
 
@@ -26,6 +27,7 @@ import { BookingsService } from './bookings.service';
       User,
     ]),
     PaymentsModule,
+    NotificationsModule,
   ],
   controllers: [BookingsController],
   providers: [BookingsService],
