@@ -20,15 +20,12 @@ export default function QaDetailPage() {
   return (
     <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans">
       <header className="sticky top-0 z-40 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-20 w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
           <Link className="flex items-center gap-2" href="/">
             <div className="rounded-lg bg-teal-500 p-1.5 text-white">
               <Activity size={20} />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <Link href="/hoi-bac-si-mien-phi" className="text-sm font-semibold text-teal-700 hover:underline">
-            ← Danh sách hỏi đáp
           </Link>
         </div>
       </header>
