@@ -29,9 +29,8 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-              isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
-            }`}
+            className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${isDark ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-700'
+              }`}
             aria-label="Bật tắt chế độ sáng tối"
             title="Bật tắt chế độ sáng tối"
           >

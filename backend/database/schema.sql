@@ -302,6 +302,27 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 18) live_streams (bác sĩ phát, khách xem qua LiveKit)
+CREATE TABLE IF NOT EXISTS live_streams (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    doctor_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'scheduled',
+    room_name VARCHAR(128) NOT NULL UNIQUE,
+    started_at TIMESTAMPTZ,
+    ended_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_live_streams_status CHECK (status IN ('scheduled', 'live', 'ended', 'cancelled'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_live_streams_doctor ON live_streams(doctor_user_id);
+CREATE INDEX IF NOT EXISTS idx_live_streams_status ON live_streams(status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_one_live_per_doctor
+    ON live_streams(doctor_user_id)
+    WHERE status = 'live';
+
 -- ============================================================
 -- Indexes
 -- ============================================================

@@ -8,10 +8,11 @@ import { useRouter } from 'next/navigation';
 import {
   Activity, HeartPulse, Bone, ScanFace, Brain, Eye, Baby, Users,
   Stethoscope, CalendarCheck, FileBadge, ArrowRight, Star, Quote,
-  ChevronDown, Check, ChevronUp, MessageSquare, Shield, Clock, Smartphone
+  ChevronDown, Check, ChevronUp, MessageSquare, Shield, Clock, Smartphone,
+  CheckCircle2, Sparkles, Send, Lock, Bot, User as UserIcon, FileText, Radio
 } from 'lucide-react';
 
-import { authApi, doctorsApi, publicPostsApi } from '@/lib/api';
+import { authApi, doctorsApi, livestreamsApi, publicPostsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
 const getSpecialtyIcon = (name: string) => {
@@ -61,6 +62,12 @@ export default function Home() {
   const { data: blogsData } = useQuery({
     queryKey: ['public-posts-home'],
     queryFn: () => publicPostsApi.list(1, 3),
+  });
+
+  const { data: liveStreams } = useQuery({
+    queryKey: ['public-livestreams-home'],
+    queryFn: () => livestreamsApi.listLive(),
+    staleTime: 15_000,
   });
 
   const appHref = user?.roles?.includes('admin')
@@ -178,6 +185,36 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {liveStreams && liveStreams.length > 0 ? (
+          <section className="border-b border-slate-200 bg-white py-12">
+            <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="mb-6 flex items-center gap-2">
+                <Radio className="h-5 w-5 text-red-500" aria-hidden />
+                <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600">Trực tiếp</h3>
+              </div>
+              <h2 className="mb-2 text-2xl font-extrabold text-slate-900">Đang phát trực tiếp</h2>
+              <p className="mb-8 text-slate-500">Tham gia buổi chia sẻ từ bác sĩ của nền tảng.</p>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {liveStreams.map((s) => (
+                  <Link
+                    key={s.id}
+                    href={`/live/${s.id}`}
+                    className="group flex flex-col rounded-2xl border border-slate-200 bg-[#fafafb] p-5 shadow-sm transition-all hover:border-teal-300 hover:shadow-md"
+                  >
+                    <span className="mb-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-bold text-red-600">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                      LIVE
+                    </span>
+                    <p className="font-bold text-slate-900 group-hover:text-teal-700">{s.title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{s.doctorName}</p>
+                    <span className="mt-4 text-sm font-semibold text-teal-600">Xem ngay →</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
 
         {/* How it works Section */}
         <section className="bg-white py-24">

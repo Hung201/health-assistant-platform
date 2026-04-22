@@ -12,6 +12,7 @@ import { DoctorPortalModule } from './doctor-portal/doctor-portal.module';
 import { PostsModule } from './posts/posts.module';
 import { AiModule } from './ai/ai.module';
 import { MailModule } from './mail/mail.module';
+import { LivestreamsModule } from './livestreams/livestreams.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -29,6 +30,7 @@ import { AppService } from './app.service';
     DoctorPortalModule,
     PostsModule,
     AiModule,
+    LivestreamsModule,
   ],
   controllers: [AppController],
   providers: [
