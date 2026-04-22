@@ -1,4 +1,11 @@
-import { IsIn, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
+
+export class FeaturePermissionsPatchDto {
+  @IsOptional()
+  @IsBoolean()
+  livestream?: boolean;
+}
 
 export class UpdateUserDto {
   @IsOptional()
@@ -15,5 +22,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsIn(['active', 'disabled'])
   status?: 'active' | 'disabled';
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => FeaturePermissionsPatchDto)
+  featurePermissions?: FeaturePermissionsPatchDto;
 }
 

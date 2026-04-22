@@ -521,6 +521,10 @@ export type AdminDashboardSummary = {
   }>;
 };
 
+export type AdminUserFeaturePermissions = {
+  livestream: boolean;
+};
+
 export type AdminUserRow = {
   id: string;
   email: string;
@@ -529,6 +533,7 @@ export type AdminUserRow = {
   status: string;
   createdAt: string;
   roles: string[];
+  featurePermissions: AdminUserFeaturePermissions;
 };
 
 export type AdminUsersResponse = {
@@ -621,6 +626,7 @@ export const adminApi = {
         isVerified: boolean;
         verificationStatus: string;
       };
+      featurePermissions: AdminUserFeaturePermissions;
     }>(`/admin/users/${encodeURIComponent(id)}`),
 
   createUser: (data: {
@@ -635,7 +641,15 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  updateUser: (id: string, data: { fullName?: string; phone?: string | null; status?: 'active' | 'disabled' }) =>
+  updateUser: (
+    id: string,
+    data: {
+      fullName?: string;
+      phone?: string | null;
+      status?: 'active' | 'disabled';
+      featurePermissions?: Partial<AdminUserFeaturePermissions>;
+    },
+  ) =>
     api<{ ok: boolean; id: string }>(`/admin/users/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
