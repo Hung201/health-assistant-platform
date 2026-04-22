@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MapPin, BadgeCheck, Stethoscope } from 'lucide-react';
+import { Search, MapPin, BadgeCheck, Stethoscope, X } from 'lucide-react';
 import Select from 'react-select';
+import Image from 'next/image';
 
 import { authApi, doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
@@ -20,6 +21,8 @@ export default function PatientFindDoctorsPage() {
   const [districtCode, setDistrictCode] = useState('');
   const [priceFilter, setPriceFilter] = useState<string>('all');
   const [nearByMode, setNearByMode] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [focusedDoctorId, setFocusedDoctorId] = useState<string | null>(null);
 
   const { data: specialtiesData } = useQuery({
     queryKey: ['public-specialties'],
@@ -95,6 +98,15 @@ export default function PatientFindDoctorsPage() {
       return score(b) - score(a);
     });
   }, [doctorsData?.items, nearByMode, priceFilter, searchTerm, user?.patientProfile?.districtCode, user?.patientProfile?.provinceCode]);
+  const focusedDoctor =
+    (focusedDoctorId ? filteredDoctors.find((d) => d.userId === focusedDoctorId) : null) ?? filteredDoctors[0] ?? null;
+  const mapQuery = focusedDoctor
+    ? focusedDoctor.workplaceAddress ||
+      [focusedDoctor.workplaceName, focusedDoctor.districtCode, focusedDoctor.provinceCode]
+        .filter(Boolean)
+        .join(', ')
+    : [currentDistrictOption?.label, currentProvinceOption?.label].filter(Boolean).join(', ');
+  const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery || 'Việt Nam')}&output=embed`;
 
   return (
     <div className="space-y-8">
@@ -180,8 +192,68 @@ export default function PatientFindDoctorsPage() {
           >
             Gần bạn
           </button>
+          <button
+            type="button"
+            onClick={() => setShowMap((v) => !v)}
+            className="shrink-0 rounded-lg p-1 transition-transform hover:scale-105 active:scale-95"
+            title="Hiển thị bản đồ địa chỉ bác sĩ"
+            aria-label={showMap ? 'Ẩn bản đồ' : 'Bật bản đồ'}
+          >
+            <span className="inline-flex items-center justify-center">
+              <Image
+                src="/assets/map-icons/google-maps_2702604.png"
+                alt="Google Maps"
+                width={30}
+                height={30}
+                className="h-[30px] w-[30px] object-contain"
+              />
+            </span>
+          </button>
         </div>
       </div>
+
+      {showMap ? (
+        <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-foreground">Bản đồ địa chỉ bác sĩ</h3>
+              <p className="text-xs text-muted-foreground">{mapQuery || 'Đang hiển thị Việt Nam'}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowMap(false)}
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-muted"
+            >
+              <X size={14} /> Đóng
+            </button>
+          </div>
+          <iframe
+            title="Doctor location map"
+            src={mapUrl}
+            className="h-[360px] w-full"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          {filteredDoctors.length > 0 ? (
+            <div className="flex gap-2 overflow-x-auto border-t border-border p-3">
+              {filteredDoctors.slice(0, 12).map((doctor) => (
+                <button
+                  key={doctor.userId}
+                  type="button"
+                  onClick={() => setFocusedDoctorId(doctor.userId)}
+                  className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${
+                    focusedDoctor?.userId === doctor.userId
+                      ? 'border-[#003f87] bg-[#003f87] text-white'
+                      : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {doctor.fullName}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {/* Doctors Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -255,8 +327,29 @@ export default function PatientFindDoctorsPage() {
                       {Number(doctor.consultationFee).toLocaleString('vi-VN')} ₫
                     </p>
                   </div>
-                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
-                    <span className="font-bold text-lg leading-none mb-1">→</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowMap(true);
+                        setFocusedDoctorId(doctor.userId);
+                      }}
+                      className="rounded-full p-1 transition-transform hover:scale-105 active:scale-95"
+                      title="Xem vị trí bác sĩ trên bản đồ"
+                      aria-label="Xem vị trí bác sĩ trên bản đồ"
+                    >
+                      <Image
+                        src="/assets/map-icons/google-maps_2702604.png"
+                        alt="Google Maps"
+                        width={22}
+                        height={22}
+                        className="h-[22px] w-[22px] object-contain"
+                      />
+                    </button>
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center text-teal-600 group-hover:bg-teal-600 group-hover:text-white transition-colors">
+                      <span className="font-bold text-lg leading-none mb-1">→</span>
+                    </div>
                   </div>
                 </div>
               </div>
