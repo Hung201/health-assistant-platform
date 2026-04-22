@@ -5,10 +5,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { 
-  Activity, HeartPulse, Bone, ScanFace, Brain, Eye, Baby, Users, 
-  Stethoscope, CalendarCheck, FileBadge, ArrowRight, Star, Quote, 
-  ChevronDown, Check, ChevronUp, MessageSquare, Shield, Clock, Smartphone 
+import {
+  Activity, HeartPulse, Bone, ScanFace, Brain, Eye, Baby, Users,
+  Stethoscope, CalendarCheck, FileBadge, ArrowRight, Star, Quote,
+  ChevronDown, Check, ChevronUp, MessageSquare, Shield, Clock, Smartphone
 } from 'lucide-react';
 
 import { authApi, doctorsApi, publicPostsApi } from '@/lib/api';
@@ -135,7 +135,7 @@ export default function Home() {
       <main>
         {/* Hero Section */}
         <section className="relative overflow-hidden pb-24 pt-16 lg:pb-32 lg:pt-24 bg-[#e6f7f5]/40">
-          <div className="absolute inset-0 -z-10 bg-[url('https://images.unsplash.com/photo-1576091160550-2173ff9e5ee5?q=80&w=2069&auto=format&fit=crop')] bg-cover bg-center opacity-10" />
+          <div className="absolute inset-0 -z-10 bg-[url('/images/hero-bg.jpg')] bg-cover bg-center opacity-10" />
           <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white via-white/90 to-transparent" />
 
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
@@ -192,7 +192,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
               <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-[2px] bg-slate-100 z-0"></div>
-              
+
               {[
                 { icon: MessageSquare, title: 'Chat với AI', desc: 'Mô tả triệu chứng để AI chẩn đoán sơ bộ.' },
                 { icon: Stethoscope, title: 'Gợi ý Chuyên khoa', desc: 'Nhận kết quả chuyên khoa và danh sách bác sĩ phù hợp.' },
@@ -230,16 +230,16 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {specialtiesData?.length ? (
-                specialtiesData.map((spec) => {
+                specialtiesData.map((spec, idx) => {
                   const Icon = getSpecialtyIcon(spec.name);
                   return (
-                    <Link href={`/doctors?specialtyId=${spec.id}`} key={spec.id} className="group flex items-start gap-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm transition-all hover:shadow-md hover:border-teal-100 hover:bg-teal-50/30 cursor-pointer">
+                    <Link href={`/doctors?specialtyId=${spec.id}`} key={spec.id} className="group flex flex-col h-full items-start gap-4 rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:border-teal-200 hover:bg-white/60 hover:scale-[1.02] cursor-pointer animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both" style={{ animationDelay: `${idx * 50}ms` }}>
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-500 group-hover:text-white transition-colors">
                         <Icon size={24} />
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 mb-1 group-hover:text-teal-700 transition-colors">{spec.name}</h4>
-                        <p className="text-xs font-semibold text-slate-400">Khám ngay →</p>
+                      <div className="flex flex-col flex-1 w-full mt-2">
+                        <h4 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-teal-700 transition-colors">{spec.name}</h4>
+                        <p className="text-xs font-semibold text-slate-400 mt-auto pt-2">Khám ngay →</p>
                       </div>
                     </Link>
                   );
@@ -285,9 +285,9 @@ export default function Home() {
               </div>
               <div className="relative">
                 <div className="absolute inset-0 bg-teal-500 rounded-3xl transform translate-x-4 translate-y-4 -z-10"></div>
-                <img 
-                  src="https://images.unsplash.com/photo-1551076805-e18690c5e53b?q=80&w=2000&auto=format&fit=crop" 
-                  alt="Doctor with patient" 
+                <img
+                  src="https://i.pinimg.com/736x/18/f4/ba/18f4ba44da7af0576d581aab54efa5f3.jpg"
+                  alt="Doctor with patient"
                   className="rounded-3xl shadow-xl w-full object-cover h-[500px]"
                 />
               </div>
@@ -311,25 +311,26 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
               {doctorsData?.items?.length ? (
-                doctorsData.items.map((doctor) => (
+                doctorsData.items.map((doctor, idx) => (
                   <Link
-                    className="group overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 block"
+                    className="group flex flex-col h-full overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both"
+                    style={{ animationDelay: `${idx * 100}ms` }}
                     key={doctor.userId}
                     href={`/doctors/${doctor.userId}`}
                   >
-                    <div className="relative aspect-[4/5] overflow-hidden bg-slate-100">
+                    <div className="relative aspect-[4/5] overflow-hidden bg-slate-100 shrink-0">
                       <img
                         alt={doctor.fullName}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'}
+                        src={doctor.avatarUrl || '/images/default-avatar.jpg'}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
-                    <div className="p-6">
-                      <h4 className="text-lg font-bold text-slate-900 mb-1 line-clamp-1">
+                    <div className="p-6 flex flex-col flex-1">
+                      <h4 className="text-lg font-bold text-slate-900 mb-1 line-clamp-2">
                         {doctor.professionalTitle ? `${doctor.professionalTitle} ` : ''}{doctor.fullName}
                       </h4>
-                      <p className="text-sm font-semibold text-teal-600 line-clamp-1">
+                      <p className="text-sm font-semibold text-teal-600 line-clamp-1 mt-auto pt-2">
                         {doctor.specialties?.[0]?.name || 'Đa khoa'}
                       </p>
                     </div>
@@ -348,7 +349,7 @@ export default function Home() {
         <section className="bg-teal-600 py-24 text-white overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500 rounded-full blur-3xl opacity-50 transform translate-x-1/2 -translate-y-1/2"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-700 rounded-full blur-3xl opacity-50 transform -translate-x-1/2 translate-y-1/2"></div>
-          
+
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="mb-16 text-center">
               <h2 className="text-3xl font-extrabold mb-4">Hàng ngàn người đã tin tưởng sử dụng</h2>
@@ -400,16 +401,17 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {blogsData?.items?.length ? (
-                blogsData.items.map((article) => (
+                blogsData.items.map((article, idx) => (
                   <article
-                    className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 transition-all hover:shadow-xl hover:ring-slate-200"
+                    className="group flex flex-col h-full overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both"
+                    style={{ animationDelay: `${idx * 100}ms` }}
                     key={article.id}
                   >
-                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-slate-100 shrink-0">
                       <img
                         alt={article.title}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        src={article.thumbnailUrl || 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?q=80&w=2070&auto=format&fit=crop'}
+                        src={article.thumbnailUrl || '/images/default-blog.jpg'}
                       />
                     </div>
                     <div className="flex flex-1 flex-col p-6 lg:p-8">
@@ -464,7 +466,7 @@ export default function Home() {
             <div className="space-y-4">
               {FAQS.map((faq, index) => (
                 <div key={index} className="border border-slate-200 rounded-xl overflow-hidden bg-white">
-                  <button 
+                  <button
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
                     className="w-full text-left px-6 py-4 flex items-center justify-between font-bold text-slate-900 hover:bg-slate-50 focus:outline-none"
                   >
@@ -499,7 +501,7 @@ export default function Home() {
                 Nền tảng y tế số thông minh, ứng dụng AI để phân tích triệu chứng và kết nối người bệnh với chuyên gia y tế uy tín.
               </p>
             </div>
-            
+
             <div>
               <h4 className="text-white font-bold mb-4">Về chúng tôi</h4>
               <ul className="space-y-2 text-sm">
