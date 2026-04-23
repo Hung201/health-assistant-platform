@@ -1,326 +1,527 @@
-# Đặc tả Yêu cầu và Hệ thống Chi tiết (Detailed System Specifications)
+# Detailed System Specs (Code + Live DB Snapshot)
 
-Dự án: **Health Assistant Platform**
-Mô tả: Nền tảng hỗ trợ y tế toàn diện với AI, cho phép đăng ký khám bệnh, livestream, hỏi đáp và blog y khoa.
-
-## 1. Phân hệ và Chức năng chi tiết (Functional Specifications)
-
-### 1.1. Module Xác thực & Định danh (Authentication & Authorization)
-- **Đăng ký (Register)**:
-  - Bệnh nhân (Patient) đăng ký tài khoản qua Email hoặc Số điện thoại.
-  - Gửi mã OTP xác thực email (`patient_email_verifications`).
-  - Bác sĩ (Doctor) đăng ký tài khoản (cần cung cấp thêm chứng chỉ, chuyên khoa).
-- **Đăng nhập (Login)**:
-  - Hỗ trợ đăng nhập bằng Email/Password.
-  - Đăng nhập bằng Google OAuth (Single Sign-On).
-- **Phân quyền (RBAC)**:
-  - 3 Roles chính: Bệnh nhân (Patient), Bác sĩ (Doctor), Quản trị viên (Admin).
-  - Quản lý phiên bằng JWT lưu trong HTTP-only Cookie.
-
-### 1.2. Phân hệ Bệnh nhân (Patient Portal)
-- **Quản lý Hồ sơ cá nhân**:
-  - Cập nhật thông tin liên hệ khẩn cấp, địa chỉ.
-  - Cập nhật Hồ sơ y tế (Medical Profile): Chiều cao, cân nặng, BMI, dị ứng, thuốc đang dùng, tiền sử gia đình.
-  - Quản lý Bệnh mãn tính (Chronic Conditions): Ghi nhận thời gian chẩn đoán, mức độ nghiêm trọng.
-  - Nhập triệu chứng bệnh. AI (Gemini) sẽ liên tục hỏi đáp (Chat) để thu thập đủ dữ kiện.
-  - AI truy vấn CSDL Y khoa (ChromaDB - RAG) để đưa ra chẩn đoán: danh sách các bệnh có thể mắc, tỷ lệ %, mức độ khẩn cấp, và gợi ý Chuyên khoa cần khám.
-  - **Quản lý phiên (Session Management)**: Hỗ trợ tạo phiên mới hoặc xem lại lịch sử các phiên tư vấn cũ từ Database.
-  - **Gợi ý Bác sĩ nội bộ**: Dựa trên chuyên khoa do AI gợi ý, hệ thống tự động tìm và hiển thị các bác sĩ phù hợp trong hệ thống (đang rảnh và có điểm ưu tiên cao).
-- **Đặt lịch khám (Booking)**:
-  - Tìm kiếm Bác sĩ theo: Chuyên khoa, tên, khoảng giá, và địa chỉ (Tỉnh/Thành, Quận/Huyện, Bản đồ).
-  - Xem khung giờ trống (Available Slots) của Bác sĩ.
-  - Đặt lịch (tùy chọn ghi chú cho bác sĩ).
-- **Thanh toán trực tuyến (MoMo Payment)**:
-  - Tích hợp thanh toán MoMo (ver 1, ver 2). Thanh toán qua mã QR/App MoMo. Trạng thái thanh toán cập nhật qua IPN Webhook.
-- **Quản lý Lịch hẹn (My Bookings)**:
-  - Xem danh sách lịch hẹn sắp tới, lịch sử khám.
-  - Có thể hủy lịch (nếu đang ở trạng thái chờ/chưa thanh toán).
-- **Hỏi đáp Miễn phí (Q&A)**:
-  - Gửi câu hỏi y khoa lên nền tảng để các bác sĩ vào trả lời.
-- **Tiện ích khác**:
-  - Nhận thông báo (Notifications) theo thời gian thực (real-time/SSE).
-  - Đọc Blog / Cẩm nang y tế.
-  - Xem Livestream tư vấn của các bác sĩ.
-
-### 1.3. Phân hệ Bác sĩ (Doctor Portal)
-- **Quản lý Hồ sơ Chuyên môn**:
-  - Cập nhật Bio, nơi làm việc, địa chỉ làm việc, giá khám (Consultation fee), kinh nghiệm.
-  - Đăng ký Chuyên khoa (có chuyên khoa chính/phụ).
-- **Quản lý Lịch trống (Availability Management)**:
-  - Thiết lập các khung giờ có thể nhận khám (`start_at`, `end_at`, `max_bookings`).
-- **Quản lý Lịch khám (Appointments)**:
-  - Xem danh sách lịch hẹn bệnh nhân đặt. Cập nhật trạng thái khám. Xem trước hồ sơ y tế, ghi chú của bệnh nhân.
-- **Module Blog**:
-  - Soạn thảo và đăng tải bài viết y khoa (Title, Excerpt, Content, Thumbnail). Trạng thái chờ Admin duyệt.
-- **Hỏi đáp (Q&A)**:
-  - Chọn và trả lời các câu hỏi miễn phí từ bệnh nhân.
-- **Live Studio (Livestream)**:
-  - Tạo phòng Livestream tư vấn sức khỏe. Quản lý trạng thái (scheduled, live, ended).
-- **Thống kê & Cài đặt (Dashboard & Settings)**:
-  - Xem báo cáo thống kê lượt khám, doanh thu.
-  - Tùy chỉnh thông báo, bảo mật.
-
-### 1.4. Phân hệ Quản trị viên (Admin Portal)
-- **Quản lý User & Bác sĩ**:
-  - Xem danh sách User. Duyệt hồ sơ bác sĩ (Kiểm tra giấy phép, kinh nghiệm -> chuyển status sang `approved`).
-- **Quản lý Chuyên khoa (Specialties)**:
-  - Thêm, sửa, xóa danh mục chuyên khoa.
-- **Kiểm duyệt Nội dung (Moderation)**:
-  - Kiểm duyệt Bài viết (Blog posts) của bác sĩ.
-  - Kiểm duyệt Câu hỏi Q&A của bệnh nhân.
-- **Quản lý Livestream**:
-  - Giám sát các luồng Livestream, có quyền can thiệp/khóa luồng nếu vi phạm.
-- **Thống kê Báo cáo**:
-  - Dashboard tổng quan: số lượng user, số lượng đặt lịch, doanh thu thanh toán MoMo.
+Project: `health-assistant-platform`  
+Updated at: `2026-04-23` (timezone: Asia/Saigon)  
+Scope: backend, frontend, AI service, and live PostgreSQL in Docker (`health-assistant-db`)
 
 ---
 
-## 2. Đặc tả Chi tiết Cơ sở Dữ liệu (Database Schema)
+## 1. System Overview
 
-Dưới đây là chi tiết tất cả các bảng và các trường (Fields) trong cơ sở dữ liệu PostgreSQL.
+### 1.1 Runtime Components
 
-### Nhóm 1: Xác thực & Người dùng (Identity & Users)
+1. `frontend` (Next.js): UI for marketing, patient, doctor, admin.
+2. `backend` (NestJS + TypeORM): main API, auth, booking, content, moderation, notifications, AI proxy.
+3. `ai service` (FastAPI): multi-turn chat + diagnostic pipeline + hospital suggestion.
+4. `postgres` (Docker): primary relational database.
 
-**Bảng `users`**: Bảng trung tâm lưu trữ người dùng.
-- `id` (UUID): Khóa chính
-- `email` (VARCHAR 255): Unique
-- `phone` (VARCHAR 20): Unique
-- `password_hash` (TEXT)
-- `full_name` (VARCHAR 255)
-- `avatar_url` (TEXT)
-- `avatar_public_id` (VARCHAR 255)
-- `date_of_birth` (DATE)
-- `gender` (VARCHAR 20)
-- `status` (VARCHAR 40): 'active', 'inactive', v.v.
-- `email_verified_at` (TIMESTAMPTZ)
-- `phone_verified_at` (TIMESTAMPTZ)
-- `last_login_at` (TIMESTAMPTZ)
-- `created_at`, `updated_at`, `deleted_at` (TIMESTAMPTZ)
+### 1.2 Integration Flow
 
-**Bảng `user_identities`**: Liên kết tài khoản OAuth (Google SSO).
-- `id` (UUID)
-- `user_id` (UUID): FK -> users(id)
-- `provider` (VARCHAR 50): 'google'
-- `provider_sub` (VARCHAR 255): ID từ provider
-- `provider_email` (VARCHAR 255)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+1. Frontend calls backend via Next rewrite: `/api/* -> http://localhost:4000/*`.
+2. Backend AI module calls AI service (`/api/v1/chat/`) and forwards authenticated user context.
+3. AI service stores sessions/messages in PostgreSQL (`chat_sessions`, `chat_messages`).
+4. Backend enriches AI output with internal doctor recommendations by specialty.
 
-**Bảng `patient_email_verifications`**: Mã OTP xác thực.
-- `id` (UUID)
-- `user_id` (UUID): FK -> users(id)
-- `email` (VARCHAR 255)
-- `code_hash` (VARCHAR 255)
-- `expires_at` (TIMESTAMPTZ)
-- `attempts` (INTEGER)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+---
 
-**Bảng `roles`**: Phân quyền hệ thống.
-- `id` (SMALLSERIAL)
-- `code` (VARCHAR 50): 'patient', 'doctor', 'admin'
-- `name` (VARCHAR 100)
+## 2. Functional Modules (Current Code State)
 
-**Bảng `user_roles`**: Mapping User - Role.
-- `user_id` (UUID): FK -> users(id)
-- `role_id` (SMALLINT): FK -> roles(id)
-- `created_at` (TIMESTAMPTZ)
+### 2.1 Authentication & Identity
 
-### Nhóm 2: Hồ sơ (Profiles & Medical Records)
+- Register/login/logout via email/password.
+- Google OAuth supported (`/auth/google`, `/auth/google/callback`).
+- Patient email verification OTP:
+  - `POST /auth/register/patient/verify-email`
+  - `POST /auth/register/patient/resend-code`
+- RBAC by `roles` + `user_roles` (`patient`, `doctor`, `admin`).
+- User status used in code: `pending_email_verification`, `active`, `disabled`.
 
-**Bảng `patient_profiles`**: Hồ sơ bệnh nhân.
-- `user_id` (UUID): FK -> users(id)
-- `emergency_contact_name` (VARCHAR 255)
-- `emergency_contact_phone` (VARCHAR 20)
-- `address_line` (TEXT)
-- `province_code`, `district_code`, `ward_code` (VARCHAR 120)
-- `occupation` (VARCHAR 255)
-- `blood_type` (VARCHAR 10)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+### 2.2 Patient Portal
 
-**Bảng `doctor_profiles`**: Hồ sơ bác sĩ.
-- `user_id` (UUID): FK -> users(id)
-- `professional_title` (VARCHAR 255)
-- `license_number` (VARCHAR 100): Giấy phép hành nghề
-- `years_of_experience` (INTEGER)
-- `bio` (TEXT)
-- `workplace_name` (VARCHAR 255)
-- `workplace_address` (TEXT)
-- `province_code`, `district_code`, `ward_code` (VARCHAR 20)
-- `consultation_fee` (NUMERIC 12,2): Giá khám
-- `verification_status` (VARCHAR 20): 'pending', 'approved'
-- `priority_score` (INTEGER): Điểm ưu tiên để sắp xếp trong danh sách recommend (Tính dựa trên Rating, Bài viết, Kinh nghiệm).
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- Manage profile and medical context:
+  - `users`, `patient_profiles`, `medical_profiles`, `patient_chronic_conditions`.
+- Browse doctors by specialty/location (`provinceCode`, `districtCode`).
+- Booking (authenticated and guest):
+  - `POST /bookings`
+  - `POST /bookings/guest`
+  - `PATCH /bookings/me/:id/cancel`
+- Booking payment info + MoMo IPN handling.
+- AI assistant with chat history and doctor recommendation.
+- Notifications (list/read/read-all + SSE stream).
+- Public blog + comments + comment reactions.
+- Public Q&A.
+- Livestream viewing/join.
 
-**Bảng `specialties`**: Danh mục chuyên khoa.
-- `id` (BIGSERIAL)
-- `slug` (VARCHAR 150)
-- `name` (VARCHAR 255)
-- `description` (TEXT)
-- `icon_url` (TEXT)
-- `status` (VARCHAR 20)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+### 2.3 Doctor Portal
 
-**Bảng `doctor_specialties`**: Mapping Bác sĩ - Chuyên khoa.
-- `doctor_user_id` (UUID): FK -> doctor_profiles(user_id)
-- `specialty_id` (BIGINT): FK -> specialties(id)
-- `is_primary` (BOOLEAN): Là chuyên khoa chính hay không
-- `created_at` (TIMESTAMPTZ)
+- Manage doctor profile + specialties.
+- Manage available slots (`/doctor/slots`).
+- Review/approve/reject bookings.
+- Doctor posts CRUD (`/doctor/posts`).
+- Livestream control:
+  - create, go-live, end, publisher-token, mine/list.
+- Q&A inbox and answer.
+- Payment/revenue dashboard summary.
 
-**Bảng `medical_profiles`**: Bệnh án cá nhân của bệnh nhân.
-- `patient_user_id` (UUID): FK -> patient_profiles(user_id)
-- `height_cm`, `weight_kg`, `bmi` (NUMERIC 5,2)
-- `allergies` (TEXT)
-- `current_medications` (TEXT)
-- `family_history` (TEXT)
-- `note` (TEXT)
-- `updated_at` (TIMESTAMPTZ)
+### 2.4 Admin Portal
 
-**Bảng `chronic_conditions`**: Danh mục bệnh mãn tính.
-- `id` (BIGSERIAL)
-- `code` (VARCHAR 100)
-- `name` (VARCHAR 255)
-- `description` (TEXT)
-- `created_at` (TIMESTAMPTZ)
+- Dashboard summary.
+- User management + feature permissions (`users.feature_permissions`).
+- Doctor verification approve/reject.
+- Moderation for posts and Q&A questions.
+- Specialty CRUD + status management.
 
-**Bảng `patient_chronic_conditions`**: Bệnh mãn tính của bệnh nhân.
-- `id` (BIGSERIAL)
-- `patient_user_id` (UUID): FK -> patient_profiles(user_id)
-- `condition_id` (BIGINT): FK -> chronic_conditions(id)
-- `diagnosed_at` (DATE)
-- `severity_level` (VARCHAR 20)
-- `note` (TEXT)
-- `created_at` (TIMESTAMPTZ)
+---
 
-### Nhóm 3: Đặt lịch & Thanh toán (Booking & Payments)
+## 3. API Surface (Observed from Controllers)
 
-**Bảng `doctor_available_slots`**: Khung giờ trống của bác sĩ.
-- `id` (BIGSERIAL)
-- `doctor_user_id` (UUID): FK -> doctor_profiles(user_id)
-- `specialty_id` (BIGINT): FK -> specialties(id)
-- `slot_date` (DATE)
-- `start_at` (TIMESTAMPTZ)
-- `end_at` (TIMESTAMPTZ)
-- `max_bookings` (INTEGER)
-- `booked_count` (INTEGER)
-- `status` (VARCHAR 20): 'available', 'full', 'cancelled'
-- `source` (VARCHAR 20)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+### 3.1 Core
 
-**Bảng `bookings`**: Lịch hẹn khám.
-- `id` (UUID)
-- `booking_code` (VARCHAR 30): Mã đặt lịch duy nhất
-- `patient_user_id` (UUID): FK -> patient_profiles(user_id)
-- `doctor_user_id` (UUID): FK -> doctor_profiles(user_id)
-- `specialty_id` (BIGINT): FK -> specialties(id)
-- `available_slot_id` (BIGINT): FK -> doctor_available_slots(id)
-- `patient_note`, `doctor_note`, `rejection_reason`, `cancel_reason` (TEXT)
-- `status` (VARCHAR 20): 'pending_review', 'confirmed', 'cancelled', 'completed'
-- `payment_method` (VARCHAR 30): 'momo'
-- `payment_status` (VARCHAR 30): 'unpaid', 'paid'
-- `guest_full_name`, `guest_phone`, `guest_email` (VARCHAR): Thông tin khách ngoài
-- `guest_lookup_token` (VARCHAR 64)
-- `appointment_date` (DATE)
-- `appointment_start_at`, `appointment_end_at` (TIMESTAMPTZ)
-- `doctor_name_snapshot`, `specialty_name_snapshot` (VARCHAR 255): Lưu log tên tại thời điểm đặt
-- `consultation_fee`, `platform_fee`, `total_fee` (NUMERIC 12,2)
-- `approved_at` (TIMESTAMPTZ)
-- `approved_by` (UUID)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `GET /`
 
-**Bảng `booking_status_logs`**: Lịch sử đổi trạng thái lịch khám.
-- `id` (BIGSERIAL)
-- `booking_id` (UUID): FK -> bookings(id)
-- `old_status`, `new_status` (VARCHAR 20)
-- `changed_by` (UUID)
-- `note` (TEXT)
-- `created_at` (TIMESTAMPTZ)
+### 3.2 Auth
 
-**Bảng `payments`**: Giao dịch thanh toán.
-- `id` (UUID)
-- `booking_id` (UUID): FK -> bookings(id)
-- `provider` (VARCHAR 30): 'momo'
-- `amount` (NUMERIC 12,2)
-- `currency` (VARCHAR 10): 'VND'
-- `status` (VARCHAR 30): 'pending', 'success', 'failed'
-- `provider_order_id` (VARCHAR 100): Order ID gửi sang cổng thanh toán
-- `provider_trans_id` (VARCHAR 100): Mã giao dịch nhận từ cổng
-- `raw_create_response`, `raw_ipn_body` (TEXT)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `POST /auth/register`
+- `POST /auth/register/patient/verify-email`
+- `POST /auth/register/patient/resend-code`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /auth/google`
+- `GET /auth/google/callback`
+- `GET /auth/specialties`
 
-### Nhóm 4: Module AI, Nội dung & Tương tác (AI, Content, Interact)
+### 3.3 Users
 
-**Bảng `chat_sessions`**: Phiên làm việc với AI.
-- `id` (UUID)
-- `user_id` (UUID): FK -> users(id)
-- `title` (VARCHAR 255)
-- `is_active` (BOOLEAN)
-- `total_tokens` (INTEGER)
-- `metadata` (JSONB)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `GET /users/me`
+- `POST /users/me/avatar`
+- `PATCH /users/me`
+- `PATCH /users/me/password`
 
-**Bảng `chat_messages`**: Lịch sử tin nhắn chat AI.
-- `id` (BIGSERIAL)
-- `session_id` (UUID): FK -> chat_sessions(id)
-- `role` (VARCHAR 20): 'user', 'assistant', 'system'
-- `content` (TEXT)
-- `token_count` (INTEGER)
-- `created_at` (TIMESTAMPTZ)
+### 3.4 Doctors (Public)
 
-**Bảng `posts`**: Bài viết Blog / Cẩm nang.
-- `id` (BIGSERIAL)
-- `author_user_id` (UUID): FK -> doctor_profiles(user_id)
-- `title` (VARCHAR 500)
-- `slug` (VARCHAR 255)
-- `excerpt` (TEXT)
-- `content` (TEXT)
-- `thumbnail_url` (TEXT)
-- `post_type` (VARCHAR 30): 'medical_article'
-- `status` (VARCHAR 20): 'draft', 'pending', 'published', 'rejected'
-- `reviewed_by` (UUID)
-- `reviewed_at`, `published_at` (TIMESTAMPTZ)
-- `rejection_reason` (TEXT)
-- `view_count` (BIGINT)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `GET /doctors`
+- `GET /doctors/:doctorUserId`
+- `GET /doctors/:doctorUserId/slots`
 
-**Bảng `comments`**: Bình luận bài viết.
-- `id` (BIGSERIAL)
-- `post_id` (BIGINT): FK -> posts(id)
-- `user_id` (UUID): FK -> users(id)
-- `parent_comment_id` (BIGINT): FK -> comments(id)
-- `content` (TEXT)
-- `status` (VARCHAR 20)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+### 3.5 Bookings
 
-**Bảng `live_streams`**: Phòng Livestream tư vấn.
-- `id` (UUID)
-- `doctor_user_id` (UUID): FK -> users(id)
-- `title` (VARCHAR 500)
-- `description` (TEXT)
-- `status` (VARCHAR 20): 'scheduled', 'live', 'ended', 'cancelled'
-- `room_name` (VARCHAR 128)
-- `started_at`, `ended_at` (TIMESTAMPTZ)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `POST /bookings/guest`
+- `POST /bookings`
+- `GET /bookings/me`
+- `GET /bookings/me/:id`
+- `GET /bookings/me/:id/payment`
+- `PATCH /bookings/me/:id/cancel`
 
-**Bảng `notifications`**: Thông báo hệ thống.
-- `id` (UUID)
-- `user_id` (UUID): FK -> users(id)
-- `type` (VARCHAR 50)
-- `priority` (VARCHAR 20): 'low', 'normal', 'high'
-- `title` (VARCHAR 255)
-- `message` (TEXT)
-- `link` (VARCHAR 255)
-- `is_read` (BOOLEAN)
-- `read_at` (TIMESTAMPTZ)
-- `metadata` (JSONB)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+### 3.6 Doctor Portal
 
-**Bảng `doctor_questions`**: Hỏi đáp y khoa (Q&A).
-- `id` (UUID)
-- `patient_user_id` (UUID): FK -> users(id)
-- `doctor_user_id` (UUID): FK -> users(id)
-- `title` (VARCHAR 300)
-- `question_content` (TEXT)
-- `answer_content` (TEXT)
-- `category` (VARCHAR 100)
-- `status` (VARCHAR 20): 'pending_review', 'approved', 'answered', 'rejected'
-- `answered_at` (TIMESTAMPTZ)
-- `created_at`, `updated_at` (TIMESTAMPTZ)
+- `GET /doctor/slots`
+- `POST /doctor/slots`
+- `PATCH /doctor/slots/:id/cancel`
+- `GET /doctor/bookings`
+- `GET /doctor/dashboard/payment-summary`
+- `PATCH /doctor/bookings/:bookingId/approve`
+- `PATCH /doctor/bookings/:bookingId/reject`
+- `POST /doctor/posts`
+- `GET /doctor/posts`
+- `GET /doctor/posts/:id`
+- `PATCH /doctor/posts/:id`
+- `DELETE /doctor/posts/:id`
+
+### 3.7 AI
+
+- `POST /ai/chat`
+- `GET /ai/sessions`
+- `GET /ai/sessions/:id`
+
+### 3.8 Posts & Community
+
+- `GET /posts`
+- `GET /posts/:slug`
+- `GET /posts/:slug/comments`
+- `POST /posts/:slug/comments`
+- `POST /posts/comments/:id/react`
+
+### 3.9 Livestreams
+
+- Public:
+  - `GET /livestreams`
+  - `GET /livestreams/:id`
+- Doctor:
+  - `POST /doctor/livestreams`
+  - `PATCH /doctor/livestreams/:id/go-live`
+  - `PATCH /doctor/livestreams/:id/end`
+  - `GET /doctor/livestreams/mine/list`
+  - `GET /doctor/livestreams/:id/publisher-token`
+
+### 3.10 Notifications
+
+- `GET /notifications/me`
+- `PATCH /notifications/:id/read`
+- `PATCH /notifications/me/read-all`
+
+### 3.11 Q&A
+
+- `GET /qa/questions`
+- `GET /qa/questions/:id`
+- `POST /qa/questions`
+- `GET /qa/doctor/inbox`
+- `PATCH /qa/doctor/questions/:id/answer`
+
+### 3.12 Admin
+
+- `GET /admin/dashboard/summary`
+- `GET /admin/users`
+- `GET /admin/users/:id`
+- `POST /admin/users`
+- `PATCH /admin/users/:id`
+- `GET /admin/doctors/pending`
+- `PATCH /admin/doctors/:userId/approve`
+- `PATCH /admin/doctors/:userId/reject`
+- `GET /admin/posts/pending`
+- `GET /admin/posts/:id`
+- `PATCH /admin/posts/:id/approve`
+- `PATCH /admin/posts/:id/reject`
+- `GET /admin/questions/pending`
+- `PATCH /admin/questions/:id/approve`
+- `PATCH /admin/questions/:id/reject`
+- `GET /admin/specialties`
+- `POST /admin/specialties`
+- `PATCH /admin/specialties/:id`
+- `PATCH /admin/specialties/:id/status`
+
+### 3.13 Payments
+
+- `POST /payments/momo/ipn`
+
+---
+
+## 4. Database Spec (Live DB in Docker)
+
+Live DB inspected from container `health-assistant-db`, database `health_assistant`.
+
+### 4.1 Total tables: 24
+
+1. `users`
+2. `user_identities`
+3. `patient_email_verifications`
+4. `roles`
+5. `user_roles`
+6. `patient_profiles`
+7. `doctor_profiles`
+8. `specialties`
+9. `doctor_specialties`
+10. `medical_profiles`
+11. `chronic_conditions`
+12. `patient_chronic_conditions`
+13. `doctor_available_slots`
+14. `bookings`
+15. `payments`
+16. `booking_status_logs`
+17. `posts`
+18. `comments`
+19. `comment_reactions`
+20. `chat_sessions`
+21. `chat_messages`
+22. `live_streams`
+23. `notifications`
+24. `doctor_questions`
+
+### 4.2 Table details (columns)
+
+#### `users`
+- `id (uuid, PK, default uuid_generate_v4())`
+- `email (varchar, unique, not null)`
+- `phone (varchar, unique, nullable)`
+- `password_hash (text, not null)`
+- `full_name (varchar, not null)`
+- `avatar_url (text, nullable)`
+- `avatar_public_id (varchar, nullable)`
+- `date_of_birth (date, nullable)`
+- `gender (varchar, nullable)`
+- `status (varchar, default 'active')`
+- `feature_permissions (jsonb, default '{}'::jsonb)`
+- `email_verified_at, phone_verified_at, last_login_at, deleted_at`
+- `created_at, updated_at`
+
+#### `user_identities`
+- `id (uuid, PK)`
+- `user_id (uuid, FK -> users.id, not null)`
+- `provider (varchar, not null)`
+- `provider_sub (varchar, not null)`
+- `provider_email (varchar, nullable)`
+- `created_at, updated_at`
+- Extra live column detected: `userId (uuid, nullable)` (schema drift artifact)
+
+#### `patient_email_verifications`
+- `id (uuid, PK)`
+- `user_id (uuid, unique FK -> users.id)`
+- `email, code_hash`
+- `expires_at`
+- `attempts (int, default 0)`
+- `created_at, updated_at`
+
+#### `roles`
+- `id (smallint, PK)`
+- `code (unique)`
+- `name`
+
+#### `user_roles`
+- `user_id (FK -> users.id)`
+- `role_id (FK -> roles.id)`
+- `created_at`
+- Composite PK: `(user_id, role_id)`
+
+#### `patient_profiles`
+- `user_id (PK FK -> users.id)`
+- `emergency_contact_name`
+- `emergency_contact_phone`
+- `address_line`
+- `province_code, district_code, ward_code`
+- `occupation`
+- `blood_type`
+- `created_at, updated_at`
+
+#### `doctor_profiles`
+- `user_id (PK FK -> users.id)`
+- `professional_title`
+- `license_number`
+- `years_of_experience`
+- `bio`
+- `workplace_name`
+- `workplace_address`
+- `province_code, district_code, ward_code`
+- `consultation_fee (numeric, default 0)`
+- `priority_score (int, default 0)`
+- `is_available_for_booking (bool, default true)`
+- `is_verified (bool, default false)`
+- `verification_status (varchar, default 'pending')`
+- `created_at, updated_at`
+
+#### `specialties`
+- `id (bigint, PK)`
+- `slug (unique)`
+- `name`
+- `description`
+- `icon_url`
+- `status (default 'active')`
+- `created_at, updated_at`
+
+#### `doctor_specialties`
+- `doctor_user_id (FK -> doctor_profiles.user_id)`
+- `specialty_id (FK -> specialties.id)`
+- `is_primary (bool, default false)`
+- `created_at`
+- Composite PK: `(doctor_user_id, specialty_id)`
+
+#### `medical_profiles`
+- `patient_user_id (PK FK -> patient_profiles.user_id)`
+- `height_cm, weight_kg, bmi`
+- `allergies`
+- `current_medications`
+- `family_history`
+- `note`
+- `updated_at`
+
+#### `chronic_conditions`
+- `id (bigint, PK)`
+- `code (unique, nullable)`
+- `name`
+- `description`
+- `created_at`
+
+#### `patient_chronic_conditions`
+- `id (bigint, PK)`
+- `patient_user_id (FK -> patient_profiles.user_id)`
+- `condition_id (FK -> chronic_conditions.id)`
+- `diagnosed_at`
+- `severity_level`
+- `note`
+- `created_at`
+
+#### `doctor_available_slots`
+- `id (bigint, PK)`
+- `doctor_user_id (FK -> doctor_profiles.user_id)`
+- `specialty_id (FK -> specialties.id, nullable)`
+- `slot_date`
+- `start_at, end_at`
+- `max_bookings (default 1)`
+- `booked_count (default 0)`
+- `status (default 'available')`
+- `source (default 'manual')`
+- `created_at, updated_at`
+
+#### `bookings`
+- `id (uuid, PK)`
+- `booking_code (varchar, unique)`
+- `patient_user_id (FK -> patient_profiles.user_id, nullable for guest flow)`
+- `doctor_user_id (FK -> doctor_profiles.user_id)`
+- `specialty_id (FK -> specialties.id)`
+- `available_slot_id (FK -> doctor_available_slots.id, nullable)`
+- `patient_note, doctor_note, rejection_reason, cancel_reason`
+- `status (varchar, live default 'pending')`
+- `payment_method (default 'momo')`
+- `payment_status (default 'unpaid')`
+- `guest_full_name, guest_phone, guest_email, guest_lookup_token (unique)`
+- `appointment_date`
+- `appointment_start_at, appointment_end_at`
+- `doctor_name_snapshot, specialty_name_snapshot`
+- `consultation_fee, platform_fee, total_fee`
+- `approved_at, approved_by`
+- `created_at, updated_at`
+
+#### `payments`
+- `id (uuid, PK)`
+- `booking_id (FK -> bookings.id)`
+- `provider (default 'momo')`
+- `amount`
+- `currency (default 'VND')`
+- `status (default 'pending')`
+- `provider_order_id (unique)`
+- `provider_trans_id`
+- `raw_create_response, raw_ipn_body`
+- `created_at, updated_at`
+
+#### `booking_status_logs`
+- `id (bigint, PK)`
+- `booking_id (FK -> bookings.id)`
+- `old_status`
+- `new_status`
+- `changed_by (FK -> users.id)`
+- `note`
+- `created_at`
+
+#### `posts`
+- `id (bigint, PK)`
+- `author_user_id (FK -> doctor_profiles.user_id)`
+- `title`
+- `slug (unique)`
+- `excerpt`
+- `content`
+- `thumbnail_url`
+- `post_type (default 'medical_article')`
+- `status (default 'draft')`
+- `reviewed_by (FK -> users.id)`
+- `reviewed_at, published_at`
+- `rejection_reason`
+- `view_count (default 0)`
+- `created_at, updated_at`
+
+#### `comments`
+- `id (bigint, PK)`
+- `post_id (FK -> posts.id)`
+- `user_id (FK -> users.id)`
+- `parent_comment_id (self FK, nullable)`
+- `content`
+- `status (default 'visible')`
+- `created_at, updated_at`
+
+#### `comment_reactions`
+- `id (bigint, PK)`
+- `comment_id (FK -> comments.id)`
+- `user_id (FK -> users.id)`
+- `type (default 'like')`
+- `created_at`
+- Unique constraint on `(comment_id, user_id)`
+
+#### `chat_sessions`
+- `id (uuid, PK)`
+- `user_id (FK -> users.id, nullable)`
+- `title`
+- `is_active (default true)`
+- `total_tokens (default 0)`
+- `metadata (jsonb, nullable)`
+- `created_at, updated_at`
+
+#### `chat_messages`
+- `id (bigint, PK)`
+- `session_id (FK -> chat_sessions.id)`
+- `role`
+- `content`
+- `token_count`
+- `created_at`
+
+#### `live_streams`
+- `id (uuid, PK)`
+- `doctor_user_id (FK -> users.id)`
+- `title`
+- `description`
+- `status (default 'scheduled')`
+- `room_name (unique)`
+- `started_at, ended_at`
+- `created_at, updated_at`
+
+#### `notifications`
+- `id (uuid, PK)`
+- `user_id (FK -> users.id)`
+- `type`
+- `priority (default 'normal')`
+- `title`
+- `message`
+- `link`
+- `is_read (default false)`
+- `read_at`
+- `metadata (jsonb, default '{}'::jsonb)`
+- `created_at, updated_at`
+
+#### `doctor_questions`
+- `id (uuid, PK)`
+- `patient_user_id (FK -> users.id)`
+- `doctor_user_id (FK -> users.id, nullable)`
+- `title`
+- `question_content`
+- `answer_content`
+- `category`
+- `status (live default 'pending_review')`
+- `answered_at`
+- `created_at, updated_at`
+
+---
+
+## 5. AI + Doctor Recommendation (Current Real Behavior)
+
+### 5.1 Authenticated AI Chat
+
+1. Frontend (`chat.store.ts`) posts to backend endpoint `/api/ai/chat`, not directly to AI service.
+2. Backend (`AiService.chat`) injects:
+   - `user_id = currentUser.id`
+   - `patient_context` built from:
+     - `users` (age, gender)
+     - `medical_profiles` (height_cm, weight_kg)
+     - `patient_chronic_conditions` + `chronic_conditions` (chronic condition names)
+3. AI service stores/updates `chat_sessions.user_id`.
+
+### 5.2 Doctor Recommendation Enrichment
+
+1. AI service returns `final_result.top_diseases[*].suggested_specialty`.
+2. Backend maps specialty by name (`ILIKE` in `specialties` where `status='active'`).
+3. Backend fetches top doctors (`recommendDoctors`) and returns `doctor_recommendations`.
+
+---
+
+## 6. Confirmed Schema Drift / Risks
+
+These are verified mismatches between files and live DB as of `2026-04-23`:
+
+1. `comment_reactions` exists in live DB and code entities, but not present in `backend/database/schema.sql`.
+2. `users.feature_permissions` exists in live DB and entity, but missing from `schema.sql`.
+3. `user_identities.userId` extra column exists in live DB (legacy artifact), not in `schema.sql`.
+4. `bookings.status` default:
+   - `schema.sql`: `pending_review`
+   - live DB + entity/service logic: `pending`
+5. `doctor_questions.status` in `schema.sql` currently shows default `'pending'` but check allows `pending_review/approved/answered/rejected`; live DB default is `pending_review`.
+6. Timestamp type drift:
+   - many `created_at/updated_at` in live DB are `timestamp without time zone`
+   - while DDL/entity intent often uses `timestamptz`.
+7. `TypeORM synchronize` is enabled when `NODE_ENV !== 'production'`, so schema can continue drifting unless migrations are enforced.
+
+---
+
+## 7. Recommended Follow-up (to keep specs and DB stable)
+
+1. Freeze schema source of truth: move to migrations only, disable `synchronize` in shared environments.
+2. Create a migration to align:
+   - add missing DDL to `schema.sql` (`comment_reactions`, `feature_permissions`)
+   - unify defaults/status enums (`bookings.status`, `doctor_questions.status`)
+   - remove legacy `user_identities.userId` if no code depends on it.
+3. Keep this doc updated using live DB introspection after each major pull/release.
+
