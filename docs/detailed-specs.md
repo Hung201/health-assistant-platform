@@ -1,79 +1,79 @@
-# Detailed System Specs (Code + Live DB Snapshot)
+# Đặc tả Hệ thống Chi tiết (Code + Ảnh chụp DB thực tế)
 
-Project: `health-assistant-platform`  
-Updated at: `2026-04-23` (timezone: Asia/Saigon)  
-Scope: backend, frontend, AI service, and live PostgreSQL in Docker (`health-assistant-db`)
-
----
-
-## 1. System Overview
-
-### 1.1 Runtime Components
-
-1. `frontend` (Next.js): UI for marketing, patient, doctor, admin.
-2. `backend` (NestJS + TypeORM): main API, auth, booking, content, moderation, notifications, AI proxy.
-3. `ai service` (FastAPI): multi-turn chat + diagnostic pipeline + hospital suggestion.
-4. `postgres` (Docker): primary relational database.
-
-### 1.2 Integration Flow
-
-1. Frontend calls backend via Next rewrite: `/api/* -> http://localhost:4000/*`.
-2. Backend AI module calls AI service (`/api/v1/chat/`) and forwards authenticated user context.
-3. AI service stores sessions/messages in PostgreSQL (`chat_sessions`, `chat_messages`).
-4. Backend enriches AI output with internal doctor recommendations by specialty.
+Dự án: `health-assistant-platform`  
+Cập nhật lúc: `2026-04-23` (múi giờ: Asia/Saigon)  
+Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-assistant-db`)
 
 ---
 
-## 2. Functional Modules (Current Code State)
+## 1. Tổng quan hệ thống
 
-### 2.1 Authentication & Identity
+### 1.1 Thành phần runtime
 
-- Register/login/logout via email/password.
-- Google OAuth supported (`/auth/google`, `/auth/google/callback`).
-- Patient email verification OTP:
+1. `frontend` (Next.js): giao diện marketing, patient, doctor, admin.
+2. `backend` (NestJS + TypeORM): API chính, auth, booking, nội dung, moderation, notifications, AI proxy.
+3. `ai service` (FastAPI): chat nhiều lượt, phân tích chẩn đoán, gợi ý cơ sở y tế.
+4. `postgres` (Docker): cơ sở dữ liệu quan hệ chính.
+
+### 1.2 Luồng tích hợp
+
+1. Frontend gọi backend qua rewrite: `/api/* -> http://localhost:4000/*`.
+2. Backend module AI gọi AI service (`/api/v1/chat/`) và truyền ngữ cảnh user đã đăng nhập.
+3. AI service lưu session/message vào PostgreSQL (`chat_sessions`, `chat_messages`).
+4. Backend enrich kết quả AI bằng danh sách bác sĩ gợi ý theo chuyên khoa.
+
+---
+
+## 2. Các phân hệ chức năng (theo trạng thái code hiện tại)
+
+### 2.1 Xác thực & định danh
+
+- Đăng ký/đăng nhập/đăng xuất bằng email + password.
+- Hỗ trợ Google OAuth (`/auth/google`, `/auth/google/callback`).
+- Xác thực email bệnh nhân bằng OTP:
   - `POST /auth/register/patient/verify-email`
   - `POST /auth/register/patient/resend-code`
-- RBAC by `roles` + `user_roles` (`patient`, `doctor`, `admin`).
-- User status used in code: `pending_email_verification`, `active`, `disabled`.
+- Phân quyền RBAC qua `roles` + `user_roles` (`patient`, `doctor`, `admin`).
+- Trạng thái user đang dùng trong code: `pending_email_verification`, `active`, `disabled`.
 
-### 2.2 Patient Portal
+### 2.2 Cổng bệnh nhân (Patient Portal)
 
-- Manage profile and medical context:
+- Quản lý hồ sơ và dữ liệu y tế:
   - `users`, `patient_profiles`, `medical_profiles`, `patient_chronic_conditions`.
-- Browse doctors by specialty/location (`provinceCode`, `districtCode`).
-- Booking (authenticated and guest):
+- Tìm bác sĩ theo chuyên khoa/khu vực (`provinceCode`, `districtCode`).
+- Đặt lịch khám (đăng nhập và khách):
   - `POST /bookings`
   - `POST /bookings/guest`
   - `PATCH /bookings/me/:id/cancel`
-- Booking payment info + MoMo IPN handling.
-- AI assistant with chat history and doctor recommendation.
-- Notifications (list/read/read-all + SSE stream).
-- Public blog + comments + comment reactions.
-- Public Q&A.
-- Livestream viewing/join.
+- Lấy thông tin thanh toán + xử lý IPN MoMo.
+- AI assistant có lịch sử phiên và gợi ý bác sĩ.
+- Notifications (danh sách/đánh dấu đọc/đọc tất cả + SSE stream).
+- Blog công khai + bình luận + reaction bình luận.
+- Q&A công khai.
+- Xem/tham gia livestream.
 
-### 2.3 Doctor Portal
+### 2.3 Cổng bác sĩ (Doctor Portal)
 
-- Manage doctor profile + specialties.
-- Manage available slots (`/doctor/slots`).
-- Review/approve/reject bookings.
-- Doctor posts CRUD (`/doctor/posts`).
-- Livestream control:
+- Quản lý hồ sơ bác sĩ + chuyên khoa.
+- Quản lý lịch trống (`/doctor/slots`).
+- Duyệt/từ chối lịch hẹn.
+- CRUD bài viết bác sĩ (`/doctor/posts`).
+- Điều khiển livestream:
   - create, go-live, end, publisher-token, mine/list.
-- Q&A inbox and answer.
-- Payment/revenue dashboard summary.
+- Hộp thư Q&A và trả lời.
+- Dashboard doanh thu/thanh toán.
 
-### 2.4 Admin Portal
+### 2.4 Cổng admin
 
-- Dashboard summary.
-- User management + feature permissions (`users.feature_permissions`).
-- Doctor verification approve/reject.
-- Moderation for posts and Q&A questions.
-- Specialty CRUD + status management.
+- Dashboard tổng quan.
+- Quản lý user + quyền tính năng (`users.feature_permissions`).
+- Duyệt hồ sơ bác sĩ.
+- Duyệt bài viết và câu hỏi Q&A.
+- CRUD chuyên khoa + quản lý trạng thái.
 
 ---
 
-## 3. API Surface (Observed from Controllers)
+## 3. Danh sách API (đọc từ controller)
 
 ### 3.1 Core
 
@@ -195,11 +195,11 @@ Scope: backend, frontend, AI service, and live PostgreSQL in Docker (`health-ass
 
 ---
 
-## 4. Database Spec (Live DB in Docker)
+## 4. Đặc tả Database (DB thực tế trong Docker)
 
-Live DB inspected from container `health-assistant-db`, database `health_assistant`.
+DB được kiểm tra từ container `health-assistant-db`, database `health_assistant`.
 
-### 4.1 Total tables: 24
+### 4.1 Tổng số bảng: 24
 
 1. `users`
 2. `user_identities`
@@ -226,7 +226,7 @@ Live DB inspected from container `health-assistant-db`, database `health_assista
 23. `notifications`
 24. `doctor_questions`
 
-### 4.2 Table details (columns)
+### 4.2 Chi tiết bảng (cột)
 
 #### `users`
 - `id (uuid, PK, default uuid_generate_v4())`
@@ -250,7 +250,7 @@ Live DB inspected from container `health-assistant-db`, database `health_assista
 - `provider_sub (varchar, not null)`
 - `provider_email (varchar, nullable)`
 - `created_at, updated_at`
-- Extra live column detected: `userId (uuid, nullable)` (schema drift artifact)
+- Cột dư trong DB thực tế: `userId (uuid, nullable)` (dấu vết drift lịch sử)
 
 #### `patient_email_verifications`
 - `id (uuid, PK)`
@@ -353,12 +353,12 @@ Live DB inspected from container `health-assistant-db`, database `health_assista
 #### `bookings`
 - `id (uuid, PK)`
 - `booking_code (varchar, unique)`
-- `patient_user_id (FK -> patient_profiles.user_id, nullable for guest flow)`
+- `patient_user_id (FK -> patient_profiles.user_id, nullable cho guest flow)`
 - `doctor_user_id (FK -> doctor_profiles.user_id)`
 - `specialty_id (FK -> specialties.id)`
 - `available_slot_id (FK -> doctor_available_slots.id, nullable)`
 - `patient_note, doctor_note, rejection_reason, cancel_reason`
-- `status (varchar, live default 'pending')`
+- `status (varchar, default thực tế: 'pending')`
 - `payment_method (default 'momo')`
 - `payment_status (default 'unpaid')`
 - `guest_full_name, guest_phone, guest_email, guest_lookup_token (unique)`
@@ -421,7 +421,7 @@ Live DB inspected from container `health-assistant-db`, database `health_assista
 - `user_id (FK -> users.id)`
 - `type (default 'like')`
 - `created_at`
-- Unique constraint on `(comment_id, user_id)`
+- Unique constraint trên `(comment_id, user_id)`
 
 #### `chat_sessions`
 - `id (uuid, PK)`
@@ -471,57 +471,57 @@ Live DB inspected from container `health-assistant-db`, database `health_assista
 - `question_content`
 - `answer_content`
 - `category`
-- `status (live default 'pending_review')`
+- `status (default thực tế: 'pending_review')`
 - `answered_at`
 - `created_at, updated_at`
 
 ---
 
-## 5. AI + Doctor Recommendation (Current Real Behavior)
+## 5. AI + Recomment Bác sĩ (hành vi hiện tại)
 
-### 5.1 Authenticated AI Chat
+### 5.1 Chat AI có gắn user thật
 
-1. Frontend (`chat.store.ts`) posts to backend endpoint `/api/ai/chat`, not directly to AI service.
-2. Backend (`AiService.chat`) injects:
+1. Frontend (`chat.store.ts`) gọi backend `/api/ai/chat`, không gọi trực tiếp AI service.
+2. Backend (`AiService.chat`) bổ sung:
    - `user_id = currentUser.id`
-   - `patient_context` built from:
-     - `users` (age, gender)
-     - `medical_profiles` (height_cm, weight_kg)
-     - `patient_chronic_conditions` + `chronic_conditions` (chronic condition names)
-3. AI service stores/updates `chat_sessions.user_id`.
+   - `patient_context` lấy từ:
+     - `users` (tuổi, giới tính)
+     - `medical_profiles` (chiều cao, cân nặng)
+     - `patient_chronic_conditions` + `chronic_conditions` (bệnh mãn tính)
+3. AI service lưu/cập nhật `chat_sessions.user_id`.
 
-### 5.2 Doctor Recommendation Enrichment
+### 5.2 Enrich danh sách bác sĩ gợi ý
 
-1. AI service returns `final_result.top_diseases[*].suggested_specialty`.
-2. Backend maps specialty by name (`ILIKE` in `specialties` where `status='active'`).
-3. Backend fetches top doctors (`recommendDoctors`) and returns `doctor_recommendations`.
-
----
-
-## 6. Confirmed Schema Drift / Risks
-
-These are verified mismatches between files and live DB as of `2026-04-23`:
-
-1. `comment_reactions` exists in live DB and code entities, but not present in `backend/database/schema.sql`.
-2. `users.feature_permissions` exists in live DB and entity, but missing from `schema.sql`.
-3. `user_identities.userId` extra column exists in live DB (legacy artifact), not in `schema.sql`.
-4. `bookings.status` default:
-   - `schema.sql`: `pending_review`
-   - live DB + entity/service logic: `pending`
-5. `doctor_questions.status` in `schema.sql` currently shows default `'pending'` but check allows `pending_review/approved/answered/rejected`; live DB default is `pending_review`.
-6. Timestamp type drift:
-   - many `created_at/updated_at` in live DB are `timestamp without time zone`
-   - while DDL/entity intent often uses `timestamptz`.
-7. `TypeORM synchronize` is enabled when `NODE_ENV !== 'production'`, so schema can continue drifting unless migrations are enforced.
+1. AI service trả về `final_result.top_diseases[*].suggested_specialty`.
+2. Backend map chuyên khoa bằng tên (`ILIKE` trong `specialties`, trạng thái `active`).
+3. Backend gọi `recommendDoctors` và trả `doctor_recommendations` cho frontend.
 
 ---
 
-## 7. Recommended Follow-up (to keep specs and DB stable)
+## 6. Các điểm lệch schema đã xác nhận (Schema Drift / Risks)
 
-1. Freeze schema source of truth: move to migrations only, disable `synchronize` in shared environments.
-2. Create a migration to align:
-   - add missing DDL to `schema.sql` (`comment_reactions`, `feature_permissions`)
-   - unify defaults/status enums (`bookings.status`, `doctor_questions.status`)
-   - remove legacy `user_identities.userId` if no code depends on it.
-3. Keep this doc updated using live DB introspection after each major pull/release.
+Các điểm dưới đây đã đối chiếu giữa file DDL và DB thực tế tại `2026-04-23`:
+
+1. `comment_reactions` có trong DB thực tế và entity code, nhưng chưa có trong `backend/database/schema.sql`.
+2. `users.feature_permissions` có trong DB thực tế và entity code, nhưng thiếu trong `schema.sql`.
+3. `user_identities.userId` là cột dư trong DB thực tế (artifact lịch sử), không có trong `schema.sql`.
+4. `bookings.status`:
+   - `schema.sql`: default `pending_review`
+   - DB thực tế + logic entity/service: `pending`
+5. `doctor_questions.status` trong `schema.sql` đang default `'pending'`, nhưng check constraint và DB thực tế dùng `pending_review`.
+6. Lệch kiểu thời gian:
+   - nhiều `created_at/updated_at` trong DB thực tế là `timestamp without time zone`
+   - trong DDL/entity thường định hướng `timestamptz`.
+7. `TypeORM synchronize` đang bật khi `NODE_ENV !== 'production'`, có thể tiếp tục tạo drift schema.
+
+---
+
+## 7. Khuyến nghị tiếp theo để ổn định spec và DB
+
+1. Chốt nguồn sự thật schema bằng migration, tắt `synchronize` ở môi trường dùng chung.
+2. Tạo migration để đồng bộ:
+   - thêm DDL còn thiếu vào `schema.sql` (`comment_reactions`, `feature_permissions`)
+   - chuẩn hóa default/status (`bookings.status`, `doctor_questions.status`)
+   - xóa cột dư `user_identities.userId` nếu đã xác nhận không còn phụ thuộc.
+3. Sau mỗi lần pull/release lớn, cập nhật lại tài liệu này bằng introspection DB thực tế.
 
