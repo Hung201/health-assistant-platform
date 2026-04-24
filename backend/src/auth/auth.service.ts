@@ -10,7 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { SignOptions } from 'jsonwebtoken';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomInt } from 'crypto';
+import { createHash, randomInt, randomBytes } from 'crypto';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';
@@ -26,6 +26,8 @@ import { LoginDto } from './dto/login.dto';
 import type { GoogleAuthUser } from './strategies/google.strategy';
 import { VerifyPatientEmailDto } from './dto/verify-patient-email.dto';
 import { ResendPatientEmailCodeDto } from './dto/resend-patient-email-code.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -58,6 +60,16 @@ export class AuthService {
     return createHash('sha256')
       .update(`${email.toLowerCase()}|${code}|${secret}`)
       .digest('hex');
+  }
+
+  private hashPasswordResetToken(token: string): string {
+    return createHash('sha256').update(token, 'utf8').digest('hex');
+  }
+
+  private getPasswordResetExpiresMinutes(): number {
+    const n = Number(this.configService.get<string>('PASSWORD_RESET_TOKEN_EXPIRES_MINUTES') ?? '60');
+    if (!Number.isFinite(n) || n < 5) return 60;
+    return Math.min(24 * 60, Math.round(n));
   }
 
   private async issuePatientEmailCode(user: User) {
@@ -191,6 +203,73 @@ export class AuthService {
       },
       requiresEmailVerification: false,
     };
+  }
+
+  /** Luôn trả { ok: true } để không lộ email có tồn tại hay không. */
+  async requestPasswordReset(dto: ForgotPasswordDto): Promise<{ ok: true }> {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user || user.status === 'disabled') {
+      return { ok: true };
+    }
+    if (user.status !== 'active' && user.status !== 'pending_email_verification') {
+      return { ok: true };
+    }
+
+    const token = randomBytes(32).toString('hex');
+    const tokenHash = this.hashPasswordResetToken(token);
+    const expiresMinutes = this.getPasswordResetExpiresMinutes();
+    const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
+
+    await this.userRepository.update(user.id, {
+      passwordResetTokenHash: tokenHash,
+      passwordResetExpiresAt: expiresAt,
+    });
+
+    const frontend = (this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001').replace(/\/$/, '');
+    const resetUrl = `${frontend}/reset-password?token=${encodeURIComponent(token)}`;
+
+    try {
+      await this.mailService.sendPasswordResetLink({
+        to: user.email,
+        fullName: user.fullName,
+        resetUrl,
+        expiresMinutes,
+      });
+    } catch (e) {
+      await this.userRepository.update(user.id, {
+        passwordResetTokenHash: null,
+        passwordResetExpiresAt: null,
+      });
+      throw e;
+    }
+
+    return { ok: true };
+  }
+
+  async resetPasswordWithToken(dto: ResetPasswordDto): Promise<{ ok: true }> {
+    const tokenHash = this.hashPasswordResetToken(dto.token.trim());
+    const user = await this.userRepository.findOne({
+      where: { passwordResetTokenHash: tokenHash },
+    });
+    if (!user || !user.passwordResetExpiresAt) {
+      throw new BadRequestException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+    if (user.passwordResetExpiresAt.getTime() < Date.now()) {
+      throw new BadRequestException('Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn');
+    }
+    if (user.status === 'disabled') {
+      throw new BadRequestException('Tài khoản đã bị khóa');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.update(user.id, {
+      passwordHash,
+      passwordResetTokenHash: null,
+      passwordResetExpiresAt: null,
+    });
+
+    return { ok: true };
   }
 
   async login(dto: LoginDto) {

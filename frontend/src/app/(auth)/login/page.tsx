@@ -18,6 +18,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextParam = searchParams.get('next');
+  const passwordResetOk = searchParams.get('reset') === '1';
   const setSession = useAuthStore((s) => s.setSession);
   const { setTheme } = useTheme();
   const [email, setEmail] = useState('');
@@ -115,6 +116,12 @@ function LoginPageContent() {
             </p>
           </div>
 
+          {passwordResetOk ? (
+            <div className="mb-6 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
+              Mật khẩu đã được cập nhật. Bạn có thể đăng nhập bằng mật khẩu mới.
+            </div>
+          ) : null}
+
           {errorMessage ? (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               <p>{errorMessage}</p>
@@ -202,7 +209,7 @@ function LoginPageContent() {
                 />
                 <span className="font-medium text-slate-600">Ghi nhớ đăng nhập</span>
               </label>
-              <Link className="font-bold text-teal-600 hover:text-teal-700" href="#">
+              <Link className="font-bold text-teal-600 hover:text-teal-700" href="/forgot-password">
                 Quên mật khẩu?
               </Link>
             </div>

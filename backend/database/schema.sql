@@ -21,6 +21,8 @@ CREATE TABLE users (
     email_verified_at TIMESTAMPTZ,
     phone_verified_at TIMESTAMPTZ,
     last_login_at TIMESTAMPTZ,
+    password_reset_token_hash VARCHAR(64),
+    password_reset_expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ

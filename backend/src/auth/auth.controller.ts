@@ -7,6 +7,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { VerifyPatientEmailDto } from './dto/verify-patient-email.dto';
 import { ResendPatientEmailCodeDto } from './dto/resend-patient-email-code.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 import type { GoogleAuthUser } from './strategies/google.strategy';
 
@@ -53,6 +55,18 @@ export class AuthController {
   async resendPatientCode(@Body() dto: ResendPatientEmailCodeDto) {
     await this.authService.resendPatientEmailCode(dto);
     return { ok: true };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @Public()
+  @Post('reset-password')
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPasswordWithToken(dto);
   }
 
   @Public()
