@@ -122,6 +122,16 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify({ email: email.trim().toLowerCase() }),
     }),
+  forgotPassword: (email: string) =>
+    apiPublic<{ ok: boolean }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+    }),
+  resetPassword: (token: string, newPassword: string) =>
+    apiPublic<{ ok: boolean }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token: token.trim(), newPassword }),
+    }),
   specialties: () =>
     apiPublic<{ id: number; name: string; slug: string }[]>('/auth/specialties'),
   logout: () => api<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
