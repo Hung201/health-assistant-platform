@@ -101,6 +101,26 @@ export class MailService {
     await this.sendRaw({ to, subject: '[Clinical Precision] Mã xác thực đăng ký bệnh nhân', html });
   }
 
+  async sendPasswordResetLink(params: {
+    to: string;
+    fullName: string;
+    resetUrl: string;
+    expiresMinutes: number;
+  }): Promise<void> {
+    const { to, fullName, resetUrl, expiresMinutes } = params;
+    const html = `
+      <div style="font-family:system-ui,sans-serif;max-width:560px">
+        <h2>Đặt lại mật khẩu</h2>
+        <p>Xin chào <strong>${fullName}</strong>,</p>
+        <p>Bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu cho tài khoản Clinical Precision. Nhấn nút bên dưới để chọn mật khẩu mới:</p>
+        <p><a href="${resetUrl}" style="display:inline-block;padding:12px 20px;background:#0d9488;color:#fff;text-decoration:none;border-radius:10px;font-weight:700">Đặt lại mật khẩu</a></p>
+        <p style="font-size:13px;color:#444">Hoặc dán liên kết vào trình duyệt:<br/><span style="word-break:break-all">${resetUrl}</span></p>
+        <p style="margin-top:16px;font-size:13px;color:#666">Liên kết có hiệu lực trong <strong>${expiresMinutes} phút</strong>. Nếu bạn không yêu cầu, hãy bỏ qua email này — mật khẩu hiện tại vẫn an toàn.</p>
+      </div>
+    `.trim();
+    await this.sendRaw({ to, subject: '[Clinical Precision] Đặt lại mật khẩu', html });
+  }
+
   private async sendRaw(params: { to: string; subject: string; html: string }): Promise<void> {
     const from = this.config.get<string>('MAIL_FROM') || 'noreply@localhost';
     if (!this.transporter) {
