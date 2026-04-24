@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, ArrowLeft, CalendarClock, CircleUserRound, Stethoscope } from 'lucide-react';
+import { ArrowLeft, CalendarClock, CircleUserRound, Stethoscope } from 'lucide-react';
 
 import { qaApi } from '@/lib/api';
 
@@ -18,19 +18,8 @@ export default function QaDetailPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans">
-      <header className="sticky top-0 z-40 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+    <div className="bg-[#fafafb] pb-24 pt-8">
+      <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
         {isLoading ? <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-500">Đang tải…</div> : null}
         {isError ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">
@@ -85,7 +74,7 @@ export default function QaDetailPage() {
             </article>
           </div>
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }

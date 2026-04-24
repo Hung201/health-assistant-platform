@@ -44,11 +44,22 @@ export default function Home() {
   const [scrolled, setScrolled] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const doctorsScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollSpecialties = (dir: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const scrollAmount = 300;
       scrollContainerRef.current.scrollBy({
+        left: dir === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollDoctors = (dir: 'left' | 'right') => {
+    if (doctorsScrollRef.current) {
+      const scrollAmount = 300;
+      doctorsScrollRef.current.scrollBy({
         left: dir === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
@@ -424,39 +435,76 @@ export default function Home() {
         </section>
 
         {/* ── TOP DOCTORS ── */}
-        <section className="bg-[#f8fafb] py-20 animate-on-scroll">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Bác sĩ ưu tú</p>
-                <h2 className="text-[36px] font-bold text-slate-900">Đội ngũ chuyên gia hàng đầu</h2>
+        <section className="bg-[#E8F8F2]/30 py-24 animate-on-scroll relative overflow-hidden">
+          {/* Subtle background decorations */}
+          <div className="absolute top-10 left-10 text-teal-100 opacity-50"><svg width="100" height="100" viewBox="0 0 100 100" fill="currentColor"><path d="M40 0h20v40h40v20H60v40H40V60H0V40h40V0z"/></svg></div>
+          <div className="absolute bottom-10 right-10 text-teal-100 opacity-50"><svg width="150" height="150" viewBox="0 0 100 100" fill="currentColor"><path d="M40 0h20v40h40v20H60v40H40V60H0V40h40V0z"/></svg></div>
+          
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+              <div className="text-left">
+                <h2 className="text-[32px] md:text-[36px] font-bold text-slate-900 mb-3">Bác sĩ nổi bật</h2>
               </div>
-              <Link className="text-sm font-semibold text-[#0D9E75] hover:text-[#0B8A65] hover:underline inline-flex items-center gap-1" href="/doctors">Xem tất cả <span>→</span></Link>
+              <div className="hidden sm:flex items-center gap-4">
+                <Link className="rounded-full bg-[#E8F8F2] px-6 py-2.5 text-sm font-bold text-[#0D9E75] hover:bg-[#d1f1e6] transition-colors" href="/doctors">
+                  Xem thêm
+                </Link>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {doctorsData?.items?.length ? (
-                doctorsData.items.map((doctor, idx) => (
-                  <Link key={doctor.userId} href={`/doctors/${doctor.userId}`} className="doctor-card">
-                    <div className="relative overflow-hidden bg-slate-100" style={{ aspectRatio: '3/4' }}>
-                      <img
-                        alt={doctor.fullName}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        src={doctor.avatarUrl || '/images/default-avatar.jpg'}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200" />
-                    </div>
-                    <div className="p-5 flex flex-col gap-2">
-                      <h4 className="text-[15px] font-semibold text-slate-900 line-clamp-2">
-                        {doctor.professionalTitle ? `${doctor.professionalTitle} ` : ''}{doctor.fullName}
-                      </h4>
-                      <span className="doctor-badge w-fit">{doctor.specialties?.[0]?.name || 'Đa khoa'}</span>
-                      <span className="doctor-see-more mt-1">Xem hồ sơ →</span>
-                    </div>
-                  </Link>
-                ))
-              ) : (
-                <div className="col-span-4 text-center py-12 text-slate-500">Đang tải danh sách bác sĩ...</div>
-              )}
+
+            <div className="relative group">
+              {/* Left Arrow */}
+              <button 
+                onClick={() => scrollDoctors('left')} 
+                className="absolute left-0 top-[100px] -translate-y-1/2 -translate-x-4 lg:-translate-x-6 z-20 w-10 h-10 lg:w-12 lg:h-12 rounded-lg border border-slate-200 bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-[#0D9E75] hover:border-[#0D9E75] transition-all opacity-0 group-hover:opacity-100 disabled:opacity-0"
+              >
+                <ChevronLeft size={24} />
+              </button>
+              
+              {/* Scroll Container */}
+              <div ref={doctorsScrollRef} className="flex gap-6 lg:gap-10 overflow-x-auto pb-8 pt-4 snap-x snap-mandatory hide-scrollbar">
+                {doctorsData?.items?.length ? (
+                  doctorsData.items.map((doctor, idx) => (
+                    <Link key={doctor.userId} href={`/doctors/${doctor.userId}`} className="shrink-0 w-[240px] lg:w-[280px] snap-start flex flex-col items-center group/card" style={{ animationDelay: `${idx * 40}ms` }}>
+                      <div className="relative w-40 h-40 lg:w-48 lg:h-48 rounded-full overflow-hidden mb-6 border-4 border-white shadow-lg transition-transform duration-300 group-hover/card:scale-105 bg-slate-100 shrink-0">
+                        <img
+                          alt={doctor.fullName}
+                          className="w-full h-full object-cover object-top"
+                          src={doctor.avatarUrl || '/images/default-avatar.jpg'}
+                        />
+                      </div>
+                      <div className="text-center w-full px-2">
+                        <h4 className="text-[16px] lg:text-[18px] font-bold text-[#003f87] mb-2 leading-tight group-hover/card:text-[#0D9E75] transition-colors px-4">
+                          {doctor.professionalTitle ? `${doctor.professionalTitle}, ` : ''}Bác sĩ {doctor.fullName}
+                        </h4>
+                        <p className="text-[13px] lg:text-[14px] text-slate-500 font-medium leading-relaxed px-4 line-clamp-2">
+                          {doctor.specialties?.[0]?.name || 'Đa khoa'}
+                        </p>
+                        <p className="text-[12px] lg:text-[13px] text-slate-400 mt-2 line-clamp-1 px-4">
+                          {doctor.workplaceName || 'Phòng khám Clinical Precision'}
+                        </p>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="w-full text-center py-12 text-slate-500">Đang tải danh sách bác sĩ...</div>
+                )}
+              </div>
+
+              {/* Right Arrow */}
+              <button 
+                onClick={() => scrollDoctors('right')} 
+                className="absolute right-0 top-[100px] -translate-y-1/2 translate-x-4 lg:translate-x-6 z-20 w-10 h-10 lg:w-12 lg:h-12 rounded-lg border border-slate-200 bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-[#0D9E75] hover:border-[#0D9E75] transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight size={24} />
+              </button>
+            </div>
+            
+            {/* Mobile View More Button */}
+            <div className="mt-8 flex justify-center sm:hidden">
+              <Link className="rounded-full bg-[#E8F8F2] px-6 py-2.5 text-sm font-bold text-[#0D9E75] hover:bg-[#d1f1e6] transition-colors" href="/doctors">
+                Xem thêm
+              </Link>
             </div>
           </div>
         </section>
