@@ -1,31 +1,32 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
-  Activity, HeartPulse, Bone, ScanFace, Brain, Eye, Baby, Users,
-  Stethoscope, CalendarCheck, FileBadge, ArrowRight, Star, Quote,
-  ChevronDown, Check, ChevronUp, MessageSquare, Shield, Clock, Smartphone,
-  CheckCircle2, Sparkles, Send, Lock, Bot, User as UserIcon, FileText, Radio
+  Activity, Brain,
+  Stethoscope, CalendarCheck, FileBadge,
+  ChevronDown, MessageSquare, Shield, Clock, Smartphone, Radio,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 import { authApi, doctorsApi, livestreamsApi, publicPostsApi, qaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
+import './marketing.css';
 
-const getSpecialtyIcon = (name: string) => {
+const getSpecialtyImage = (name: string): string => {
   const n = name.toLowerCase();
-  if (n.includes('nội') || n.includes('tổng quát')) return Activity;
-  if (n.includes('tim')) return HeartPulse;
-  if (n.includes('xương') || n.includes('khớp')) return Bone;
-  if (n.includes('da')) return ScanFace;
-  if (n.includes('thần kinh')) return Brain;
-  if (n.includes('mắt')) return Eye;
-  if (n.includes('nhi')) return Baby;
-  if (n.includes('sản') || n.includes('phụ')) return Users;
-  return Stethoscope;
+  if (n.includes('nội') || n.includes('tổng quát')) return '/images/specialties/internal-medicine.png';
+  if (n.includes('tim')) return '/images/specialties/cardiology.png';
+  if (n.includes('xương') || n.includes('khớp')) return '/images/specialties/orthopedics.png';
+  if (n.includes('da')) return '/images/specialties/dermatology.png';
+  if (n.includes('thần kinh')) return '/images/specialties/neurology.png';
+  if (n.includes('mắt')) return '/images/specialties/ophthalmology.png';
+  if (n.includes('nhi')) return '/images/specialties/pediatrics.png';
+  if (n.includes('sản') || n.includes('phụ')) return '/images/specialties/obstetrics.png';
+  return '/images/specialties/default.png';
 };
 
 const FAQS = [
@@ -40,6 +41,35 @@ export default function Home() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollSpecialties = (dir: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300;
+      scrollContainerRef.current.scrollBy({
+        left: dir === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const els = document.querySelectorAll('.animate-on-scroll');
+    const obs = new IntersectionObserver(
+      (entries) => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } }),
+      { threshold: 0.12 }
+    );
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -86,110 +116,105 @@ export default function Home() {
   const aiHref = user ? '/patient/ai-assistant' : '/ai';
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans">
-      <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href={aiHref}>
-              AI Phân Tích
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/doctors">
-              Danh Bạ Bác Sĩ
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/blog">
-              Blog Y Khoa
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href={appHref}
-                >
-                  Vào ứng dụng
-                </Link>
-                <button
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => logoutMutation.mutate()}
-                  type="button"
-                >
-                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href="/login"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700"
-                  href="/register"
-                >
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main>
-        {/* Hero Section */}
-        <section className="relative overflow-hidden pb-24 pt-16 lg:pb-32 lg:pt-24 bg-[#e6f7f5]/40">
-          <div className="absolute inset-0 -z-10 bg-[url('/images/hero-bg.jpg')] bg-cover bg-center opacity-10" />
-          <div className="absolute inset-0 -z-10 bg-gradient-to-r from-white via-white/90 to-transparent" />
-
+    <>
+      {/* ── HERO ── */}
+        {/* ── HERO ── */}
+        <section className="hero-section relative overflow-hidden py-20 lg:py-28">
+          <div className="hero-mesh" />
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="max-w-2xl">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-sm font-bold text-teal-700 ring-1 ring-inset ring-teal-600/20">
-                <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
-                Được hỗ trợ bởi AI Tiên Tiến
-              </div>
-              <h2 className="mb-6 text-5xl font-extrabold tracking-tight text-slate-900 sm:text-6xl leading-[1.1]">
-                Chẩn đoán sức khỏe <br /> <span className="text-teal-600">thông minh</span> với AI
-              </h2>
-              <p className="mb-10 text-lg leading-relaxed text-slate-600 max-w-xl">
-                Ứng dụng trí tuệ nhân tạo tiên tiến giúp bạn phân tích triệu chứng ban đầu, tìm bác sĩ phù hợp và đặt lịch hẹn khám nhanh chóng ngay tại nhà.
-              </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
 
-              <div className="flex flex-wrap items-center gap-4 mb-16">
-                <Link href={aiHref} className="flex items-center gap-2 rounded-full bg-teal-600 px-8 py-4 text-base font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:shadow-xl hover:-translate-y-0.5">
-                  <Activity size={20} />
-                  Thử phân tích với AI
-                </Link>
-                <Link href="/doctors" className="flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-bold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 transition-all hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5">
-                  Tìm bác sĩ ngay
-                </Link>
+              {/* Left: text */}
+              <div className="animate-on-scroll">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#E8F8F2] px-3 py-1.5 text-sm font-semibold text-[#0D9E75] ring-1 ring-inset ring-[#0D9E75]/20">
+                  <span className="flex h-2 w-2 rounded-full bg-[#0D9E75] animate-pulse" />
+                  Được hỗ trợ bởi AI Tiên Tiến
+                </div>
+                <h1 className="mb-5 text-[48px] font-bold tracking-tight text-slate-900 leading-[1.1]">
+                  Chẩn đoán sức khỏe <br />
+                  <span className="text-[#0D9E75]">thông minh</span> với AI
+                </h1>
+                <p className="mb-8 text-base leading-relaxed text-slate-600 max-w-lg">
+                  Ứng dụng trí tuệ nhân tạo tiên tiến giúp bạn phân tích triệu chứng ban đầu, tìm bác sĩ phù hợp và đặt lịch hẹn khám nhanh chóng ngay tại nhà.
+                </p>
+                <div className="flex flex-col sm:flex-row items-start gap-3 mb-10">
+                  <Link href={aiHref} className="btn-primary">
+                    <Activity size={18} />
+                    Thử phân tích với AI
+                  </Link>
+                  <Link href="/doctors" className="btn-secondary">
+                    Tìm bác sĩ ngay
+                  </Link>
+                </div>
+                {/* Stats bar */}
+                <div className="grid grid-cols-3 gap-6 border-t border-slate-200/70 pt-8">
+                  {[
+                    { n: '500+', label: 'Bác sĩ uy tín' },
+                    { n: '50+',  label: 'Chuyên khoa' },
+                    { n: '98%',  label: 'Bệnh nhân hài lòng' },
+                  ].map(s => (
+                    <div key={s.label} className="stat-item">
+                      <span className="stat-number">{s.n}</span>
+                      <span className="stat-label">{s.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-8 border-t border-slate-200/60 pt-8">
-                <div>
-                  <div className="text-3xl font-extrabold text-slate-900 mb-1">500+</div>
-                  <div className="text-sm font-medium text-slate-500">Bác sĩ uy tín</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-extrabold text-slate-900 mb-1">50+</div>
-                  <div className="text-sm font-medium text-slate-500">Chuyên khoa</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-extrabold text-slate-900 mb-1">98%</div>
-                  <div className="text-sm font-medium text-slate-500">Bệnh nhân hài lòng</div>
+              {/* Right: AI chat mockup */}
+              <div className="hidden lg:flex justify-center items-center">
+                <div className="relative">
+                  <div className="ai-chat-glow" />
+                  <div className="ai-chat-card w-[340px]">
+                    {/* Header */}
+                    <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-[#0D9E75]">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                        <Activity size={16} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">Trợ lý AI</p>
+                        <p className="text-[11px] text-green-100">Đang hoạt động</p>
+                      </div>
+                    </div>
+                    {/* Messages */}
+                    <div className="px-5 py-4 space-y-3 bg-[#f8fffe]">
+                      <div className="flex gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#0D9E75]/10 flex items-center justify-center flex-shrink-0">
+                          <Activity size={12} className="text-[#0D9E75]" />
+                        </div>
+                        <div className="bg-white rounded-2xl rounded-tl-none px-3 py-2 text-xs text-slate-700 shadow-sm max-w-[200px]">
+                          Xin chào! Bạn đang có triệu chứng gì?
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end">
+                        <div className="bg-[#0D9E75] rounded-2xl rounded-tr-none px-3 py-2 text-xs text-white max-w-[200px]">
+                          Tôi bị đau đầu và sốt nhẹ 2 ngày nay
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#0D9E75]/10 flex items-center justify-center flex-shrink-0">
+                          <Activity size={12} className="text-[#0D9E75]" />
+                        </div>
+                        <div className="bg-white rounded-2xl rounded-tl-none px-3 py-2 text-xs text-slate-700 shadow-sm max-w-[210px]">
+                          Dựa vào triệu chứng, tôi gợi ý bạn khám <strong className="text-[#0D9E75]">Nội tổng quát</strong> hoặc <strong className="text-[#0D9E75]">Tai Mũi Họng</strong>.
+                        </div>
+                      </div>
+                    </div>
+                    {/* Input */}
+                    <div className="px-4 py-3 border-t border-slate-100 flex gap-2 items-center">
+                      <div className="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-400">Nhập triệu chứng của bạn…</div>
+                      <div className="w-8 h-8 rounded-lg bg-[#0D9E75] flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+
             </div>
           </div>
         </section>
+
 
         {liveStreams && liveStreams.length > 0 ? (
           <section className="border-b border-slate-200 bg-white py-12">
@@ -221,9 +246,7 @@ export default function Home() {
           </section>
         ) : null}
 
-<<<<<<< HEAD
-        {/* How it works Section */}
-=======
+        {/* QA Section */}
         <section className="border-b border-slate-200 bg-[#f6fbfb] py-16">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8">
@@ -237,7 +260,7 @@ export default function Home() {
               <Link href="/hoi-bac-si-mien-phi" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
                 <div className="overflow-hidden rounded-2xl">
                   <img
-                    src="https://images.unsplash.com/photo-1584516150909-c43483ee7930?q=80&w=1200&auto=format&fit=crop"
+                    src="/images/ask-doctor.png"
                     alt="Hỏi bác sĩ miễn phí"
                     className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
@@ -245,10 +268,10 @@ export default function Home() {
                 <h4 className="mt-4 text-3xl font-extrabold text-[#003f87]">Hỏi bác sĩ miễn phí</h4>
                 <p className="mt-2 text-sm text-slate-600">Gửi câu hỏi của bạn và nhận phản hồi trực tiếp từ bác sĩ trên hệ thống.</p>
               </Link>
-              <Link href="/cam-nang-hoi-dap" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
+              <Link href="/blog" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
                 <div className="overflow-hidden rounded-2xl">
                   <img
-                    src="https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=1200&auto=format&fit=crop"
+                    src="/images/health-handbook.png"
                     alt="Cẩm nang hỏi đáp"
                     className="h-52 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
@@ -277,38 +300,37 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Specialties Section */}
->>>>>>> 03f25fbfbe76388ff84e1220bd974623c85f8748
-        <section className="bg-white py-24">
+        {/* ── HOW IT WORKS ── */}
+        <section className="bg-white py-20 animate-on-scroll">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-16 text-center">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600 mb-3">Quy trình đơn giản</h3>
-              <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Cách thức hoạt động</h2>
-              <p className="text-slate-500 max-w-2xl mx-auto">
-                Trải nghiệm chăm sóc sức khỏe liền mạch từ lúc xuất hiện triệu chứng đến khi gặp chuyên gia.
-              </p>
+            <div className="mb-14 text-center">
+              <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Quy trình đơn giản</p>
+              <h2 className="text-[36px] font-bold text-slate-900 mb-3">Cách thức hoạt động</h2>
+              <p className="text-slate-500 max-w-xl mx-auto text-base">Trải nghiệm chăm sóc sức khỏe liền mạch từ lúc xuất hiện triệu chứng đến khi gặp chuyên gia.</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
-              <div className="hidden md:block absolute top-12 left-[10%] right-[10%] h-[2px] bg-slate-100 z-0"></div>
-
+            <div className="flex flex-col md:flex-row items-start gap-0 md:gap-0">
               {[
                 { icon: MessageSquare, title: 'Chat với AI', desc: 'Mô tả triệu chứng để AI chẩn đoán sơ bộ.' },
-                { icon: Stethoscope, title: 'Gợi ý Chuyên khoa', desc: 'Nhận kết quả chuyên khoa và danh sách bác sĩ phù hợp.' },
-                { icon: CalendarCheck, title: 'Đặt lịch hẹn', desc: 'Chọn giờ khám trực tuyến hoặc tại phòng khám.' },
-                { icon: FileBadge, title: 'Khám & Hồ sơ', desc: 'Quản lý kết quả và đơn thuốc dễ dàng trên hệ thống.' }
-              ].map((step, idx) => {
+                { icon: Stethoscope,  title: 'Gợi ý Chuyên khoa', desc: 'Nhận kết quả và danh sách bác sĩ phù hợp.' },
+                { icon: CalendarCheck,title: 'Đặt lịch hẹn', desc: 'Chọn giờ khám trực tuyến hoặc tại phòng khám.' },
+                { icon: FileBadge,    title: 'Khám & Hồ sơ', desc: 'Quản lý kết quả và đơn thuốc dễ dàng trên hệ thống.' },
+              ].map((step, idx, arr) => {
                 const Icon = step.icon;
                 return (
-                  <div key={idx} className="relative z-10 flex flex-col items-center text-center">
-                    <div className="h-24 w-24 rounded-full bg-white border-8 border-[#fafafb] shadow-sm flex items-center justify-center text-teal-600 mb-6 relative">
-                      <Icon size={32} />
-                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-teal-100 text-teal-700 font-bold flex items-center justify-center text-sm border-2 border-white">
-                        {idx + 1}
+                  <div key={idx} className="flex md:flex-col flex-1 items-start md:items-center gap-4 md:gap-0 step-card" style={{ animationDelay: `${idx * 0.15}s` }}>
+                    <div className="flex md:flex-col items-center w-full">
+                      <div className="step-icon-wrap mx-auto mb-0 md:mb-4 relative">
+                        <Icon size={28} />
+                        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#0D9E75] text-white text-[10px] font-bold flex items-center justify-center border border-white">{idx+1}</span>
                       </div>
+                      {idx < arr.length - 1 && (
+                        <div className="hidden md:block stepper-connector mx-2" />
+                      )}
                     </div>
-                    <h4 className="text-lg font-bold text-slate-900 mb-2">{step.title}</h4>
-                    <p className="text-sm text-slate-500 leading-relaxed max-w-[200px]">{step.desc}</p>
+                    <div className="md:text-center px-3 pb-6">
+                      <h4 className="text-[16px] font-semibold text-slate-900 mb-1">{step.title}</h4>
+                      <p className="text-[14px] text-slate-500 leading-relaxed">{step.desc}</p>
+                    </div>
                   </div>
                 );
               })}
@@ -316,35 +338,42 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Specialties Section */}
-        <section className="bg-slate-50 py-24">
+        {/* ── SPECIALTIES ── */}
+        <section className="bg-[#f8fafb] py-20 animate-on-scroll">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-16 text-center">
-              <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600 mb-3">Chuyên khoa</h3>
-              <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Tìm bác sĩ theo chuyên khoa</h2>
-              <p className="text-slate-500 max-w-2xl mx-auto">
-                Đội ngũ bác sĩ trải rộng trên nhiều lĩnh vực, sẵn sàng hỗ trợ bạn.
-              </p>
+            <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
+              <div className="text-left">
+                <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Chuyên khoa</p>
+                <h2 className="text-[36px] font-bold text-slate-900 mb-3">Tìm bác sĩ theo chuyên khoa</h2>
+                <p className="text-slate-500 max-w-xl text-base">Đội ngũ bác sĩ trải rộng trên nhiều lĩnh vực, sẵn sàng hỗ trợ bạn.</p>
+              </div>
+              <div className="hidden sm:flex gap-3">
+                <button onClick={() => scrollSpecialties('left')} className="w-12 h-12 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-500 hover:text-[#0D9E75] hover:border-[#0D9E75] hover:shadow-md transition-all active:scale-95">
+                  <ChevronLeft size={24} />
+                </button>
+                <button onClick={() => scrollSpecialties('right')} className="w-12 h-12 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center text-slate-500 hover:text-[#0D9E75] hover:border-[#0D9E75] hover:shadow-md transition-all active:scale-95">
+                  <ChevronRight size={24} />
+                </button>
+              </div>
             </div>
-
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div ref={scrollContainerRef} className="flex gap-5 overflow-x-auto pb-6 snap-x snap-mandatory hide-scrollbar">
               {specialtiesData?.length ? (
                 specialtiesData.map((spec, idx) => {
-                  const Icon = getSpecialtyIcon(spec.name);
+                  const imgSrc = getSpecialtyImage(spec.name);
                   return (
-                    <Link href={`/doctors?specialtyId=${spec.id}`} key={spec.id} className="group flex flex-col h-full items-start gap-4 rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:border-teal-200 hover:bg-white/60 hover:scale-[1.02] cursor-pointer animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both" style={{ animationDelay: `${idx * 50}ms` }}>
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-500 group-hover:text-white transition-colors">
-                        <Icon size={24} />
+                    <Link href={`/doctors?specialtyId=${spec.id}`} key={spec.id} className="specialty-card shrink-0 w-[280px] snap-start" style={{ animationDelay: `${idx * 40}ms` }}>
+                      <div className="specialty-img-wrap">
+                        <img src={imgSrc} alt={spec.name} className="specialty-img" />
                       </div>
-                      <div className="flex flex-col flex-1 w-full mt-2">
-                        <h4 className="font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-teal-700 transition-colors">{spec.name}</h4>
-                        <p className="text-xs font-semibold text-slate-400 mt-auto pt-2">Khám ngay →</p>
+                      <div>
+                        <h4 className="text-[15px] font-semibold text-slate-900 leading-snug line-clamp-2">{spec.name}</h4>
+                        <p className="text-[12px] text-[#0D9E75] font-medium mt-1">Khám ngay →</p>
                       </div>
                     </Link>
                   );
                 })
               ) : (
-                <div className="col-span-full text-center py-12 text-slate-500">Đang tải chuyên khoa...</div>
+                <div className="w-full text-center py-12 text-slate-500">Đang tải chuyên khoa...</div>
               )}
             </div>
           </div>
@@ -385,8 +414,8 @@ export default function Home() {
               <div className="relative">
                 <div className="absolute inset-0 bg-teal-500 rounded-3xl transform translate-x-4 translate-y-4 -z-10"></div>
                 <img
-                  src="https://i.pinimg.com/736x/18/f4/ba/18f4ba44da7af0576d581aab54efa5f3.jpg"
-                  alt="Doctor with patient"
+                  src="/images/feature-ai.png"
+                  alt="AI-powered healthcare diagnostics"
                   className="rounded-3xl shadow-xl w-full object-cover h-[500px]"
                 />
               </div>
@@ -394,88 +423,70 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Top Doctors Section */}
-        <section className="bg-slate-50 py-24">
+        {/* ── TOP DOCTORS ── */}
+        <section className="bg-[#f8fafb] py-20 animate-on-scroll">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
               <div>
-                <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600 mb-3">Bác sĩ ưu tú</h3>
-                <h2 className="text-3xl font-extrabold text-slate-900">Đội ngũ chuyên gia hàng đầu</h2>
+                <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Bác sĩ ưu tú</p>
+                <h2 className="text-[36px] font-bold text-slate-900">Đội ngũ chuyên gia hàng đầu</h2>
               </div>
-              <Link className="inline-flex items-center gap-1 text-sm font-bold text-teal-600 hover:text-teal-700 group" href="/doctors">
-                Xem tất cả
-                <span className="transition-transform group-hover:translate-x-1">→</span>
-              </Link>
+              <Link className="text-sm font-semibold text-[#0D9E75] hover:text-[#0B8A65] hover:underline inline-flex items-center gap-1" href="/doctors">Xem tất cả <span>→</span></Link>
             </div>
-
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {doctorsData?.items?.length ? (
                 doctorsData.items.map((doctor, idx) => (
-                  <Link
-                    className="group flex flex-col h-full overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both"
-                    style={{ animationDelay: `${idx * 100}ms` }}
-                    key={doctor.userId}
-                    href={`/doctors/${doctor.userId}`}
-                  >
-                    <div className="relative aspect-[4/5] overflow-hidden bg-slate-100 shrink-0">
+                  <Link key={doctor.userId} href={`/doctors/${doctor.userId}`} className="doctor-card">
+                    <div className="relative overflow-hidden bg-slate-100" style={{ aspectRatio: '3/4' }}>
                       <img
                         alt={doctor.fullName}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                         src={doctor.avatarUrl || '/images/default-avatar.jpg'}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-200" />
                     </div>
-                    <div className="p-6 flex flex-col flex-1">
-                      <h4 className="text-lg font-bold text-slate-900 mb-1 line-clamp-2">
+                    <div className="p-5 flex flex-col gap-2">
+                      <h4 className="text-[15px] font-semibold text-slate-900 line-clamp-2">
                         {doctor.professionalTitle ? `${doctor.professionalTitle} ` : ''}{doctor.fullName}
                       </h4>
-                      <p className="text-sm font-semibold text-teal-600 line-clamp-1 mt-auto pt-2">
-                        {doctor.specialties?.[0]?.name || 'Đa khoa'}
-                      </p>
+                      <span className="doctor-badge w-fit">{doctor.specialties?.[0]?.name || 'Đa khoa'}</span>
+                      <span className="doctor-see-more mt-1">Xem hồ sơ →</span>
                     </div>
                   </Link>
                 ))
               ) : (
-                <div className="col-span-4 text-center py-12 text-slate-500">
-                  Đang tải danh sách bác sĩ...
-                </div>
+                <div className="col-span-4 text-center py-12 text-slate-500">Đang tải danh sách bác sĩ...</div>
               )}
             </div>
           </div>
         </section>
 
-        {/* Testimonials */}
-        <section className="bg-teal-600 py-24 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500 rounded-full blur-3xl opacity-50 transform translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-700 rounded-full blur-3xl opacity-50 transform -translate-x-1/2 translate-y-1/2"></div>
-
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="mb-16 text-center">
-              <h2 className="text-3xl font-extrabold mb-4">Hàng ngàn người đã tin tưởng sử dụng</h2>
-              <p className="text-teal-100 max-w-2xl mx-auto">
-                Những chia sẻ thực tế từ bệnh nhân sau khi sử dụng hệ thống đặt khám thông minh.
-              </p>
+        {/* ── TESTIMONIALS ── */}
+        <section className="testimonial-section py-20 animate-on-scroll">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-12 text-center">
+              <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Đánh giá thực tế</p>
+              <h2 className="text-[36px] font-bold text-slate-900 mb-3">Hàng ngàn người đã tin tưởng</h2>
+              <p className="text-slate-500 max-w-xl mx-auto">Những chia sẻ từ bệnh nhân sau khi sử dụng hệ thống đặt khám thông minh.</p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
               {[
                 { name: 'Nguyễn Văn A', role: 'Bệnh nhân', text: 'Nhờ AI phân tích, tôi đã biết mình cần khám khoa Nội tiết thay vì Tim mạch. Đặt lịch với bác sĩ rất nhanh chóng và không phải chờ đợi.' },
-                { name: 'Trần Thị B', role: 'Bệnh nhân', text: 'Ứng dụng cực kỳ tiện lợi. Tôi có thể xem hồ sơ bác sĩ chi tiết trước khi đặt hẹn. Các bác sĩ tư vấn rất nhiệt tình và chuyên môn cao.' },
-                { name: 'Lê Hoàng C', role: 'Bệnh nhân', text: 'Bảo mật thông tin tốt, tôi hoàn toàn yên tâm. Trải nghiệm từ lúc nhập triệu chứng đến lúc đến phòng khám đều rất trơn tru.' }
+                { name: 'Trần Thị B',   role: 'Bệnh nhân', text: 'Ứng dụng cực kỳ tiện lợi. Tôi có thể xem hồ sơ bác sĩ chi tiết trước khi đặt hẹn. Các bác sĩ tư vấn rất nhiệt tình và chuyên môn cao.' },
+                { name: 'Lê Hoàng C',   role: 'Bệnh nhân', text: 'Bảo mật thông tin tốt, tôi hoàn toàn yên tâm. Trải nghiệm từ lúc nhập triệu chứng đến lúc đến phòng khám đều rất trơn tru.' },
               ].map((review, i) => (
-                <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-8 relative">
-                  <Quote size={40} className="text-teal-300/30 absolute top-4 right-4" />
-                  <div className="flex items-center gap-1 mb-6 text-yellow-400">
-                    {[...Array(5)].map((_, j) => <Star key={j} size={16} fill="currentColor" />)}
+                <div key={i} className="testimonial-card">
+                  <div className="testimonial-stars">
+                    {[...Array(5)].map((_, j) => (
+                      <svg key={j} width="15" height="15" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    ))}
                   </div>
-                  <p className="text-teal-50 italic mb-6 leading-relaxed">"{review.text}"</p>
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-teal-500 flex items-center justify-center font-bold text-white">
-                      {review.name.charAt(0)}
-                    </div>
+                  <p className="testimonial-quote">&ldquo;{review.text}&rdquo;</p>
+                  <div className="flex items-center gap-3 mt-auto pt-4 border-t border-slate-100">
+                    <div className="testimonial-avatar-initials">{review.name.charAt(0)}</div>
                     <div>
-                      <h4 className="font-bold text-white text-sm">{review.name}</h4>
-                      <p className="text-xs text-teal-200">{review.role}</p>
+                      <p className="text-[14px] font-semibold text-slate-900">{review.name}</p>
+                      <p className="text-[12px] text-slate-500">{review.role}</p>
                     </div>
                   </div>
                 </div>
@@ -554,85 +565,34 @@ export default function Home() {
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section className="bg-white py-24">
-          <div className="mx-auto w-full max-w-3xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 text-center">
-              <h2 className="text-3xl font-extrabold text-slate-900 mb-4">Câu hỏi thường gặp</h2>
+        {/* ── FAQ ── */}
+        <section className="bg-white py-20 animate-on-scroll">
+          <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-10 text-center">
+              <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Hỗ trợ</p>
+              <h2 className="text-[36px] font-bold text-slate-900 mb-2">Câu hỏi thường gặp</h2>
               <p className="text-slate-500">Giải đáp nhanh những thắc mắc của bạn về nền tảng.</p>
             </div>
-
-            <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
               {FAQS.map((faq, index) => (
-                <div key={index} className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                <div key={index} className="faq-item">
                   <button
                     onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                    className="w-full text-left px-6 py-4 flex items-center justify-between font-bold text-slate-900 hover:bg-slate-50 focus:outline-none"
+                    className="faq-trigger"
+                    aria-expanded={openFaq === index}
                   >
-                    {faq.question}
-                    {openFaq === index ? <ChevronUp size={20} className="text-teal-600" /> : <ChevronDown size={20} className="text-slate-400" />}
+                    <span>{faq.question}</span>
+                    <ChevronDown size={18} className={`faq-chevron ${openFaq === index ? 'open' : ''}`} />
                   </button>
-                  {openFaq === index && (
-                    <div className="px-6 pb-4 pt-2 text-slate-600 text-sm leading-relaxed border-t border-slate-100 bg-slate-50">
-                      {faq.answer}
-                    </div>
-                  )}
+                  <div className={`faq-panel ${openFaq === index ? 'open' : ''}`}>
+                    <div className="faq-panel-inner">{faq.answer}</div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
         </section>
-
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-900 pt-16 pb-8 text-slate-300">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="col-span-1 md:col-span-2">
-              <Link className="flex items-center gap-2 mb-4" href="/">
-                <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-                  <Activity size={20} />
-                </div>
-                <h2 className="text-xl font-bold tracking-tight text-white">Clinical Precision</h2>
-              </Link>
-              <p className="text-sm text-slate-400 max-w-sm mb-6 leading-relaxed">
-                Nền tảng y tế số thông minh, ứng dụng AI để phân tích triệu chứng và kết nối người bệnh với chuyên gia y tế uy tín.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-4">Về chúng tôi</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Giới thiệu</Link></li>
-                <li><Link href="/doctors" className="hover:text-teal-400 transition-colors">Danh bạ bác sĩ</Link></li>
-                <li><Link href="/blog" className="hover:text-teal-400 transition-colors">Blog sức khỏe</Link></li>
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Liên hệ</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-bold mb-4">Hỗ trợ</h4>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Câu hỏi thường gặp</Link></li>
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Điều khoản sử dụng</Link></li>
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Chính sách bảo mật</Link></li>
-                <li><Link href="#" className="hover:text-teal-400 transition-colors">Hướng dẫn đặt lịch</Link></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-xs">
-            <p>© 2026 ETHOS CLINICAL SYSTEMS. ALL RIGHTS RESERVED.</p>
-            <div className="flex gap-4">
-              <span>Hotline: 1900 1234</span>
-              <span>Email: support@clinicalprecision.com</span>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
-
 

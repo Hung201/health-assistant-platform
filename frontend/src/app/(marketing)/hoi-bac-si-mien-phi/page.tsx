@@ -13,28 +13,10 @@ export default function FreeAskDoctorPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
   const [page, setPage] = useState(1);
   const [openAsk, setOpenAsk] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', content: '', category: '' });
-
-  const appHref = user?.roles?.includes('admin')
-    ? '/admin'
-    : user?.roles?.includes('doctor')
-      ? '/doctor'
-      : user
-        ? '/patient'
-        : '/login';
-  const aiHref = user ? '/patient/ai-assistant' : '/ai';
-
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => {
-      logout();
-      router.refresh();
-    },
-  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['qa', 'public', page],
@@ -58,56 +40,8 @@ export default function FreeAskDoctorPage() {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans">
-      <header className="sticky top-0 z-40 w-full border-b border-slate-100 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href={aiHref}>
-              AI
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/doctors">
-              Bác sĩ
-            </Link>
-            <Link className="text-sm font-semibold text-teal-600 transition-colors hover:text-teal-700" href="/hoi-bac-si-mien-phi">
-              Hỏi bác sĩ miễn phí
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100" href={appHref}>
-                  Vào ứng dụng
-                </Link>
-                <button
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700 disabled:opacity-60"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => logoutMutation.mutate()}
-                  type="button"
-                >
-                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100" href="/login">
-                  Đăng nhập
-                </Link>
-                <Link className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700" href="/register">
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <>
+      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-3xl font-extrabold text-[#003f87]">Hỏi bác sĩ miễn phí</h2>
@@ -195,7 +129,7 @@ export default function FreeAskDoctorPage() {
             </button>
           </div>
         ) : null}
-      </main>
+      </div>
 
       {openAsk ? (
         <div className="fixed inset-0 z-50 bg-slate-950/60 p-4 backdrop-blur-[2px]">
@@ -246,6 +180,6 @@ export default function FreeAskDoctorPage() {
           </div>
         </div>
       ) : null}
-    </div>
+    </>
   );
 }
