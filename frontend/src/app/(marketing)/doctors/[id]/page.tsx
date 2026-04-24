@@ -33,6 +33,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     staleTime: 24 * 60 * 60 * 1000,
   });
 
+
   const provinceName = provinces.find((p) => String(p.code) === doctor?.provinceCode)?.name ?? doctor?.provinceCode;
   const districtName = districts.find((d) => String(d.code) === doctor?.districtCode)?.name ?? doctor?.districtCode;
   const wardName = wards.find((w) => String(w.code) === doctor?.wardCode)?.name ?? doctor?.wardCode;

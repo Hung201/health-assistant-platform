@@ -11,6 +11,7 @@ import { authApi, doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchVnDistricts, fetchVnProvinces } from '@/lib/vn-location';
 
+
 type LocationOption = { value: string; label: string };
 
 export default function DoctorsPage({ searchParams }: { searchParams: { specialtyId?: string } }) {
@@ -63,6 +64,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
     }),
     menu: (base: any) => ({ ...base, zIndex: 30 }),
   };
+
 
   // Client-side filtering by name and price
   const filteredDoctors = doctorsData?.items?.filter((doc) => {

@@ -13,10 +13,12 @@ export default function FreeAskDoctorPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
+
   const [page, setPage] = useState(1);
   const [openAsk, setOpenAsk] = useState(false);
   const [submitNotice, setSubmitNotice] = useState<string | null>(null);
   const [form, setForm] = useState({ title: '', content: '', category: '' });
+
 
   const { data, isLoading } = useQuery({
     queryKey: ['qa', 'public', page],
