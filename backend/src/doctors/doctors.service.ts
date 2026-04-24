@@ -145,6 +145,73 @@ export class DoctorsService {
     return { items, total, page: safePage, limit: safeLimit };
   }
 
+  async recommendDoctors(specialtyId: number, limit: number = 3): Promise<PublicDoctorCard[]> {
+    const qb = this.doctorRepo
+      .createQueryBuilder('d')
+      .innerJoinAndSelect('d.user', 'u')
+      .innerJoin(
+        DoctorSpecialty,
+        'ds_filter',
+        'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid AND ds_filter.is_primary = TRUE',
+        { sid: specialtyId }
+      )
+      .innerJoin(
+        DoctorAvailableSlot,
+        'slot',
+        'slot.doctor_user_id = d.user_id AND slot.start_at >= NOW() AND slot.booked_count < slot.max_bookings AND slot.status = :slotStatus',
+        { slotStatus: 'available' }
+      )
+      .where('d.is_verified = TRUE')
+      .andWhere('d.verification_status = :status', { status: 'approved' })
+      .groupBy('d.user_id')
+      .addGroupBy('u.id')
+      .orderBy('d.priority_score', 'DESC')
+      .addOrderBy('d.years_of_experience', 'DESC')
+      .addOrderBy('MIN(slot.start_at)', 'ASC')
+      .take(limit);
+
+    const doctors = await qb.getMany();
+    if (doctors.length === 0) return [];
+
+    const doctorIds = doctors.map((d) => d.userId);
+    const links = await this.doctorSpecialtyRepo.find({
+      where: doctorIds.map((id) => ({ doctorUserId: id })),
+      order: { isPrimary: 'DESC', createdAt: 'ASC' },
+    });
+
+    const specIds = Array.from(new Set(links.map((l) => Number(l.specialtyId))));
+    const specs = specIds.length
+      ? await this.specialtyRepo.find({
+          where: specIds.map((id) => ({ id, status: 'active' })),
+          select: ['id', 'name'],
+        })
+      : [];
+    const specById = new Map(specs.map((s) => [Number(s.id), s]));
+
+    const byDoctor = new Map<string, PublicDoctorCard['specialties']>();
+    for (const l of links) {
+      if (byDoctor.has(l.doctorUserId)) continue;
+      const sid = Number(l.specialtyId);
+      const s = specById.get(sid);
+      if (!s) continue;
+      byDoctor.set(l.doctorUserId, [{ id: sid, name: s.name, isPrimary: true }]);
+    }
+
+    return doctors.map((d) => ({
+      userId: d.userId,
+      fullName: d.user?.fullName ?? '',
+      avatarUrl: d.user?.avatarUrl ?? null,
+      professionalTitle: d.professionalTitle,
+      workplaceName: d.workplaceName,
+      workplaceAddress: d.workplaceAddress,
+      provinceCode: d.provinceCode,
+      districtCode: d.districtCode,
+      wardCode: d.wardCode,
+      consultationFee: d.consultationFee,
+      specialties: byDoctor.get(d.userId) ?? [],
+    }));
+  }
+
   async getPublicDoctorDetail(doctorUserId: string): Promise<PublicDoctorDetail> {
     const d = await this.doctorRepo.findOne({
       where: { userId: doctorUserId, isVerified: true, verificationStatus: 'approved' },
