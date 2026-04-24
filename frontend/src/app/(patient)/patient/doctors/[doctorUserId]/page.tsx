@@ -5,10 +5,11 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { BadgeCheck, Calendar as CalendarIcon, ArrowLeft, ArrowRight, Wallet, CircleDotDashed, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { BadgeCheck, Calendar as CalendarIcon, ArrowLeft, ArrowRight, Wallet, CircleDotDashed, CheckCircle2, AlertTriangle, MapPin } from 'lucide-react';
 
 import { bookingsApi, doctorsApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
+import { fetchVnDistricts, fetchVnProvinces, fetchVnWards } from '@/lib/vn-location';
 
 export default function PatientDoctorDetailPage() {
   const router = useRouter();
@@ -27,6 +28,23 @@ export default function PatientDoctorDetailPage() {
     queryKey: ['public', 'doctor', doctorUserId],
     queryFn: () => doctorsApi.detail(doctorUserId),
     staleTime: 30_000,
+  });
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['vn-location', 'provinces', 'patient-doctor-detail'],
+    queryFn: fetchVnProvinces,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: districts = [] } = useQuery({
+    queryKey: ['vn-location', 'districts', doctor?.provinceCode, 'patient-doctor-detail'],
+    queryFn: () => fetchVnDistricts(doctor?.provinceCode ?? ''),
+    enabled: Boolean(doctor?.provinceCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: wards = [] } = useQuery({
+    queryKey: ['vn-location', 'wards', doctor?.districtCode, 'patient-doctor-detail'],
+    queryFn: () => fetchVnWards(doctor?.districtCode ?? ''),
+    enabled: Boolean(doctor?.districtCode),
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const doctorSpecialty = useMemo(() => doctor?.specialties?.[0] ?? null, [doctor]);
@@ -113,6 +131,10 @@ export default function PatientDoctorDetailPage() {
       })}`
     : null;
   const selectedSlotRemaining = selectedSlotInfo ? selectedSlotInfo.maxBookings - selectedSlotInfo.bookedCount : null;
+  const provinceName = provinces.find((p) => String(p.code) === doctor?.provinceCode)?.name ?? doctor?.provinceCode;
+  const districtName = districts.find((d) => String(d.code) === doctor?.districtCode)?.name ?? doctor?.districtCode;
+  const wardName = wards.find((w) => String(w.code) === doctor?.wardCode)?.name ?? doctor?.wardCode;
+  const doctorAddress = [doctor?.workplaceAddress, wardName, districtName, provinceName].filter(Boolean).join(', ');
 
   const createBooking = useMutation({
     mutationFn: (availableSlotId: number) =>
@@ -211,6 +233,25 @@ export default function PatientDoctorDetailPage() {
                  <p className="text-sm text-slate-600 leading-relaxed">
                    {doctor.bio || '15 năm kinh nghiệm công tác tại BV Chợ Rẫy, chuyên gia đầu ngành trong điều trị các bệnh lý. Thành viên hiệp hội y khoa Việt Nam.'}
                  </p>
+               </div>
+
+               <div className="w-full text-left mb-8 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-2 text-sm">
+                   <MapPin size={16} className="text-[#003f87]" /> Địa điểm khám
+                 </h3>
+                 <p className="text-sm text-slate-600">
+                   {doctorAddress || doctor.workplaceName || 'Địa chỉ đang cập nhật'}
+                 </p>
+                 {doctorAddress ? (
+                   <a
+                     href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctorAddress)}`}
+                     target="_blank"
+                     rel="noreferrer"
+                     className="mt-2 inline-flex text-xs font-bold text-[#003f87] hover:text-[#0056b3] hover:underline"
+                   >
+                     Mở trên Google Maps
+                   </a>
+                 ) : null}
                </div>
 
                <div className="w-full bg-[#f4fcfb] rounded-2xl p-5 flex items-center justify-between border border-teal-50">

@@ -77,9 +77,9 @@ CREATE TABLE patient_profiles (
     emergency_contact_name VARCHAR(255),
     emergency_contact_phone VARCHAR(20),
     address_line TEXT,
-    province_code VARCHAR(20),
-    district_code VARCHAR(20),
-    ward_code VARCHAR(20),
+    province_code VARCHAR(120),
+    district_code VARCHAR(120),
+    ward_code VARCHAR(120),
     occupation VARCHAR(255),
     blood_type VARCHAR(10),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -94,6 +94,10 @@ CREATE TABLE doctor_profiles (
     years_of_experience INTEGER,
     bio TEXT,
     workplace_name VARCHAR(255),
+    workplace_address TEXT,
+    province_code VARCHAR(20),
+    district_code VARCHAR(20),
+    ward_code VARCHAR(20),
     consultation_fee NUMERIC(12,2) DEFAULT 0,
     priority_score INTEGER NOT NULL DEFAULT 0,
     is_available_for_booking BOOLEAN NOT NULL DEFAULT TRUE,
@@ -188,7 +192,7 @@ CREATE TABLE bookings (
     rejection_reason TEXT,
     cancel_reason TEXT,
 
-    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending_review',
     payment_method VARCHAR(30) NOT NULL DEFAULT 'momo',
     payment_status VARCHAR(30) NOT NULL DEFAULT 'unpaid',
     guest_full_name VARCHAR(255),
@@ -323,6 +327,39 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_one_live_per_doctor
     ON live_streams(doctor_user_id)
     WHERE status = 'live';
 
+-- 19) notifications (thông báo người dùng, hỗ trợ realtime SSE)
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    priority VARCHAR(20) NOT NULL DEFAULT 'normal',
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    link VARCHAR(255),
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_notifications_priority CHECK (priority IN ('low', 'normal', 'high'))
+);
+
+-- 20) doctor_questions (Hỏi bác sĩ miễn phí)
+CREATE TABLE IF NOT EXISTS doctor_questions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    patient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    doctor_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(300) NOT NULL,
+    question_content TEXT NOT NULL,
+    answer_content TEXT,
+    category VARCHAR(100),
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    answered_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending_review', 'approved', 'answered', 'rejected'))
+);
+
 -- ============================================================
 -- Indexes
 -- ============================================================
@@ -342,3 +379,8 @@ CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_comments_parent ON comments(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_chat_sessions_user_id ON chat_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, is_read);
+CREATE INDEX IF NOT EXISTS idx_doctor_questions_created ON doctor_questions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_doctor_questions_status ON doctor_questions(status);
+CREATE INDEX IF NOT EXISTS idx_doctor_questions_patient ON doctor_questions(patient_user_id);

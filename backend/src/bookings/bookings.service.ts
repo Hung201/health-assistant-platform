@@ -18,6 +18,7 @@ import { Payment } from '../entities/payment.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { User } from '../entities/user.entity';
 import { PaymentsService } from '../payments/payments.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto';
@@ -80,7 +81,33 @@ export class BookingsService {
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly paymentsService: PaymentsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
+
+  private async notifyPatientBookingUpdate(input: {
+    booking: Booking;
+    type: string;
+    title: string;
+    message: string;
+    priority?: 'low' | 'normal' | 'high';
+    metadata?: Record<string, unknown>;
+  }) {
+    if (!input.booking.patientUserId) return;
+    await this.notificationsService.createForUser({
+      userId: input.booking.patientUserId,
+      type: input.type,
+      title: input.title,
+      message: input.message,
+      priority: input.priority ?? 'normal',
+      link: '/patient/bookings',
+      metadata: {
+        bookingId: input.booking.id,
+        bookingCode: input.booking.bookingCode,
+        status: input.booking.status,
+        ...input.metadata,
+      },
+    });
+  }
 
   private async assertSlotAndDoctor(dto: { availableSlotId: number; specialtyId?: number }) {
     const slot = await this.slotRepo.findOne({
@@ -139,7 +166,7 @@ export class BookingsService {
       bookingCode = `BK-${yyyymmdd(now)}-${rand6()}`;
     }
 
-    return this.bookingRepo.manager.transaction(async (manager) => {
+    const result = await this.bookingRepo.manager.transaction(async (manager) => {
       const lockedSlot = await manager.getRepository(DoctorAvailableSlot).findOne({
         where: { id: dto.availableSlotId },
         lock: { mode: 'pessimistic_write' },
@@ -198,6 +225,17 @@ export class BookingsService {
         paymentStatus: booking.paymentStatus,
       };
     });
+    const created = await this.bookingRepo.findOne({ where: { id: result.id } });
+    if (created) {
+      await this.notifyPatientBookingUpdate({
+        booking: created,
+        type: 'booking_created',
+        title: 'Đặt lịch thành công',
+        message: `Bạn đã tạo lịch ${created.bookingCode} với ${created.doctorNameSnapshot}.`,
+        priority: 'normal',
+      });
+    }
+    return result;
   }
 
   async createGuestBooking(dto: CreateGuestBookingDto) {
@@ -329,6 +367,13 @@ export class BookingsService {
     const email = await this.resolveRecipientEmail(fresh);
     try {
       await this.paymentsService.sendPaymentEmailsAfterDoctorApproval(fresh, email);
+      await this.notifyPatientBookingUpdate({
+        booking: fresh,
+        type: 'booking_approved',
+        title: 'Lịch hẹn đã được xác nhận',
+        message: `${fresh.doctorNameSnapshot} đã xác nhận lịch ${fresh.bookingCode}.`,
+        priority: 'high',
+      });
     } catch (err) {
       this.logger.error(`approve follow-up failed: ${(err as Error).message}`);
       fresh.status = 'pending';
@@ -358,7 +403,7 @@ export class BookingsService {
       throw new ForbiddenException('Chỉ bác sĩ mới được từ chối lịch');
     }
 
-    return this.bookingRepo.manager.transaction(async (manager) => {
+    const result = await this.bookingRepo.manager.transaction(async (manager) => {
       const bookingRepo = manager.getRepository(Booking);
       const slotRepo = manager.getRepository(DoctorAvailableSlot);
       const logRepo = manager.getRepository(BookingStatusLog);
@@ -400,6 +445,19 @@ export class BookingsService {
 
       return { ok: true, id: booking.id, status: booking.status };
     });
+    const fresh = await this.bookingRepo.findOne({ where: { id: bookingId } });
+    if (fresh) {
+      await this.notifyPatientBookingUpdate({
+        booking: fresh,
+        type: 'booking_rejected',
+        title: 'Lịch hẹn đã bị từ chối',
+        message: fresh.rejectionReason
+          ? `${fresh.doctorNameSnapshot} từ chối lịch ${fresh.bookingCode}: ${fresh.rejectionReason}`
+          : `${fresh.doctorNameSnapshot} đã từ chối lịch ${fresh.bookingCode}.`,
+        priority: 'high',
+      });
+    }
+    return result;
   }
 
   async listMyBookings(currentUser: User) {
@@ -497,7 +555,7 @@ export class BookingsService {
       throw new ForbiddenException('Chỉ bệnh nhân mới có thể huỷ lịch hẹn của mình');
     }
 
-    return this.bookingRepo.manager.transaction(async (manager) => {
+    const result = await this.bookingRepo.manager.transaction(async (manager) => {
       const bookingRepo = manager.getRepository(Booking);
       const slotRepo = manager.getRepository(DoctorAvailableSlot);
       const logRepo = manager.getRepository(BookingStatusLog);
@@ -543,6 +601,17 @@ export class BookingsService {
 
       return { ok: true, id: booking.id, status: booking.status };
     });
+    const fresh = await this.bookingRepo.findOne({ where: { id: bookingId } });
+    if (fresh) {
+      await this.notifyPatientBookingUpdate({
+        booking: fresh,
+        type: 'booking_cancelled',
+        title: 'Bạn đã huỷ lịch hẹn',
+        message: `Lịch ${fresh.bookingCode} với ${fresh.doctorNameSnapshot} đã được huỷ.`,
+        priority: 'normal',
+      });
+    }
+    return result;
   }
 
   async listDoctorBookings(currentUser: User) {

@@ -1,16 +1,21 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import Select from 'react-select';
 
 import { authApi, usersApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { useAuthStore } from '@/stores/auth.store';
 import { useQuery } from '@tanstack/react-query';
+import { fetchVnDistricts, fetchVnProvinces, fetchVnWards } from '@/lib/vn-location';
+
+type LocationOption = { value: string; label: string };
 
 export default function DoctorProfilePage() {
   const user = useAuthStore((s) => s.user);
   const setSession = useAuthStore((s) => s.setSession);
   const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const initial = useMemo(() => {
     const d = user?.doctorProfile ?? null;
@@ -19,6 +24,10 @@ export default function DoctorProfilePage() {
       licenseNumber: d?.licenseNumber ?? '',
       yearsOfExperience: d?.yearsOfExperience != null ? String(d.yearsOfExperience) : '',
       workplaceName: d?.workplaceName ?? '',
+      workplaceAddress: d?.workplaceAddress ?? '',
+      provinceCode: d?.provinceCode ?? '',
+      districtCode: d?.districtCode ?? '',
+      wardCode: d?.wardCode ?? '',
       consultationFee: d?.consultationFee ?? '0',
       bio: d?.bio ?? '',
       isAvailableForBooking: d?.isAvailableForBooking ?? true,
@@ -28,11 +37,47 @@ export default function DoctorProfilePage() {
 
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { data: specialties } = useQuery({
     queryKey: ['public', 'specialties', 'doctor-profile'],
     queryFn: authApi.specialties,
     staleTime: 60_000,
   });
+  const { data: provinces = [] } = useQuery({
+    queryKey: ['vn-location', 'provinces'],
+    queryFn: fetchVnProvinces,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: districts = [] } = useQuery({
+    queryKey: ['vn-location', 'districts', form.provinceCode],
+    queryFn: () => fetchVnDistricts(form.provinceCode),
+    enabled: Boolean(form.provinceCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const { data: wards = [] } = useQuery({
+    queryKey: ['vn-location', 'wards', form.districtCode],
+    queryFn: () => fetchVnWards(form.districtCode),
+    enabled: Boolean(form.districtCode),
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+  const provinceOptions = provinces.map((p) => ({ value: String(p.code), label: p.name }));
+  const districtOptions = districts.map((d) => ({ value: String(d.code), label: d.name }));
+  const wardOptions = wards.map((w) => ({ value: String(w.code), label: w.name }));
+  const selectStyles = {
+    control: (base: any, state: any) => ({
+      ...base,
+      minHeight: 46,
+      borderRadius: 8,
+      borderColor: state.isFocused ? 'hsl(var(--primary))' : 'hsl(var(--border))',
+      boxShadow: state.isFocused ? '0 0 0 2px hsl(var(--primary) / 0.25)' : 'none',
+      backgroundColor: 'hsl(var(--card))',
+      '&:hover': { borderColor: 'hsl(var(--primary))' },
+    }),
+    menu: (base: any) => ({ ...base, zIndex: 30 }),
+  };
+  const currentProvinceOption = provinceOptions.find((o) => o.value === form.provinceCode) ?? null;
+  const currentDistrictOption = districtOptions.find((o) => o.value === form.districtCode) ?? null;
+  const currentWardOption = wardOptions.find((o) => o.value === form.wardCode) ?? null;
 
   return (
     <div className="space-y-4">
@@ -42,6 +87,88 @@ export default function DoctorProfilePage() {
       </header>
 
       <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+        <div className="mb-5 rounded-xl border border-border/70 bg-muted/20 p-4">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={async (e) => {
+              const inputEl = e.currentTarget;
+              const file = e.target.files?.[0];
+              if (!file) return;
+              if (!file.type.startsWith('image/')) {
+                toast.show({
+                  variant: 'error',
+                  title: 'File không hợp lệ',
+                  message: 'Vui lòng chọn file ảnh.',
+                });
+                inputEl.value = '';
+                return;
+              }
+              if (file.size > 5 * 1024 * 1024) {
+                toast.show({
+                  variant: 'error',
+                  title: 'Ảnh quá lớn',
+                  message: 'Dung lượng tối đa 5MB.',
+                });
+                inputEl.value = '';
+                return;
+              }
+
+              setUploadingAvatar(true);
+              try {
+                const res = await usersApi.uploadAvatar(file);
+                if (user) setSession({ user: { ...user, avatarUrl: res.avatarUrl } });
+                toast.show({
+                  variant: 'success',
+                  title: 'Đã cập nhật ảnh',
+                  message: 'Ảnh đại diện đã được lưu lên hệ thống.',
+                });
+              } catch (err) {
+                toast.show({
+                  variant: 'error',
+                  title: 'Tải ảnh thất bại',
+                  message: err instanceof Error ? err.message : 'Không thể tải ảnh. Vui lòng thử lại.',
+                });
+              } finally {
+                setUploadingAvatar(false);
+                inputEl.value = '';
+              }
+            }}
+            disabled={uploadingAvatar || saving}
+          />
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                className="relative h-20 w-20 overflow-hidden rounded-full border border-border bg-muted transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                disabled={uploadingAvatar || saving}
+                onClick={() => fileInputRef.current?.click()}
+                title="Bấm để đổi ảnh đại diện"
+              >
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.fullName ?? 'Bác sĩ'} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-xs font-bold text-muted-foreground">
+                    No avatar
+                  </div>
+                )}
+                <span className="absolute inset-x-0 bottom-0 bg-black/50 py-1 text-[10px] font-semibold text-white">
+                  {uploadingAvatar ? 'Đang tải…' : 'Đổi ảnh'}
+                </span>
+              </button>
+              <div>
+                <div className="text-sm font-semibold text-foreground">Ảnh đại diện bác sĩ</div>
+                <p className="text-xs text-muted-foreground">
+                  Bấm trực tiếp vào avatar tròn để đổi ảnh. Hỗ trợ JPG/PNG/WebP, tối đa 5MB.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Họ tên</div>
@@ -98,6 +225,69 @@ export default function DoctorProfilePage() {
               onChange={(e) => setForm((s) => ({ ...s, workplaceName: e.target.value }))}
               placeholder="Ví dụ: Clinical Precision Center"
               disabled={saving}
+            />
+          </label>
+
+          <label className="block sm:col-span-2">
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Địa chỉ cơ sở khám</div>
+            <input
+              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary disabled:opacity-70"
+              value={form.workplaceAddress}
+              onChange={(e) => setForm((s) => ({ ...s, workplaceAddress: e.target.value }))}
+              placeholder="Ví dụ: 123 Nguyễn Văn Cừ, P.2"
+              disabled={saving}
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Tỉnh / Thành</div>
+            <Select<LocationOption, false>
+              isClearable
+              isDisabled={saving}
+              options={provinceOptions}
+              value={currentProvinceOption}
+              placeholder="Chọn Tỉnh/Thành"
+              styles={selectStyles}
+              onChange={(opt) =>
+                setForm((s) => ({
+                  ...s,
+                  provinceCode: opt?.value ?? '',
+                  districtCode: '',
+                  wardCode: '',
+                }))
+              }
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Quận / Huyện</div>
+            <Select<LocationOption, false>
+              isClearable
+              isDisabled={saving || !form.provinceCode}
+              options={districtOptions}
+              value={currentDistrictOption}
+              placeholder={form.provinceCode ? 'Chọn Quận/Huyện' : 'Chọn Tỉnh/Thành trước'}
+              styles={selectStyles}
+              onChange={(opt) =>
+                setForm((s) => ({
+                  ...s,
+                  districtCode: opt?.value ?? '',
+                  wardCode: '',
+                }))
+              }
+            />
+          </label>
+
+          <label className="block">
+            <div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">Phường / Xã</div>
+            <Select<LocationOption, false>
+              isClearable
+              isDisabled={saving || !form.districtCode}
+              options={wardOptions}
+              value={currentWardOption}
+              placeholder={form.districtCode ? 'Chọn Phường/Xã' : 'Chọn Quận/Huyện trước'}
+              styles={selectStyles}
+              onChange={(opt) => setForm((s) => ({ ...s, wardCode: opt?.value ?? '' }))}
             />
           </label>
 
@@ -194,6 +384,10 @@ export default function DoctorProfilePage() {
                     licenseNumber: form.licenseNumber.trim() || null,
                     yearsOfExperience: Number.isFinite(years as number) ? (years as number) : null,
                     workplaceName: form.workplaceName.trim() || null,
+                    workplaceAddress: form.workplaceAddress.trim() || null,
+                    provinceCode: form.provinceCode.trim() || null,
+                    districtCode: form.districtCode.trim() || null,
+                    wardCode: form.wardCode.trim() || null,
                     consultationFee: Number.isFinite(fee as number) ? String(fee) : null,
                     bio: form.bio.trim() || null,
                     isAvailableForBooking: form.isAvailableForBooking,

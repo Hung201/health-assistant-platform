@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useChatStore } from '@/stores/chat.store';
-import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon } from 'lucide-react';
+import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon, PlusCircle, RotateCcw } from 'lucide-react';
 
 export default function AIAssistantPage() {
   const [input, setInput] = useState('');
@@ -10,8 +10,19 @@ export default function AIAssistantPage() {
   const messages = useChatStore((s) => s.messages);
   const isLoading = useChatStore((s) => s.isLoading);
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const finalResult = useChatStore((s) => s.finalResult);
+  const doctorRecommendations = useChatStore((s) => s.doctorRecommendations);
+  const resetChat = useChatStore((s) => s.resetChat);
+  const sessions = useChatStore((s) => s.sessions);
+  const fetchSessions = useChatStore((s) => s.fetchSessions);
+  const loadSession = useChatStore((s) => s.loadSession);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Fetch sessions on mount
+  useEffect(() => {
+    fetchSessions();
+  }, []);
 
   // Auto scroll to bottom when messages change
   useEffect(() => {
@@ -30,20 +41,11 @@ export default function AIAssistantPage() {
   };
 
   // Default mock messages if store is empty (to match design)
+  // Initial welcome message if store is empty
   const displayMessages = messages.length > 0 ? messages : [
     {
       role: 'assistant',
-      content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải hoặc tải lên kết quả xét nghiệm để tôi hỗ trợ phân tích ban đầu.',
-      timestamp: new Date().toISOString()
-    },
-    {
-      role: 'user',
-      content: 'Tôi cảm thấy đau tức ngực trái âm ỉ khoảng 2 ngày nay, thỉnh thoảng thấy khó thở khi leo cầu thang.',
-      timestamp: new Date().toISOString()
-    },
-    {
-      role: 'assistant',
-      content: 'Cảm ơn thông tin của bạn. Ngoài đau ngực, bạn có thấy vã mồ hôi, buồn nôn hay đau lan ra cánh tay trái không? Độ tuổi hiện tại của bạn là bao nhiêu?',
+      content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải để tôi có thể hỗ trợ phân tích và gợi ý bác sĩ chuyên khoa phù hợp cho bạn.',
       timestamp: new Date().toISOString()
     }
   ];
@@ -55,12 +57,17 @@ export default function AIAssistantPage() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <div className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-teal-500"></span>
+            <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
             <h2 className="font-bold text-slate-800">AI Assistant Trực Tuyến</h2>
           </div>
-          <div className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold tracking-wider text-slate-500">
-            PHIÊN: #DX-2024
-          </div>
+          
+          <button 
+            onClick={() => resetChat()}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-[#003f87]/30 hover:text-[#003f87]"
+          >
+            <PlusCircle size={18} />
+            Phiên mới
+          </button>
         </div>
 
         {/* Messages */}
@@ -128,55 +135,62 @@ export default function AIAssistantPage() {
       {/* Right Column: Diagnostics & History */}
       <div className="flex flex-[1] flex-col gap-6">
         {/* Diagnostics Card */}
-        <div className="rounded-2xl bg-white shadow-sm border-l-4 border-l-[#003f87] border-y border-r border-slate-200 p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-[#003f87] mb-1">Kết quả chẩn đoán dự kiến</h3>
-          <p className="text-xs text-slate-500 mb-6">Dựa trên các triệu chứng được cung cấp</p>
+        {finalResult ? (
+          <div className="rounded-2xl bg-white shadow-sm border-l-4 border-l-[#003f87] border-y border-r border-slate-200 p-6 flex flex-col">
+            <h3 className="text-lg font-bold text-[#003f87] mb-1">Kết quả chẩn đoán dự kiến</h3>
+            <p className="text-xs text-slate-500 mb-6">Dựa trên các triệu chứng được cung cấp</p>
 
-          <div className="space-y-5 mb-8">
-            {/* Progress Item 1 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Đau thắt ngực (Angina)</span>
-                <span className="text-lg font-bold text-[#003f87]">65%</span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-[#003f87]" style={{ width: '65%' }}></div>
-              </div>
+            <div className="space-y-5 mb-8">
+              {finalResult.top_diseases.map((disease, idx) => {
+                const percentage = Math.round(disease.match_score * 100);
+                const colors = ['bg-[#003f87]', 'bg-slate-400', 'bg-slate-300'];
+                return (
+                  <div key={idx}>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm font-bold text-slate-800">{disease.disease}</span>
+                      <span className={`text-lg font-bold ${idx === 0 ? 'text-[#003f87]' : 'text-slate-600'}`}>{percentage}%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
+                      <div className={`h-full rounded-full ${colors[idx % colors.length]}`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-            {/* Progress Item 2 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Rối loạn lo âu</span>
-                <span className="text-lg font-bold text-slate-600">25%</span>
-              </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-slate-400" style={{ width: '25%' }}></div>
-              </div>
+
+            <div className="rounded-xl border border-red-100 bg-red-50 p-4 flex gap-3 mb-6">
+              <AlertTriangle className="text-red-500 shrink-0" size={20} />
+              <p className="text-xs font-semibold text-red-700 leading-relaxed italic">
+                {finalResult.disclaimer || 'Kết quả chỉ mang tính tham khảo. AI không thay thế chẩn đoán chuyên môn của bác sĩ.'}
+              </p>
             </div>
-            {/* Progress Item 3 */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <span className="text-sm font-bold text-slate-800">Trào ngược dạ dày</span>
-                <span className="text-lg font-bold text-slate-600">10%</span>
+
+            {doctorRecommendations && doctorRecommendations.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-bold text-slate-800 mb-3">Bác sĩ chuyên khoa gợi ý:</h4>
+                <div className="space-y-3">
+                  {doctorRecommendations.map((doc: any, idx: number) => (
+                    <div key={idx} className="flex items-center justify-between rounded-xl border border-slate-100 p-3 bg-slate-50">
+                      <div>
+                        <p className="text-sm font-bold text-slate-800">{doc.fullName}</p>
+                        <p className="text-xs text-slate-500">{doc.specialties?.[0]?.name || 'Bác sĩ'}</p>
+                      </div>
+                      <a href={`/patient/doctors/${doc.userId}`} className="rounded-lg bg-[#003f87] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0056b3]">
+                        Đặt lịch
+                      </a>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="h-3 w-full rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-slate-300" style={{ width: '10%' }}></div>
-              </div>
-            </div>
+            )}
           </div>
-
-          <div className="rounded-xl border border-red-100 bg-red-50 p-4 flex gap-3 mb-6">
-            <AlertTriangle className="text-red-500 shrink-0" size={20} />
-            <p className="text-xs font-semibold text-red-700 leading-relaxed italic">
-              Kết quả chỉ mang tính tham khảo. AI không thay thế chẩn đoán chuyên môn của bác sĩ. Vui lòng đến cơ sở y tế gần nhất nếu triệu chứng trầm trọng.
-            </p>
+        ) : (
+          <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex flex-col items-center justify-center text-center h-48">
+            <Bot size={40} className="text-slate-300 mb-3" />
+            <h3 className="text-sm font-bold text-slate-500">Chưa có kết quả chẩn đoán</h3>
+            <p className="text-xs text-slate-400 mt-1">Hãy tiếp tục trò chuyện để AI thu thập thêm thông tin.</p>
           </div>
-
-          <button className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-100/50 py-3.5 text-sm font-bold text-[#003f87] transition-all hover:bg-indigo-100">
-            <UserSearch size={18} />
-            Tìm bác sĩ chuyên khoa phù hợp
-          </button>
-        </div>
+        )}
 
         {/* History Card */}
         <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-6 flex-1 flex flex-col min-h-0">
@@ -186,24 +200,32 @@ export default function AIAssistantPage() {
           </div>
 
           <div className="space-y-3 overflow-y-auto pr-2">
-            {[
-              { title: 'Đau ngực & Khó thở', date: '15/03/2024' },
-              { title: 'Nhức đầu kéo dài', date: '12/03/2024' },
-              { title: 'Ho khan về đêm', date: '08/03/2024' },
-            ].map((item, idx) => (
-              <div key={idx} className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#003f87] group-hover:bg-[#003f87]/10 transition-colors">
-                    <FileText size={18} />
+            {sessions.length > 0 ? (
+              sessions.map((session, idx) => (
+                <div 
+                  key={session.id} 
+                  onClick={() => loadSession(session.id)}
+                  className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[#003f87] group-hover:bg-[#003f87]/10 transition-colors">
+                      <FileText size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-800 line-clamp-1">{session.title || 'Phiên trò chuyện'}</h4>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(session.createdAt).toLocaleDateString('vi-VN')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">{item.date}</p>
-                  </div>
+                  <ChevronRight size={16} className="text-slate-400 group-hover:text-[#003f87] transition-colors" />
                 </div>
-                <ChevronRight size={16} className="text-slate-400 group-hover:text-[#003f87] transition-colors" />
+              ))
+            ) : (
+              <div className="py-10 text-center">
+                <p className="text-xs text-slate-400">Chưa có lịch sử phiên hỏi.</p>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

@@ -14,9 +14,16 @@ import { Specialty } from '../entities/specialty.entity';
 import { Booking } from '../entities/booking.entity';
 import { Role } from '../entities/role.entity';
 import { UserRole } from '../entities/user-role.entity';
+import { DoctorQuestion } from '../entities/doctor-question.entity';
+import { mergeFeaturePermissions, normalizeFeaturePermissions } from '../common/user-feature-permissions';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 /** Bài viết chờ admin duyệt (bác sĩ gửi từ luồng soạn thảo). */
 export const POST_STATUS_PENDING_REVIEW = 'pending_review';
+export const QA_STATUS_PENDING_REVIEW = 'pending_review';
+export const QA_STATUS_APPROVED = 'approved';
+export const QA_STATUS_ANSWERED = 'answered';
+export const QA_STATUS_REJECTED = 'rejected';
 
 @Injectable()
 export class AdminService {
@@ -33,7 +40,30 @@ export class AdminService {
     private readonly specialtyRepo: Repository<Specialty>,
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
-  ) {}
+    @InjectRepository(DoctorQuestion)
+    private readonly questionRepo: Repository<DoctorQuestion>,
+  ) { }
+
+  private userHasDoctorRole(u: User): boolean {
+    const codes = u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) ?? [];
+    return codes.includes('doctor');
+  }
+
+  /** Livestream chỉ có ý nghĩa với vai trò bác sĩ. */
+  private shapeFeaturePermissionsResponse(u: User): { livestream: boolean } {
+    if (!this.userHasDoctorRole(u)) return { livestream: false };
+    const p = normalizeFeaturePermissions(u.featurePermissions);
+    return { livestream: p.livestream === true };
+  }
+
+  /** Gỡ cờ livestream trên DB nếu user không còn là bác sĩ (dữ liệu cũ). */
+  private stripLivestreamPermissionIfNotDoctor(u: User): void {
+    if (this.userHasDoctorRole(u)) return;
+    const p = normalizeFeaturePermissions(u.featurePermissions);
+    if (p.livestream) {
+      u.featurePermissions = mergeFeaturePermissions(u.featurePermissions, { livestream: false }) as User['featurePermissions'];
+    }
+  }
 
   private normalizePhone(input: string): string {
     return input.replace(/\s+/g, '').slice(0, 20);
@@ -242,6 +272,7 @@ export class AdminService {
         status: u.status,
         createdAt: u.createdAt,
         roles: u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) ?? [],
+        featurePermissions: this.shapeFeaturePermissionsResponse(u),
       })),
       total,
       page: safePage,
@@ -268,25 +299,26 @@ export class AdminService {
       roles: u.userRoles?.map((ur) => ur.role?.code).filter(Boolean) ?? [],
       patientProfile: u.patientProfile
         ? {
-            emergencyContactName: u.patientProfile.emergencyContactName,
-            emergencyContactPhone: u.patientProfile.emergencyContactPhone,
-            addressLine: u.patientProfile.addressLine,
-            occupation: u.patientProfile.occupation,
-            bloodType: u.patientProfile.bloodType,
-          }
+          emergencyContactName: u.patientProfile.emergencyContactName,
+          emergencyContactPhone: u.patientProfile.emergencyContactPhone,
+          addressLine: u.patientProfile.addressLine,
+          occupation: u.patientProfile.occupation,
+          bloodType: u.patientProfile.bloodType,
+        }
         : null,
       doctorProfile: u.doctorProfile
         ? {
-            professionalTitle: u.doctorProfile.professionalTitle,
-            licenseNumber: u.doctorProfile.licenseNumber,
-            yearsOfExperience: u.doctorProfile.yearsOfExperience,
-            bio: u.doctorProfile.bio,
-            workplaceName: u.doctorProfile.workplaceName,
-            consultationFee: u.doctorProfile.consultationFee,
-            isVerified: u.doctorProfile.isVerified,
-            verificationStatus: u.doctorProfile.verificationStatus,
-          }
+          professionalTitle: u.doctorProfile.professionalTitle,
+          licenseNumber: u.doctorProfile.licenseNumber,
+          yearsOfExperience: u.doctorProfile.yearsOfExperience,
+          bio: u.doctorProfile.bio,
+          workplaceName: u.doctorProfile.workplaceName,
+          consultationFee: u.doctorProfile.consultationFee,
+          isVerified: u.doctorProfile.isVerified,
+          verificationStatus: u.doctorProfile.verificationStatus,
+        }
         : null,
+      featurePermissions: this.shapeFeaturePermissionsResponse(u),
     };
   }
 
@@ -324,6 +356,7 @@ export class AdminService {
           passwordHash,
           status: 'active',
           phone,
+          featurePermissions: input.role === 'doctor' ? { livestream: false } : {},
         }),
       );
       await manager.getRepository(UserRole).save(
@@ -350,8 +383,11 @@ export class AdminService {
     });
   }
 
-  async updateUser(userId: string, input: { fullName?: string; phone?: string | null; status?: 'active' | 'disabled' }) {
-    const u = await this.userRepo.findOne({ where: { id: userId } });
+  async updateUser(userId: string, input: UpdateUserDto) {
+    const u = await this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['userRoles', 'userRoles.role'],
+    });
     if (!u) throw new NotFoundException('Không tìm thấy người dùng');
 
     if (input.fullName != null) {
@@ -372,6 +408,18 @@ export class AdminService {
     if (input.status != null) {
       u.status = input.status;
     }
+    if (input.featurePermissions != null && input.featurePermissions.livestream !== undefined) {
+      const wants = input.featurePermissions.livestream;
+      if (!this.userHasDoctorRole(u)) {
+        if (wants === true) {
+          throw new BadRequestException('Quyền livestream chỉ cấp được cho tài khoản có vai trò bác sĩ.');
+        }
+        u.featurePermissions = mergeFeaturePermissions(u.featurePermissions, { livestream: false }) as User['featurePermissions'];
+      } else {
+        u.featurePermissions = mergeFeaturePermissions(u.featurePermissions, { livestream: wants }) as User['featurePermissions'];
+      }
+    }
+    this.stripLivestreamPermissionIfNotDoctor(u);
     await this.userRepo.save(u);
     return { ok: true, id: u.id };
   }
@@ -499,6 +547,61 @@ export class AdminService {
     post.rejectionReason = reason ?? null;
     await this.postRepo.save(post);
     return { ok: true, id: postId, status: post.status };
+  }
+
+  async listPendingQuestions(page = 1, limit = 20) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const [rows, total] = await this.questionRepo.findAndCount({
+      where: { status: QA_STATUS_PENDING_REVIEW },
+      relations: ['patientUser'],
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    });
+    return {
+      items: rows.map((q) => ({
+        id: q.id,
+        title: q.title,
+        content: q.questionContent,
+        category: q.category,
+        status: q.status,
+        createdAt: q.createdAt,
+        patient: {
+          id: q.patientUserId,
+          fullName: q.patientUser?.fullName ?? 'Bệnh nhân',
+          email: q.patientUser?.email ?? null,
+        },
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
+  async approveQuestion(questionId: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (q.status !== QA_STATUS_PENDING_REVIEW) {
+      throw new BadRequestException('Câu hỏi không ở trạng thái chờ duyệt');
+    }
+    q.status = QA_STATUS_APPROVED;
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
+  }
+
+  async rejectQuestion(questionId: string, reason?: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (q.status !== QA_STATUS_PENDING_REVIEW) {
+      throw new BadRequestException('Câu hỏi không ở trạng thái chờ duyệt');
+    }
+    q.status = QA_STATUS_REJECTED;
+    if (reason && reason.trim()) {
+      q.answerContent = `Câu hỏi chưa được duyệt: ${reason.trim()}`;
+    }
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
   }
 
   async listSpecialties(page = 1, limit = 50) {

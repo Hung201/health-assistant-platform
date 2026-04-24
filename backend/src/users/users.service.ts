@@ -23,7 +23,7 @@ export class UsersService {
     private readonly doctorSpecialtyRepository: Repository<DoctorSpecialty>,
     @InjectRepository(Specialty)
     private readonly specialtyRepository: Repository<Specialty>,
-  ) {}
+  ) { }
 
   async findById(id: string) {
     return this.userRepository.findOne({
@@ -102,6 +102,10 @@ export class UsersService {
       | 'yearsOfExperience'
       | 'bio'
       | 'workplaceName'
+      | 'workplaceAddress'
+      | 'provinceCode'
+      | 'districtCode'
+      | 'wardCode'
       | 'consultationFee'
       | 'isAvailableForBooking'
     >>;
@@ -109,7 +113,7 @@ export class UsersService {
   }) {
     const { userId } = params;
 
-    const updateUser: Partial<User> = {};
+    const updateUser: Partial<Pick<User, 'fullName' | 'phone' | 'dateOfBirth' | 'gender'>> = {};
     if (params.fullName != null) updateUser.fullName = params.fullName;
     if (params.phone !== undefined) updateUser.phone = params.phone;
     if (params.dateOfBirth !== undefined) updateUser.dateOfBirth = params.dateOfBirth;

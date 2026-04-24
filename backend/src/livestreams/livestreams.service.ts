@@ -14,6 +14,7 @@ import { AccessToken } from 'livekit-server-sdk';
 import { LiveStream } from '../entities/live-stream.entity';
 import { User } from '../entities/user.entity';
 import { CreateLiveStreamDto } from './dto/create-live-stream.dto';
+import { userMayLivestream } from '../common/user-feature-permissions';
 
 const TOKEN_TTL = '6h';
 
@@ -22,6 +23,8 @@ export class LivestreamsService {
   constructor(
     @InjectRepository(LiveStream)
     private readonly liveStreamRepo: Repository<LiveStream>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
     private readonly config: ConfigService,
   ) {}
 
@@ -47,6 +50,19 @@ export class LivestreamsService {
     return `ls-${randomUUID().replace(/-/g, '')}`;
   }
 
+  private async assertDoctorMayLivestream(doctorUserId: string): Promise<void> {
+    const u = await this.userRepo.findOne({
+      where: { id: doctorUserId },
+      select: ['id', 'featurePermissions'],
+    });
+    if (!u) throw new ForbiddenException('Không tìm thấy người dùng');
+    if (!userMayLivestream(u)) {
+      throw new ForbiddenException(
+        'Tài khoản chưa được cấp quyền phát trực tiếp. Vui lòng liên hệ quản trị viên để bật quyền Livestream.',
+      );
+    }
+  }
+
   private async assertNoOtherLive(doctorUserId: string, exceptId?: string): Promise<void> {
     const qb = this.liveStreamRepo
       .createQueryBuilder('s')
@@ -62,6 +78,7 @@ export class LivestreamsService {
   }
 
   async createDraft(user: User, dto: CreateLiveStreamDto): Promise<LiveStream> {
+    await this.assertDoctorMayLivestream(user.id);
     const row = this.liveStreamRepo.create({
       doctorUserId: user.id,
       title: dto.title.trim(),
@@ -75,6 +92,7 @@ export class LivestreamsService {
   }
 
   async goLive(user: User, streamId: string): Promise<{ stream: LiveStream; serverUrl: string; token: string }> {
+    await this.assertDoctorMayLivestream(user.id);
     const lk = this.requireLivekit();
     const stream = await this.liveStreamRepo.findOne({ where: { id: streamId } });
     if (!stream) throw new NotFoundException('Không tìm thấy phiên livestream');
@@ -106,6 +124,7 @@ export class LivestreamsService {
   }
 
   async mintPublisherTokenForDoctor(user: User, streamId: string): Promise<{ serverUrl: string; token: string }> {
+    await this.assertDoctorMayLivestream(user.id);
     const lk = this.requireLivekit();
     const stream = await this.liveStreamRepo.findOne({ where: { id: streamId } });
     if (!stream) throw new NotFoundException('Không tìm thấy phiên livestream');

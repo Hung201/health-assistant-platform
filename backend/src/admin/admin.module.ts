@@ -6,6 +6,7 @@ import { DoctorProfile } from '../entities/doctor-profile.entity';
 import { Post } from '../entities/post.entity';
 import { Specialty } from '../entities/specialty.entity';
 import { Booking } from '../entities/booking.entity';
+import { DoctorQuestion } from '../entities/doctor-question.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
@@ -19,6 +20,7 @@ import { AdminGuard } from './admin.guard';
       Post,
       Specialty,
       Booking,
+      DoctorQuestion,
     ]),
   ],
   controllers: [AdminController],

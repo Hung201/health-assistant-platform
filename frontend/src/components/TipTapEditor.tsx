@@ -16,6 +16,8 @@ export default function TipTapEditor({ content, onChange }: { content: string; o
         autolink: true,
       }),
     ],
+    // Fix hydration mismatch in Next.js App Router.
+    immediatelyRender: false,
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());

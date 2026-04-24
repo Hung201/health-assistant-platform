@@ -123,6 +123,13 @@ async function seed() {
       { slug: 'nhi-khoa', name: 'Nhi khoa', description: 'Khám và theo dõi sức khỏe trẻ em.', status: 'active' },
       { slug: 'ngoai-khoa', name: 'Ngoại khoa', description: 'Tư vấn và can thiệp ngoại khoa.', status: 'active' },
       { slug: 'da-lieu', name: 'Da liễu', description: 'Điều trị các vấn đề về da.', status: 'active' },
+      { slug: 'tieu-hoa', name: 'Tiêu hoá', description: 'Bệnh lý dạ dày, đại tràng, gan mật.', status: 'active' },
+      { slug: 'ho-hap', name: 'Hô hấp', description: 'Bệnh lý phổi và đường hô hấp.', status: 'active' },
+      { slug: 'tai-mui-hong', name: 'Tai Mũi Họng', description: 'Bệnh lý về tai, mũi và cổ họng.', status: 'active' },
+      { slug: 'co-xuong-khop', name: 'Cơ xương khớp', description: 'Bệnh lý xương khớp và chấn thương chỉnh hình.', status: 'active' },
+      { slug: 'than-kinh', name: 'Thần kinh', description: 'Bệnh lý thần kinh sọ não và tuỷ sống.', status: 'active' },
+      { slug: 'san-phu-khoa', name: 'Sản phụ khoa', description: 'Khám thai và bệnh lý phụ khoa.', status: 'active' },
+      { slug: 'nhan-khoa', name: 'Nhãn khoa', description: 'Chăm sóc và điều trị bệnh lý về mắt.', status: 'active' },
     ];
     for (const s of specialtiesSeed) {
       const existing = await txSpecialtyRepo.findOne({ where: { slug: s.slug } });
@@ -530,34 +537,34 @@ async function seed() {
       postType: 'medical_article' | 'news' | 'faq';
       thumbnailUrl?: string | null;
     }> = [
-      {
-        slug: 'kien-thuc-huyet-ap-01',
-        title: 'Huyết áp cao: 7 dấu hiệu dễ bỏ qua',
-        excerpt: 'Một số biểu hiện của tăng huyết áp khá “im lặng”. Dưới đây là các dấu hiệu thường gặp và khi nào nên đi khám.',
-        content:
-          '## Tóm tắt\\n\\n- Tăng huyết áp có thể không có triệu chứng rõ ràng.\\n- Nên đo huyết áp định kỳ, đặc biệt nếu có yếu tố nguy cơ.\\n\\n## Dấu hiệu thường gặp\\n\\n1. Đau đầu âm ỉ vùng chẩm\\n2. Chóng mặt, ù tai\\n3. Hồi hộp, khó ngủ\\n4. Mệt mỏi không rõ nguyên nhân\\n\\n## Khi nào cần đi khám?\\n\\n- Huyết áp \\u2265 140/90 mmHg lặp lại nhiều lần\\n- Đau ngực, khó thở, yếu liệt\\n\\n> Lưu ý: Nội dung mang tính tham khảo, không thay thế chẩn đoán.',
-        postType: 'medical_article',
-        thumbnailUrl: null,
-      },
-      {
-        slug: 'tam-soat-tieu-duong-02',
-        title: 'Tầm soát đái tháo đường: ai nên làm và làm khi nào?',
-        excerpt: 'Tầm soát sớm giúp giảm biến chứng. Bài viết gợi ý nhóm nguy cơ và các xét nghiệm cơ bản.',
-        content:
-          '## Ai nên tầm soát?\\n\\n- BMI cao, ít vận động\\n- Gia đình có người mắc đái tháo đường\\n- Tăng huyết áp, rối loạn mỡ máu\\n\\n## Xét nghiệm phổ biến\\n\\n- Đường huyết đói\\n- HbA1c\\n- Nghiệm pháp dung nạp glucose\\n\\n## Chuẩn bị trước xét nghiệm\\n\\n- Nhịn ăn 8–10 giờ (nếu xét nghiệm đường huyết đói)\\n\\n> Nội dung tham khảo. Hãy trao đổi với bác sĩ nếu bạn có bệnh nền.',
-        postType: 'faq',
-        thumbnailUrl: null,
-      },
-      {
-        slug: 'meo-ngu-ngon-03',
-        title: 'Ngủ ngon hơn trong 14 ngày: checklist dễ áp dụng',
-        excerpt: 'Giấc ngủ ảnh hưởng trực tiếp tới miễn dịch và tim mạch. Thử checklist 14 ngày để cải thiện chất lượng ngủ.',
-        content:
-          '## Checklist 14 ngày\\n\\n- Cố định giờ ngủ/thức\\n- Giảm caffeine sau 14h\\n- Tắt màn hình trước ngủ 60 phút\\n- Phòng ngủ mát và tối\\n\\n## Khi nào cần gặp bác sĩ?\\n\\n- Mất ngủ \\u2265 3 lần/tuần kéo dài > 1 tháng\\n- Ngáy to, ngưng thở khi ngủ\\n\\n> Tham khảo; không thay thế tư vấn y khoa.',
-        postType: 'news',
-        thumbnailUrl: null,
-      },
-    ];
+        {
+          slug: 'kien-thuc-huyet-ap-01',
+          title: 'Huyết áp cao: 7 dấu hiệu dễ bỏ qua',
+          excerpt: 'Một số biểu hiện của tăng huyết áp khá “im lặng”. Dưới đây là các dấu hiệu thường gặp và khi nào nên đi khám.',
+          content:
+            '## Tóm tắt\\n\\n- Tăng huyết áp có thể không có triệu chứng rõ ràng.\\n- Nên đo huyết áp định kỳ, đặc biệt nếu có yếu tố nguy cơ.\\n\\n## Dấu hiệu thường gặp\\n\\n1. Đau đầu âm ỉ vùng chẩm\\n2. Chóng mặt, ù tai\\n3. Hồi hộp, khó ngủ\\n4. Mệt mỏi không rõ nguyên nhân\\n\\n## Khi nào cần đi khám?\\n\\n- Huyết áp \\u2265 140/90 mmHg lặp lại nhiều lần\\n- Đau ngực, khó thở, yếu liệt\\n\\n> Lưu ý: Nội dung mang tính tham khảo, không thay thế chẩn đoán.',
+          postType: 'medical_article',
+          thumbnailUrl: null,
+        },
+        {
+          slug: 'tam-soat-tieu-duong-02',
+          title: 'Tầm soát đái tháo đường: ai nên làm và làm khi nào?',
+          excerpt: 'Tầm soát sớm giúp giảm biến chứng. Bài viết gợi ý nhóm nguy cơ và các xét nghiệm cơ bản.',
+          content:
+            '## Ai nên tầm soát?\\n\\n- BMI cao, ít vận động\\n- Gia đình có người mắc đái tháo đường\\n- Tăng huyết áp, rối loạn mỡ máu\\n\\n## Xét nghiệm phổ biến\\n\\n- Đường huyết đói\\n- HbA1c\\n- Nghiệm pháp dung nạp glucose\\n\\n## Chuẩn bị trước xét nghiệm\\n\\n- Nhịn ăn 8–10 giờ (nếu xét nghiệm đường huyết đói)\\n\\n> Nội dung tham khảo. Hãy trao đổi với bác sĩ nếu bạn có bệnh nền.',
+          postType: 'faq',
+          thumbnailUrl: null,
+        },
+        {
+          slug: 'meo-ngu-ngon-03',
+          title: 'Ngủ ngon hơn trong 14 ngày: checklist dễ áp dụng',
+          excerpt: 'Giấc ngủ ảnh hưởng trực tiếp tới miễn dịch và tim mạch. Thử checklist 14 ngày để cải thiện chất lượng ngủ.',
+          content:
+            '## Checklist 14 ngày\\n\\n- Cố định giờ ngủ/thức\\n- Giảm caffeine sau 14h\\n- Tắt màn hình trước ngủ 60 phút\\n- Phòng ngủ mát và tối\\n\\n## Khi nào cần gặp bác sĩ?\\n\\n- Mất ngủ \\u2265 3 lần/tuần kéo dài > 1 tháng\\n- Ngáy to, ngưng thở khi ngủ\\n\\n> Tham khảo; không thay thế tư vấn y khoa.',
+          postType: 'news',
+          thumbnailUrl: null,
+        },
+      ];
 
     for (let i = 0; i < 12; i++) {
       const seed = postSeeds[i % postSeeds.length];

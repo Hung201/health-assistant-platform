@@ -46,6 +46,10 @@ export class User {
   @Column({ type: 'varchar', length: 40, default: 'active' })
   status: string;
 
+  /** Quyền chức năng theo user (admin), ví dụ { livestream: true }. Không dùng default: () => ({}) — TypeORM coi là datetime. */
+  @Column({ name: 'feature_permissions', type: 'jsonb', default: {} })
+  featurePermissions: Record<string, unknown>;
+
   @Column({ name: 'email_verified_at', type: 'timestamptz', nullable: true })
   emailVerifiedAt: Date | null;
 

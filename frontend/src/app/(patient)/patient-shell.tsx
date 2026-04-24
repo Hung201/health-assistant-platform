@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Menu } from '@base-ui/react/menu';
 import { AlignJustify, Bell, LogOut, User as UserIcon, UserCircle, X } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { cn } from '@/lib/utils';
+import { notificationsApi, type UserNotificationRow } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
 const NAV: { href: string; icon: string; label: string }[] = [
@@ -30,17 +32,63 @@ function getPageTitle(pathname: string) {
   return item ? item.label : 'Dashboard';
 }
 
+function relativeTime(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60_000) return 'Vừa xong';
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 60) return `${mins} phút trước`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+  return new Date(iso).toLocaleString('vi-VN');
+}
+
+function priorityClass(p: UserNotificationRow['priority']): string {
+  if (p === 'high') return 'bg-red-100 text-red-700';
+  if (p === 'low') return 'bg-slate-100 text-slate-600';
+  return 'bg-amber-100 text-amber-700';
+}
+
 export function PatientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const qc = useQueryClient();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [noticeFilter, setNoticeFilter] = useState<'all' | 'unread'>('unread');
+  const noticeRef = useRef<HTMLDivElement | null>(null);
 
   const pageTitle = getPageTitle(pathname);
 
+  const { data: noticeRes } = useQuery({
+    queryKey: ['patient', 'notifications', noticeFilter],
+    queryFn: () => notificationsApi.my(noticeFilter, 20, 0),
+    staleTime: 15_000,
+    enabled: Boolean(user?.id),
+  });
+  const notifications = noticeRes?.items ?? [];
+  const unreadCount = noticeRes?.unreadCount ?? 0;
+
+  const markReadMutation = useMutation({
+    mutationFn: (id: string) => notificationsApi.markRead(id),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['patient', 'notifications'] });
+    },
+  });
+
+  const markAllMutation = useMutation({
+    mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['patient', 'notifications'] });
+    },
+  });
+
   useEffect(() => {
     setMobileNavOpen(false);
+    setNoticeOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -56,7 +104,37 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
     };
   }, [mobileNavOpen]);
 
+  useEffect(() => {
+    if (!noticeOpen) return;
+    const onClickOutside = (e: MouseEvent) => {
+      if (!noticeRef.current) return;
+      if (!noticeRef.current.contains(e.target as Node)) setNoticeOpen(false);
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, [noticeOpen]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const es = new EventSource(notificationsApi.streamUrl(), { withCredentials: true });
+    const onMessage = () => {
+      void qc.invalidateQueries({ queryKey: ['patient', 'notifications'] });
+    };
+    es.addEventListener('notifications', onMessage);
+    es.onerror = () => {
+      // EventSource auto-reconnect; keep silent.
+    };
+    return () => {
+      es.removeEventListener('notifications', onMessage);
+      es.close();
+    };
+  }, [qc, user?.id]);
+
   const closeMobileNav = () => setMobileNavOpen(false);
+  const markAllNoticesAsRead = () => {
+    if (markAllMutation.isPending || notifications.length === 0) return;
+    markAllMutation.mutate();
+  };
 
   return (
     <div className="flex min-h-screen bg-[#f8f9fa] text-slate-900 font-sans">
@@ -136,13 +214,113 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3 md:gap-4 md:border-l md:border-slate-200 md:pl-4 lg:pl-6">
-            <button
-              type="button"
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-            >
-              <Bell size={20} />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-            </button>
+            <div className="relative" ref={noticeRef}>
+              <button
+                type="button"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                onClick={() => setNoticeOpen((v) => !v)}
+                aria-expanded={noticeOpen}
+                aria-label="Mở thông báo"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 ? (
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                ) : null}
+              </button>
+              {noticeOpen ? (
+                <div className="absolute right-0 top-12 z-40 w-[min(92vw,23rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Thông báo</p>
+                      <p className="text-xs text-slate-500">{unreadCount} chưa đọc</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-teal-700 hover:underline disabled:text-slate-400"
+                      onClick={markAllNoticesAsRead}
+                      disabled={notifications.length === 0 || markAllMutation.isPending}
+                    >
+                      {markAllMutation.isPending ? 'Đang xử lý…' : 'Đánh dấu đã đọc'}
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => setNoticeFilter('unread')}
+                      className={cn(
+                        'rounded-full px-2.5 py-1 text-xs font-semibold',
+                        noticeFilter === 'unread' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600',
+                      )}
+                    >
+                      Chưa đọc
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNoticeFilter('all')}
+                      className={cn(
+                        'rounded-full px-2.5 py-1 text-xs font-semibold',
+                        noticeFilter === 'all' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-600',
+                      )}
+                    >
+                      Tất cả
+                    </button>
+                  </div>
+                  <div className="max-h-[22rem] overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-sm text-slate-500">Chưa có thông báo mới.</div>
+                    ) : (
+                      notifications.map((n) => {
+                        const unread = !n.isRead;
+                        return (
+                          <Link
+                            key={n.id}
+                            href={n.link || '/patient/bookings'}
+                            className={cn(
+                              'block border-b border-slate-100 px-4 py-3 transition-colors last:border-b-0 hover:bg-slate-50',
+                              unread ? 'bg-teal-50/40' : '',
+                            )}
+                            onClick={() => {
+                              if (!n.isRead) markReadMutation.mutate(n.id);
+                              setNoticeOpen(false);
+                            }}
+                          >
+                            <div className="flex items-start gap-2">
+                              <span
+                                className={cn(
+                                  'mt-1 h-2 w-2 shrink-0 rounded-full',
+                                  unread ? 'bg-teal-500' : 'bg-slate-300',
+                                )}
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-semibold text-slate-900">{n.title}</p>
+                                  <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-bold', priorityClass(n.priority))}>
+                                    {n.priority}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 truncate text-xs text-slate-600">{n.message}</p>
+                                <p className="mt-1 text-[11px] text-slate-400">{relativeTime(n.createdAt)}</p>
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })
+                    )}
+                  </div>
+                  <div className="border-t border-slate-100 px-4 py-2">
+                    <Link
+                      href="/patient/bookings"
+                      className="text-xs font-semibold text-teal-700 hover:underline"
+                      onClick={() => setNoticeOpen(false)}
+                    >
+                      Xem tất cả tại Lịch hẹn →
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
             <Menu.Root modal={false}>
                 <Menu.Trigger

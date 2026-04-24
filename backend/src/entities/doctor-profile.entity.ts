@@ -29,6 +29,18 @@ export class DoctorProfile {
   @Column({ name: 'workplace_name', type: 'varchar', length: 255, nullable: true })
   workplaceName: string | null;
 
+  @Column({ name: 'workplace_address', type: 'text', nullable: true })
+  workplaceAddress: string | null;
+
+  @Column({ name: 'province_code', type: 'varchar', length: 120, nullable: true })
+  provinceCode: string | null;
+
+  @Column({ name: 'district_code', type: 'varchar', length: 120, nullable: true })
+  districtCode: string | null;
+
+  @Column({ name: 'ward_code', type: 'varchar', length: 120, nullable: true })
+  wardCode: string | null;
+
   @Column({ name: 'consultation_fee', type: 'decimal', precision: 12, scale: 2, default: 0 })
   consultationFee: string;
 

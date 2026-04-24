@@ -3,13 +3,13 @@
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 
 import { useToast } from '@/components/ui/toast';
 import { authApi, usersApi } from '@/lib/api';
 import { syncAuthToLegacyStorage, useAuthStore } from '@/stores/auth.store';
 
-export default function VerifyPatientEmailPage() {
+function VerifyPatientEmailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const toast = useToast();
@@ -111,5 +111,21 @@ export default function VerifyPatientEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyPatientEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#eefaf8] p-4">
+          <div className="w-full max-w-md rounded-2xl border border-teal-100 bg-white p-6 text-center shadow-lg">
+            <p className="text-sm font-semibold text-slate-600">Đang tải thông tin xác thực...</p>
+          </div>
+        </div>
+      }
+    >
+      <VerifyPatientEmailPageContent />
+    </Suspense>
   );
 }

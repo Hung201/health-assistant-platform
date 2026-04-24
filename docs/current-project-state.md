@@ -1,6 +1,6 @@
 # Current Project State
 
-Ghi chu nay phan anh hien trang sau khi pull `origin/main` toi commit `5610720`.
+Ghi chu nay phan anh hien trang sau khi pull `origin/main` toi commit `9529133`.
 
 Du an hien la MVP cho nen tang ho tro suc khoe gom 3 phan chinh:
 
@@ -18,32 +18,35 @@ Docker hien co 1 service PostgreSQL:
 
 ## Recent Pull Changes
 
-Pull moi tu GitHub them/sua nhieu UI frontend, backend gan nhu khong doi domain logic.
+Pull moi tu GitHub tich hop nhieu tinh nang lon (payment, livestream, hoi dap, map) va nang cap toan dien giao dien.
 
-File moi dang chu y:
+Cac tinh nang moi dang chu y:
 
-- `frontend/src/app/(marketing)/ai/page.tsx`
-- `frontend/src/app/(marketing)/doctors/page.tsx`
-- `frontend/src/app/(marketing)/doctors/[id]/page.tsx`
+- **Thanh toan MoMo (MoMo Payment)**: Tich hop MoMo IPN, version 1 va 2 cho viec thanh toan truc tuyen.
+- **Livestream cho Bac si**: Bac si co the tao va quan ly phong live studio, admin co the quan ly quyen livestream.
+- **Hoi Dap Mien Phi (Q&A)**: Nguoi dung dat cau hoi mien phi, bac si co giao dien tra loi, admin kiem duyet cau hoi.
+- **Ban Do & Loc Dia Chi**: Tich hop ban do va tinh nang loc theo dia chi cho danh sach bac si.
+- **Thong Bao (Notifications)**: He thong thong bao in-app cho cac su kien.
+- **Thong ke & Cai dat (Stats & Settings)**: Them trang dashboard thong ke va cai dat rieng cho Admin va Doctor.
+- **Responsive & UI**: Nang cap giao dien Responsive cho tat ca cac portal, kem theo Module Blog, Header.
+- **AI Chat Service & Recommendation**: Tích hợp AI chat thông minh, tự động phân tích triệu chứng và **gợi ý bác sĩ nội bộ** dựa trên chuyên khoa và lịch trống. Hỗ trợ xem lại **Lịch sử phiên hỏi** và tạo **Phiên mới**.
 
-File duoc lam lai dang chu y:
+File/Folder moi dang chu y:
 
-- `frontend/src/app/(marketing)/page.tsx`
-- `frontend/src/app/(marketing)/blog/page.tsx`
-- `frontend/src/app/(marketing)/blog/[slug]/page.tsx`
-- `frontend/src/app/(patient)/patient-shell.tsx`
-- `frontend/src/app/(patient)/patient/ai-assistant/page.tsx`
-- `frontend/src/app/(patient)/patient/doctors/page.tsx`
-- `frontend/src/app/(patient)/patient/doctors/[doctorUserId]/page.tsx`
-- `frontend/src/app/(patient)/patient/bookings/page.tsx`
-- `frontend/src/app/(patient)/patient/profile/page.tsx`
-- `frontend/src/app/(patient)/patient/security/page.tsx`
-- `frontend/src/app/(auth)/login/page.tsx`
-- `frontend/src/app/(auth)/register/page.tsx`
-
-Backend pull chi thay doi nho lien quan DTO update post:
-
-- `backend/src/doctor-portal/dto/update-post.dto.ts`
+- `backend/src/momo/`: Module thanh toan MoMo.
+- `backend/src/lives/`: Module quan ly livestream.
+- `backend/src/questions/`: Module hoi dap mien phi.
+- `backend/src/notifications/`: Module thong bao.
+- `backend/src/entities/chat-session.entity.ts`: Entity lưu phiên chat.
+- `backend/src/entities/chat-message.entity.ts`: Entity lưu tin nhắn.
+- `frontend/src/app/(patient)/patient/ai-assistant/`
+- `frontend/src/app/(marketing)/dat-lich/`
+- `frontend/src/app/(marketing)/hoi-bac-si-mien-phi/`
+- `frontend/src/app/(marketing)/live/[streamId]/`
+- `frontend/src/app/(doctor)/doctor/live/`
+- `frontend/src/app/(doctor)/doctor/qa/`
+- `frontend/src/app/(admin)/admin/lives/`
+- `frontend/src/app/(admin)/admin/questions/`
 
 ## Frontend
 
@@ -66,7 +69,11 @@ Public/marketing routes hien co:
 - `/doctors/[id]`: public doctor detail.
 - `/blog`: public blog list.
 - `/blog/[slug]`: public blog detail.
-- `/login`, `/register`, `/oauth/google`: auth pages.
+- `/hoi-bac-si-mien-phi`: public trang dat cau hoi va xem hoi dap.
+- `/cam-nang-hoi-dap`: public trang cam nang.
+- `/dat-lich`: public trang huong dan dat lich.
+- `/live/[streamId]`: public trang xem livestream cua bac si.
+- `/login`, `/register`, `/register/verify`, `/oauth/google`: auth pages.
 
 Portal routes hien co:
 
@@ -77,17 +84,23 @@ Portal routes hien co:
 - `/patient/bookings`: danh sach booking cua patient + detail/cancel modal.
 - `/patient/profile`: patient profile.
 - `/patient/security`: doi mat khau/security.
-- `/doctor`: doctor dashboard.
+- `/doctor`: doctor dashboard (co them thong ke).
 - `/doctor/slots`: quan ly slot.
 - `/doctor/bookings`: quan ly booking cua doctor.
 - `/doctor/profile`: doctor profile.
 - `/doctor/posts`: quan ly post cua doctor.
-- `/admin`: admin dashboard.
+- `/doctor/live`: quan ly livestream studio cua bac si.
+- `/doctor/qa`: tra loi cau hoi cua benh nhan.
+- `/doctor/settings`: cai dat rieng cua bac si.
+- `/doctor/security`: bao mat.
+- `/admin`: admin dashboard (co them thong ke).
 - `/admin/users`: quan ly users.
 - `/admin/doctors/pending`: duyet doctor.
 - `/admin/posts/pending`: duyet posts.
 - `/admin/specialties`: quan ly specialties.
-- `/admin/settings`: settings.
+- `/admin/questions/pending`: kiem duyet cau hoi cua benh nhan.
+- `/admin/lives`: quan ly phien livestream.
+- `/admin/settings`: cai dat rieng cua admin.
 
 ### Public Marketing Pages
 
@@ -138,13 +151,14 @@ Patient shell `frontend/src/app/(patient)/patient-shell.tsx`:
 
 Patient AI assistant `frontend/src/app/(patient)/patient/ai-assistant/page.tsx`:
 
-- Van dung `useChatStore`.
-- Chat input goi `sendMessage(text, location)`.
-- Neu store rong, page hien 3 default mock messages de match design.
-- Right sidebar hien card "Ket qua chan doan du kien" voi 3 disease/progress items dang static mock.
-- Nut "Tim bac si chuyen khoa phu hop" hien UI nhung chua gan action.
-- Page nay hien tai khong render `hospitalSuggestion` nua, du `chat.store.ts` van co field do.
-- Bien `location` van ton tai nhung khong co UI input cap nhat location.
+- Sử dụng `useChatStore` đã được nâng cấp.
+- Chat input gọi `sendMessage(text, location)`.
+- **Phiên mới**: Nút "Phiên mới" cho phép reset hội thoại và xóa sessionId.
+- **Lịch sử phiên hỏi**: Sidebar bên phải hiển thị danh sách các phiên chat thực tế từ Database (lấy từ bảng `chat_sessions`).
+- **Xem lại hội thoại**: Click vào phiên cũ sẽ tự động tải lại toàn bộ tin nhắn cũ lên khung chat.
+- **Kết quả chẩn đoán**: Hiển thị biểu đồ bệnh lý (%) trả về từ AI.
+- **Gợi ý bác sĩ**: Hiển thị danh sách bác sĩ chuyên khoa phù hợp (Real data) kèm nút "Đặt lịch" dẫn tới trang của bác sĩ.
+- Page này hiện tại không render `hospitalSuggestion` nữa, ưu tiên gợi ý bác sĩ nội bộ.
 
 Patient doctors list `frontend/src/app/(patient)/patient/doctors/page.tsx`:
 
@@ -198,10 +212,13 @@ File `frontend/src/lib/api.ts`:
 
 File `frontend/src/stores/chat.store.ts`:
 
-- Goi backend proxy `/api/ai/chat`.
-- Luu `messages`, `sessionId`, `hospitalSuggestion` vao Zustand state.
-- Persist `messages` va `sessionId` vao localStorage.
-- Khong gui `history` tu client; AI service dang quan ly history bang DB.
+- Gọi backend proxy `/api/ai/chat`.
+- Lưu `messages`, `sessionId`, `sessions` (lịch sử) vào Zustand state.
+- Persist `messages` và `sessionId` vào localStorage.
+- Action `fetchSessions()`: Lấy danh sách phiên từ Backend.
+- Action `loadSession(id)`: Tải tin nhắn của phiên cụ thể.
+- Action `resetChat()`: Xóa sạch trạng thái để bắt đầu phiên mới.
+- Không gửi `history` từ client; AI service đang quản lý history bằng DB.
 - Request di qua backend nen duoc gan user that bang cookie/JWT.
 - Backend truyen `user_id` da xac thuc va `patient_context` sang AI service.
 - AI service luu `chat_sessions.user_id` va dung `patient_context` de ca nhan hoa hoi dap/chan doan.
@@ -254,6 +271,10 @@ Module chinh:
 - `PostsModule`: public posts/comments/reactions.
 - `AdminModule`: dashboard, users, doctor approval, post approval, specialties.
 - `AiModule`: backend proxy `POST /ai/chat`, gan user da xac thuc va enrich patient context truoc khi goi AI service.
+- `MomoModule`: thanh toan IPN va API tich hop MoMo.
+- `LivesModule`: quan ly livestream va quyen live cho bac si.
+- `QuestionsModule`: quan ly hoi dap mien phi.
+- `NotificationsModule`: gui va lay thong bao in-app.
 
 Endpoint bac si hien co:
 

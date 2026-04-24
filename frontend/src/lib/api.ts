@@ -77,6 +77,10 @@ export type AuthUser = {
     yearsOfExperience: number | null;
     bio: string | null;
     workplaceName: string | null;
+    workplaceAddress: string | null;
+    provinceCode: string | null;
+    districtCode: string | null;
+    wardCode: string | null;
     consultationFee: string;
     isAvailableForBooking: boolean;
     isVerified: boolean;
@@ -147,6 +151,10 @@ export const usersApi = {
         yearsOfExperience?: number | null;
         bio?: string | null;
         workplaceName?: string | null;
+        workplaceAddress?: string | null;
+        provinceCode?: string | null;
+        districtCode?: string | null;
+        wardCode?: string | null;
         consultationFee?: string | number | null;
         isAvailableForBooking?: boolean | null;
         specialtyId?: number | null;
@@ -170,6 +178,10 @@ export type PublicDoctorCard = {
   avatarUrl: string | null;
   professionalTitle: string | null;
   workplaceName: string | null;
+  workplaceAddress: string | null;
+  provinceCode: string | null;
+  districtCode: string | null;
+  wardCode: string | null;
   consultationFee: string;
   specialties: Array<{ id: number; name: string; isPrimary: boolean }>;
 };
@@ -192,9 +204,17 @@ export type PublicDoctorSlot = {
 };
 
 export const doctorsApi = {
-  list: (params?: { specialtyId?: number; page?: number; limit?: number }) => {
+  list: (params?: {
+    specialtyId?: number;
+    provinceCode?: string;
+    districtCode?: string;
+    page?: number;
+    limit?: number;
+  }) => {
     const q = new URLSearchParams();
     if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
+    if (params?.provinceCode) q.set('provinceCode', params.provinceCode);
+    if (params?.districtCode) q.set('districtCode', params.districtCode);
     if (params?.page != null) q.set('page', String(params.page));
     if (params?.limit != null) q.set('limit', String(params.limit));
     const qs = q.toString();
@@ -252,6 +272,30 @@ export type MyBookingPaymentInfo = {
   message: string;
 };
 
+export type UserNotificationPriority = 'low' | 'normal' | 'high';
+
+export type UserNotificationRow = {
+  id: string;
+  type: string;
+  priority: UserNotificationPriority;
+  title: string;
+  message: string;
+  link: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type UserNotificationsResponse = {
+  items: UserNotificationRow[];
+  total: number;
+  unreadCount: number;
+  filter: 'all' | 'unread';
+  limit: number;
+  offset: number;
+};
+
 export const bookingsApi = {
   my: () => api<MyBookingRow[]>('/bookings/me'),
   detail: (id: string) => api<MyBookingDetail>(`/bookings/me/${encodeURIComponent(id)}`),
@@ -292,6 +336,22 @@ export const bookingsApi = {
       method: 'PATCH',
       body: JSON.stringify({ reason: reason?.trim() || undefined }),
     }),
+};
+
+export const notificationsApi = {
+  my: (filter: 'all' | 'unread' = 'all', limit = 20, offset = 0) =>
+    api<UserNotificationsResponse>(`/notifications/me?filter=${filter}&limit=${limit}&offset=${offset}`),
+  markRead: (id: string) =>
+    api<{ ok: boolean; id: string; isRead: boolean }>(`/notifications/${encodeURIComponent(id)}/read`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+  markAllRead: () =>
+    api<{ ok: boolean }>('/notifications/me/read-all', {
+      method: 'PATCH',
+      body: '{}',
+    }),
+  streamUrl: () => `${API_BASE}/notifications/stream`,
 };
 
 export type DoctorSlotRow = PublicDoctorSlot;
@@ -465,6 +525,27 @@ export type CommentRow = {
   replies: CommentRow[];
 };
 
+export type QaQuestionRow = {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+  status: 'pending_review' | 'approved' | 'answered' | 'rejected' | string;
+  answerContent: string | null;
+  answeredAt: string | null;
+  createdAt: string;
+  patient: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+  doctor: null | {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+};
+
 export const publicPostsApi = {
   list: (page = 1, limit = 20) => apiPublic<Paginated<PublicPostRow>>(`/posts?page=${page}&limit=${limit}`),
   detail: (slug: string) => apiPublic<PublicPostDetail>(`/posts/${slug}`),
@@ -477,6 +558,29 @@ export const publicPostsApi = {
   reactComment: (commentId: string) =>
     api<{ liked: boolean }>(`/posts/comments/${commentId}/react`, {
       method: 'POST',
+    }),
+};
+
+export const qaApi = {
+  listPublic: (page = 1, limit = 20, category?: string) =>
+    apiPublic<Paginated<QaQuestionRow>>(
+      `/qa/questions?page=${page}&limit=${limit}${category?.trim() ? `&category=${encodeURIComponent(category.trim())}` : ''}`,
+    ),
+  detailPublic: (id: string) =>
+    apiPublic<QaQuestionRow>(`/qa/questions/${encodeURIComponent(id)}`),
+  ask: (data: { title: string; content: string; category?: string }) =>
+    api<QaQuestionRow>('/qa/questions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  doctorInbox: (status: 'all' | 'pending' | 'answered' = 'all', page = 1, limit = 20) =>
+    api<Paginated<QaQuestionRow>>(
+      `/qa/doctor/inbox?page=${page}&limit=${limit}${status === 'all' ? '' : `&status=${status}`}`,
+    ),
+  answer: (id: string, data: { content: string }) =>
+    api<QaQuestionRow>(`/qa/doctor/questions/${encodeURIComponent(id)}/answer`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     }),
 };
 
@@ -521,6 +625,10 @@ export type AdminDashboardSummary = {
   }>;
 };
 
+export type AdminUserFeaturePermissions = {
+  livestream: boolean;
+};
+
 export type AdminUserRow = {
   id: string;
   email: string;
@@ -529,6 +637,7 @@ export type AdminUserRow = {
   status: string;
   createdAt: string;
   roles: string[];
+  featurePermissions: AdminUserFeaturePermissions;
 };
 
 export type AdminUsersResponse = {
@@ -558,6 +667,20 @@ export type AdminPendingPost = {
   authorUserId: string;
   authorName: string | null;
   authorEmail: string | null;
+};
+
+export type AdminPendingQuestion = {
+  id: string;
+  title: string;
+  content: string;
+  category: string | null;
+  status: string;
+  createdAt: string;
+  patient: {
+    id: string;
+    fullName: string;
+    email: string | null;
+  };
 };
 
 export type AdminPostDetail = AdminPendingPost & {
@@ -621,6 +744,7 @@ export const adminApi = {
         isVerified: boolean;
         verificationStatus: string;
       };
+      featurePermissions: AdminUserFeaturePermissions;
     }>(`/admin/users/${encodeURIComponent(id)}`),
 
   createUser: (data: {
@@ -635,7 +759,15 @@ export const adminApi = {
       body: JSON.stringify(data),
     }),
 
-  updateUser: (id: string, data: { fullName?: string; phone?: string | null; status?: 'active' | 'disabled' }) =>
+  updateUser: (
+    id: string,
+    data: {
+      fullName?: string;
+      phone?: string | null;
+      status?: 'active' | 'disabled';
+      featurePermissions?: Partial<AdminUserFeaturePermissions>;
+    },
+  ) =>
     api<{ ok: boolean; id: string }>(`/admin/users/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -669,6 +801,21 @@ export const adminApi = {
 
   rejectPost: (id: number, reason?: string) =>
     api<{ ok: boolean }>(`/admin/posts/${id}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason: reason ?? undefined }),
+    }),
+
+  listPendingQuestions: (page = 1, limit = 20) =>
+    api<Paginated<AdminPendingQuestion>>(`/admin/questions/pending?page=${page}&limit=${limit}`),
+
+  approveQuestion: (id: string) =>
+    api<{ ok: boolean }>(`/admin/questions/${encodeURIComponent(id)}/approve`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+
+  rejectQuestion: (id: string, reason?: string) =>
+    api<{ ok: boolean }>(`/admin/questions/${encodeURIComponent(id)}/reject`, {
       method: 'PATCH',
       body: JSON.stringify({ reason: reason ?? undefined }),
     }),
