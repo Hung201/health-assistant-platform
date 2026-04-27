@@ -1,8 +1,21 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useChatStore } from '@/stores/chat.store';
+import { ChatMessage, RecommendationOption, useChatStore } from '@/stores/chat.store';
 import { Paperclip, Send, AlertTriangle, UserSearch, History, FileText, ChevronRight, Bot, User as UserIcon, PlusCircle, RotateCcw } from 'lucide-react';
+
+const FALLBACK_RECOMMENDATION_OPTIONS: RecommendationOption[] = [
+  {
+    id: 'doctor',
+    label: 'Gợi ý bác sĩ uy tín',
+    message: 'Tôi muốn được gợi ý bác sĩ uy tín phù hợp với tình trạng hiện tại.',
+  },
+  {
+    id: 'facility',
+    label: 'Bệnh viện/phòng khám gần tôi',
+    message: 'Tôi muốn xem các bệnh viện, phòng khám gần tôi.',
+  },
+];
 
 export default function AIAssistantPage() {
   const [input, setInput] = useState('');
@@ -12,6 +25,7 @@ export default function AIAssistantPage() {
   const sendMessage = useChatStore((s) => s.sendMessage);
   const finalResult = useChatStore((s) => s.finalResult);
   const doctorRecommendations = useChatStore((s) => s.doctorRecommendations);
+  const hospitalSuggestion = useChatStore((s) => s.hospitalSuggestion);
   const resetChat = useChatStore((s) => s.resetChat);
   const sessions = useChatStore((s) => s.sessions);
   const fetchSessions = useChatStore((s) => s.fetchSessions);
@@ -40,15 +54,40 @@ export default function AIAssistantPage() {
     await sendMessage(text, location);
   };
 
+  const handleRecommendationOptionClick = async (option: RecommendationOption) => {
+    if (isLoading) return;
+    await sendMessage(option.message, location);
+  };
+
   // Default mock messages if store is empty (to match design)
   // Initial welcome message if store is empty
-  const displayMessages = messages.length > 0 ? messages : [
+  const displayMessages: ChatMessage[] = messages.length > 0 ? messages : [
     {
       role: 'assistant',
       content: 'Chào bạn, tôi là Clinical AI. Hãy mô tả các triệu chứng bạn đang gặp phải để tôi có thể hỗ trợ phân tích và gợi ý bác sĩ chuyên khoa phù hợp cho bạn.',
       timestamp: new Date().toISOString()
     }
   ];
+
+  const hasRecommendationOptionsInMessages = displayMessages.some(
+    (msg) => msg.role === 'assistant' && Boolean(msg.recommendationOptions?.length),
+  );
+  const hasSelectedRecommendationIntent = displayMessages.some((msg) => {
+    if (msg.role !== 'user') return false;
+    const lower = msg.content.toLowerCase();
+    return (
+      lower.includes('bác sĩ uy tín') ||
+      lower.includes('goi y bac si') ||
+      lower.includes('bệnh viện') ||
+      lower.includes('benh vien') ||
+      lower.includes('phòng khám') ||
+      lower.includes('phong kham')
+    );
+  });
+  const shouldShowFallbackRecommendationPrompt = Boolean(finalResult) &&
+    !isLoading &&
+    !hasRecommendationOptionsInMessages &&
+    !hasSelectedRecommendationIntent;
 
   return (
     <div className="flex h-[calc(100vh-120px)] gap-6">
@@ -60,8 +99,8 @@ export default function AIAssistantPage() {
             <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse"></span>
             <h2 className="font-bold text-slate-800">AI Assistant Trực Tuyến</h2>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => resetChat()}
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-slate-50 hover:border-[#003f87]/30 hover:text-[#003f87]"
           >
@@ -71,26 +110,64 @@ export default function AIAssistantPage() {
         </div>
 
         {/* Messages */}
-        <div 
+        <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-6 space-y-6"
         >
           {displayMessages.map((msg, idx) => (
             <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
-                msg.role === 'user' ? 'bg-[#eefaf8] text-teal-700' : 'bg-[#003f87] text-white'
-              }`}>
+              <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${msg.role === 'user' ? 'bg-[#eefaf8] text-teal-700' : 'bg-[#003f87] text-white'
+                }`}>
                 {msg.role === 'user' ? <UserIcon size={16} /> : <Bot size={16} />}
               </div>
-              <div className={`rounded-2xl px-5 py-4 text-sm max-w-[80%] shadow-sm ${
-                msg.role === 'user' 
-                  ? 'bg-[#003f87] text-white rounded-tr-none' 
+              <div className={`rounded-2xl px-5 py-4 text-sm max-w-[80%] shadow-sm ${msg.role === 'user'
+                  ? 'bg-[#003f87] text-white rounded-tr-none'
                   : 'bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none'
-              }`}>
+                }`}>
                 <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                {msg.role === 'assistant' && msg.recommendationOptions && msg.recommendationOptions.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {msg.recommendationOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => handleRecommendationOptionClick(option)}
+                        disabled={isLoading}
+                        className="rounded-full border border-[#003f87]/30 bg-white px-3 py-1.5 text-xs font-semibold text-[#003f87] transition-colors hover:bg-[#003f87] hover:text-white disabled:opacity-50"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           ))}
+          {shouldShowFallbackRecommendationPrompt && (
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#003f87] text-white">
+                <Bot size={16} />
+              </div>
+              <div className="rounded-2xl px-5 py-4 text-sm max-w-[80%] shadow-sm bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none">
+                <p className="whitespace-pre-wrap leading-relaxed">
+                  Bạn muốn tôi gợi ý Bác sĩ uy tín (kèm thông tin bác sĩ và địa chỉ khám) hay các bệnh viện, phòng khám gần bạn?
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {FALLBACK_RECOMMENDATION_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => handleRecommendationOptionClick(option)}
+                      disabled={isLoading}
+                      className="rounded-full border border-[#003f87]/30 bg-white px-3 py-1.5 text-xs font-semibold text-[#003f87] transition-colors hover:bg-[#003f87] hover:text-white disabled:opacity-50"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           {isLoading && (
             <div className="flex gap-4">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#003f87] text-white">
@@ -173,11 +250,35 @@ export default function AIAssistantPage() {
                     <div key={idx} className="flex items-center justify-between rounded-xl border border-slate-100 p-3 bg-slate-50">
                       <div>
                         <p className="text-sm font-bold text-slate-800">{doc.fullName}</p>
-                        <p className="text-xs text-slate-500">{doc.specialties?.[0]?.name || 'Bác sĩ'}</p>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          {doc.professionalTitle || doc.specialties?.[0]?.name || 'Bác sĩ'}
+                        </p>
+                        {doc.workplaceName && (
+                          <p className="text-xs text-slate-500 mt-1">{doc.workplaceName}</p>
+                        )}
+                        {doc.workplaceAddress && (
+                          <p className="text-xs text-slate-500 mt-0.5">{doc.workplaceAddress}</p>
+                        )}
                       </div>
                       <a href={`/patient/doctors/${doc.userId}`} className="rounded-lg bg-[#003f87] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0056b3]">
                         Đặt lịch
                       </a>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {hospitalSuggestion && hospitalSuggestion.hospitals?.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-bold text-slate-800 mb-3">Cơ sở y tế gần bạn:</h4>
+                <div className="space-y-3">
+                  {hospitalSuggestion.hospitals.slice(0, 5).map((hospital, idx: number) => (
+                    <div key={idx} className="rounded-xl border border-slate-100 p-3 bg-slate-50">
+                      <p className="text-sm font-bold text-slate-800">{hospital.name}</p>
+                      <p className="text-xs text-slate-600 mt-1">{hospital.address}</p>
+                      {hospital.phone && (
+                        <p className="text-xs text-slate-500 mt-1">SDT: {hospital.phone}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -202,8 +303,8 @@ export default function AIAssistantPage() {
           <div className="space-y-3 overflow-y-auto pr-2">
             {sessions.length > 0 ? (
               sessions.map((session, idx) => (
-                <div 
-                  key={session.id} 
+                <div
+                  key={session.id}
                   onClick={() => loadSession(session.id)}
                   className="group flex items-center justify-between rounded-xl border border-slate-100 p-4 transition-all hover:border-[#003f87]/20 hover:bg-slate-50 cursor-pointer"
                 >

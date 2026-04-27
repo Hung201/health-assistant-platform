@@ -13,6 +13,7 @@ export class DoctorsController {
     @Query('specialtyId') specialtyId?: string,
     @Query('provinceCode') provinceCode?: string,
     @Query('districtCode') districtCode?: string,
+    @Query('workplaceQuery') workplaceQuery?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
   ) {
@@ -21,6 +22,7 @@ export class DoctorsController {
       specialtyId: sid != null && !Number.isNaN(sid) ? sid : undefined,
       provinceCode: provinceCode?.trim() || undefined,
       districtCode: districtCode?.trim() || undefined,
+      workplaceQuery: workplaceQuery?.trim() || undefined,
       page,
       limit,
     });

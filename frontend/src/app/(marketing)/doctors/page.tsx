@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
@@ -23,6 +23,14 @@ export default function DoctorsPage() {
   const [provinceCode, setProvinceCode] = useState('');
   const [districtCode, setDistrictCode] = useState('');
   const [priceFilter, setPriceFilter] = useState<string>('all');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -38,12 +46,13 @@ export default function DoctorsPage() {
   });
 
   const { data: doctorsData, isLoading } = useQuery({
-    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode],
+    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode, debouncedSearchTerm],
     queryFn: () =>
       doctorsApi.list({
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode.trim() || undefined,
         districtCode: districtCode.trim() || undefined,
+        workplaceQuery: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -86,18 +95,13 @@ export default function DoctorsPage() {
 
   // Client-side filtering by name and price
   const filteredDoctors = doctorsData?.items?.filter((doc) => {
-    const search = searchTerm.toLowerCase();
-    const matchName =
-      doc.fullName.toLowerCase().includes(search) ||
-      (doc.workplaceName ?? '').toLowerCase().includes(search) ||
-      (doc.workplaceAddress ?? '').toLowerCase().includes(search);
     const fee = Number(doc.consultationFee);
     let matchPrice = true;
     if (priceFilter === 'under500') matchPrice = fee < 500000;
     else if (priceFilter === '500to1m') matchPrice = fee >= 500000 && fee <= 1000000;
     else if (priceFilter === 'over1m') matchPrice = fee > 1000000;
     
-    return matchName && matchPrice;
+    return matchPrice;
   });
 
   return (

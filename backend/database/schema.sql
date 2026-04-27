@@ -5,6 +5,8 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- 1) users
 CREATE TABLE users (
@@ -370,6 +372,9 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
 CREATE INDEX idx_doctor_specialties_specialty_id ON doctor_specialties(specialty_id);
+CREATE UNIQUE INDEX idx_doctor_specialties_one_primary_per_doctor
+    ON doctor_specialties(doctor_user_id)
+    WHERE is_primary = TRUE;
 CREATE INDEX idx_slots_doctor_date_status ON doctor_available_slots(doctor_user_id, slot_date, status);
 CREATE INDEX idx_bookings_patient ON bookings(patient_user_id);
 CREATE INDEX idx_bookings_doctor ON bookings(doctor_user_id);
@@ -386,3 +391,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id,
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_created ON doctor_questions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_status ON doctor_questions(status);
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_patient ON doctor_questions(patient_user_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_profiles_workplace_search
+    ON doctor_profiles USING gin (
+      unaccent(lower(coalesce(workplace_name, '') || ' ' || coalesce(workplace_address, ''))) gin_trgm_ops
+    );

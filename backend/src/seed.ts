@@ -136,6 +136,20 @@ async function seed() {
       if (!existing) await txSpecialtyRepo.save(txSpecialtyRepo.create(s));
     }
     const allSpecs = await txSpecialtyRepo.find({ where: { status: 'active' }, order: { name: 'ASC' } });
+    let dentalSpecialty = await txSpecialtyRepo.findOne({ where: { slug: 'rang-ham-mat' } });
+    if (!dentalSpecialty) {
+      dentalSpecialty = await txSpecialtyRepo.save(
+        txSpecialtyRepo.create({
+          slug: 'rang-ham-mat',
+          name: 'Rang ham mat',
+          description: 'Kham va dieu tri cac benh ly rang ham mat.',
+          status: 'active',
+        }),
+      );
+    } else if (dentalSpecialty.status !== 'active') {
+      dentalSpecialty.status = 'active';
+      dentalSpecialty = await txSpecialtyRepo.save(dentalSpecialty);
+    }
 
     // ---- chronic_conditions (idempotent by code)
     const conditionSeeds: Array<{ code: string; name: string; description: string }> = [
@@ -210,6 +224,9 @@ async function seed() {
           professionalTitle: 'Bác sĩ',
           licenseNumber: '123456/CCHN',
           workplaceName: 'Clinical Precision Center',
+          workplaceAddress: '15 Pho Hue, Phuong Ngo Thi Nham, Quan Hai Ba Trung, Ha Noi',
+          provinceCode: '01',
+          districtCode: '008',
           yearsOfExperience: 6,
           bio: 'Bác sĩ tư vấn sức khỏe tổng quát và tim mạch.',
           isVerified: false,
@@ -217,6 +234,12 @@ async function seed() {
           consultationFee: '200000',
         }),
       );
+    } else {
+      existingDoctorProfile.workplaceAddress =
+        existingDoctorProfile.workplaceAddress ?? '15 Pho Hue, Phuong Ngo Thi Nham, Quan Hai Ba Trung, Ha Noi';
+      existingDoctorProfile.provinceCode = existingDoctorProfile.provinceCode ?? '01';
+      existingDoctorProfile.districtCode = existingDoctorProfile.districtCode ?? '008';
+      await txDoctorRepo.save(existingDoctorProfile);
     }
     const primarySpec = allSpecs[0] ?? (await txSpecialtyRepo.findOne({ where: { slug: 'noi-tong-quat' } }));
     if (primarySpec) {
@@ -235,10 +258,43 @@ async function seed() {
       }
     }
 
+    // ---- fake Vietnam workplaces for map/location recommendation seed
+    const cityLocations: Array<{
+      city: string;
+      provinceCode: string;
+      districtCode: string;
+      workplaceName: string;
+      workplaceAddress: string;
+    }> = [
+      {
+        city: 'Ha Noi',
+        provinceCode: '01',
+        districtCode: '005',
+        workplaceName: 'Phong kham Da khoa Cau Giay',
+        workplaceAddress: '98 Duong Cau Giay, Phuong Quan Hoa, Quan Cau Giay, Ha Noi',
+      },
+      {
+        city: 'TP HCM',
+        provinceCode: '79',
+        districtCode: '760',
+        workplaceName: 'Phong kham Da khoa Ben Thanh',
+        workplaceAddress: '210 Le Lai, Phuong Ben Thanh, Quan 1, TP Ho Chi Minh',
+      },
+      {
+        city: 'Da Nang',
+        provinceCode: '48',
+        districtCode: '490',
+        workplaceName: 'Phong kham Da khoa Hai Chau',
+        workplaceAddress: '55 Nguyen Van Linh, Phuong Nam Duong, Quan Hai Chau, Da Nang',
+      },
+    ];
+    const getCityLocation = (seedIndex: number) => cityLocations[(seedIndex - 1) % cityLocations.length];
+
     // ---- more pending doctors for admin review (idempotent)
     const pendingDoctorCount = 8;
     for (let i = 1; i <= pendingDoctorCount; i++) {
       const n = String(i).padStart(2, '0');
+      const cityLocation = getCityLocation(i);
       // eslint-disable-next-line no-await-in-loop
       const u = await ensureUser({
         email: `doctor_pending_${n}@precision.vn`,
@@ -257,7 +313,10 @@ async function seed() {
             userId: u.id,
             professionalTitle: 'Bác sĩ',
             licenseNumber: `PENDING-${n}/CCHN`,
-            workplaceName: 'MediSmart Pending Clinic',
+            workplaceName: `${cityLocation.workplaceName} (Pending ${cityLocation.city})`,
+            workplaceAddress: cityLocation.workplaceAddress,
+            provinceCode: cityLocation.provinceCode,
+            districtCode: cityLocation.districtCode,
             yearsOfExperience: 1 + (i % 8),
             bio: 'Hồ sơ demo (pending) để test luồng duyệt bác sĩ trên admin.',
             isVerified: false,
@@ -265,10 +324,14 @@ async function seed() {
             consultationFee: String(180000 + (i % 4) * 20000),
           }),
         );
-      } else if (p.verificationStatus !== 'pending' || p.isVerified !== false) {
+      } else {
         // keep seed idempotent but enforce "pending" for this demo set
         p.verificationStatus = 'pending';
         p.isVerified = false;
+        p.workplaceName = `${cityLocation.workplaceName} (Pending ${cityLocation.city})`;
+        p.workplaceAddress = p.workplaceAddress ?? cityLocation.workplaceAddress;
+        p.provinceCode = p.provinceCode ?? cityLocation.provinceCode;
+        p.districtCode = p.districtCode ?? cityLocation.districtCode;
         // eslint-disable-next-line no-await-in-loop
         await txDoctorRepo.save(p);
       }
@@ -290,6 +353,9 @@ async function seed() {
           professionalTitle: 'Bác sĩ Chuyên khoa',
           licenseNumber: '789101/CCHN',
           workplaceName: 'Precision Care Clinic',
+          workplaceAddress: '12 Nguyen Hue, Phuong Ben Nghe, Quan 1, TP Ho Chi Minh',
+          provinceCode: '79',
+          districtCode: '760',
           yearsOfExperience: 10,
           bio: 'Bác sĩ đã được duyệt (demo) để bệnh nhân có thể tìm và đặt lịch.',
           isVerified: true,
@@ -297,6 +363,12 @@ async function seed() {
           consultationFee: '250000',
         }),
       );
+    } else {
+      approvedProfile.workplaceAddress =
+        approvedProfile.workplaceAddress ?? '12 Nguyen Hue, Phuong Ben Nghe, Quan 1, TP Ho Chi Minh';
+      approvedProfile.provinceCode = approvedProfile.provinceCode ?? '79';
+      approvedProfile.districtCode = approvedProfile.districtCode ?? '760';
+      await txDoctorRepo.save(approvedProfile);
     }
     if (primarySpec) {
       const specId = asNumberId(primarySpec.id);
@@ -314,15 +386,84 @@ async function seed() {
       }
     }
 
+    // ---- dental doctor (approved) for dentistry recommendation and booking demo
+    const dentalDoctorUser = await ensureUser({
+      email: 'doctor_dental_01@precision.vn',
+      password: 'Doctor@123',
+      fullName: 'BS Nha khoa Cau Giay',
+      phone: '0900 003 001',
+    });
+    await ensureUserRole(dentalDoctorUser.id, 'doctor');
+
+    const dentalProfile = await txDoctorRepo.findOne({ where: { userId: dentalDoctorUser.id } });
+    if (!dentalProfile) {
+      await txDoctorRepo.save(
+        txDoctorRepo.create({
+          userId: dentalDoctorUser.id,
+          professionalTitle: 'Bac si Chuyen khoa Rang ham mat',
+          licenseNumber: 'DENTAL-01/CCHN',
+          workplaceName: 'Nha khoa Cau Giay Smile',
+          workplaceAddress: '123 Tran Thai Tong, Cau Giay, Ha Noi',
+          provinceCode: '01',
+          districtCode: '005',
+          yearsOfExperience: 9,
+          bio: 'Bac si rang ham mat, chuyen dieu tri dau rang va viem nha chu.',
+          isVerified: true,
+          verificationStatus: 'approved',
+          consultationFee: '300000',
+          priorityScore: 80,
+          isAvailableForBooking: true,
+        }),
+      );
+    } else {
+      dentalProfile.isVerified = true;
+      dentalProfile.verificationStatus = 'approved';
+      dentalProfile.workplaceName = dentalProfile.workplaceName ?? 'Nha khoa Cau Giay Smile';
+      dentalProfile.workplaceAddress = dentalProfile.workplaceAddress ?? '123 Tran Thai Tong, Cau Giay, Ha Noi';
+      dentalProfile.provinceCode = dentalProfile.provinceCode ?? '01';
+      dentalProfile.districtCode = dentalProfile.districtCode ?? '005';
+      dentalProfile.isAvailableForBooking = true;
+      await txDoctorRepo.save(dentalProfile);
+    }
+
+    if (dentalSpecialty) {
+      const dentalSpecId = asNumberId(dentalSpecialty.id);
+      const existingDentalLinks = await txDoctorSpecialtyRepo.find({
+        where: { doctorUserId: dentalDoctorUser.id },
+      });
+      for (const link of existingDentalLinks) {
+        if (!link.isPrimary) continue;
+        link.isPrimary = false;
+        await txDoctorSpecialtyRepo.save(link);
+      }
+
+      const dentalPrimary = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: dentalDoctorUser.id, specialtyId: dentalSpecId },
+      });
+      if (!dentalPrimary) {
+        await txDoctorSpecialtyRepo.save(
+          txDoctorSpecialtyRepo.create({
+            doctorUserId: dentalDoctorUser.id,
+            specialtyId: dentalSpecId,
+            isPrimary: true,
+          }),
+        );
+      } else if (!dentalPrimary.isPrimary) {
+        dentalPrimary.isPrimary = true;
+        await txDoctorSpecialtyRepo.save(dentalPrimary);
+      }
+    }
+
     // ---- bulk approved doctors for richer demo data (idempotent)
     const demoDoctorCount = 20;
     const safeSpecs = allSpecs.length > 0 ? allSpecs : primarySpec ? [primarySpec] : [];
     const day = 24 * 60 * 60 * 1000;
     const now = new Date();
-    const approvedDoctorIds: string[] = [approvedDoctorUser.id];
+    const approvedDoctorIds: string[] = [approvedDoctorUser.id, dentalDoctorUser.id];
 
     const ensureApprovedDoctor = async (idx: number) => {
       const n = String(idx).padStart(2, '0');
+      const cityLocation = getCityLocation(idx);
       const email = `doctor_demo_${n}@precision.vn`;
       const u = await ensureUser({
         email,
@@ -340,7 +481,10 @@ async function seed() {
             userId: u.id,
             professionalTitle: 'Bác sĩ',
             licenseNumber: `DEMO-${n}/CCHN`,
-            workplaceName: 'MediSmart Demo Clinic',
+            workplaceName: `${cityLocation.workplaceName} (Demo ${cityLocation.city})`,
+            workplaceAddress: cityLocation.workplaceAddress,
+            provinceCode: cityLocation.provinceCode,
+            districtCode: cityLocation.districtCode,
             yearsOfExperience: 3 + (idx % 12),
             bio: 'Hồ sơ demo (seed) để test tìm bác sĩ/đặt lịch.',
             isVerified: true,
@@ -348,6 +492,12 @@ async function seed() {
             consultationFee: String(150000 + (idx % 6) * 50000),
           }),
         );
+      } else {
+        profile.workplaceName = `${cityLocation.workplaceName} (Demo ${cityLocation.city})`;
+        profile.workplaceAddress = profile.workplaceAddress ?? cityLocation.workplaceAddress;
+        profile.provinceCode = profile.provinceCode ?? cityLocation.provinceCode;
+        profile.districtCode = profile.districtCode ?? cityLocation.districtCode;
+        await txDoctorRepo.save(profile);
       }
 
       const spec = safeSpecs.length > 0 ? safeSpecs[idx % safeSpecs.length] : null;
@@ -393,6 +543,138 @@ async function seed() {
     for (let i = 1; i <= demoDoctorCount; i++) {
       // eslint-disable-next-line no-await-in-loop
       await ensureApprovedDoctor(i);
+    }
+
+    // ---- ensure specialty coverage for AI recommend (idempotent)
+    // Keep at least one approved doctor as primary for each specialty that was previously empty.
+    const remapPlan: Array<{ email: string; slug: string }> = [
+      { email: 'doctor_demo_13@precision.vn', slug: 'tieu-hoa' },
+      { email: 'doctor_demo_18@precision.vn', slug: 'ho-hap' },
+      { email: 'doctor_demo_03@precision.vn', slug: 'tai-mui-hong' },
+      { email: 'doctor_demo_01@precision.vn', slug: 'co-xuong-khop' },
+      { email: 'doctor_demo_06@precision.vn', slug: 'than-kinh' },
+      { email: 'doctor_demo_04@precision.vn', slug: 'san-phu-khoa' },
+      { email: 'doctor_demo_11@precision.vn', slug: 'nhan-khoa' },
+    ];
+    for (const plan of remapPlan) {
+      // eslint-disable-next-line no-await-in-loop
+      const doctorUser = await txUserRepo.findOne({ where: { email: plan.email } });
+      if (!doctorUser) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const spec = await txSpecialtyRepo.findOne({ where: { slug: plan.slug, status: 'active' } });
+      if (!spec) continue;
+      const specId = asNumberId(spec.id);
+
+      // eslint-disable-next-line no-await-in-loop
+      const links = await txDoctorSpecialtyRepo.find({ where: { doctorUserId: doctorUser.id } });
+      for (const link of links) {
+        if (!link.isPrimary) continue;
+        link.isPrimary = false;
+        // eslint-disable-next-line no-await-in-loop
+        await txDoctorSpecialtyRepo.save(link);
+      }
+
+      // eslint-disable-next-line no-await-in-loop
+      const existingLink = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: doctorUser.id, specialtyId: specId },
+      });
+      if (!existingLink) {
+        // eslint-disable-next-line no-await-in-loop
+        await txDoctorSpecialtyRepo.save(
+          txDoctorSpecialtyRepo.create({
+            doctorUserId: doctorUser.id,
+            specialtyId: specId,
+            isPrimary: true,
+          }),
+        );
+      } else if (!existingLink.isPrimary) {
+        existingLink.isPrimary = true;
+        // eslint-disable-next-line no-await-in-loop
+        await txDoctorSpecialtyRepo.save(existingLink);
+      }
+    }
+
+    // ---- normalize primary specialty: exactly one primary per doctor
+    await manager.query(`
+      WITH ranked AS (
+        SELECT
+          doctor_user_id,
+          specialty_id,
+          ROW_NUMBER() OVER (
+            PARTITION BY doctor_user_id
+            ORDER BY
+              CASE WHEN is_primary THEN 0 ELSE 1 END,
+              created_at ASC,
+              specialty_id ASC
+          ) AS rn
+        FROM doctor_specialties
+      )
+      UPDATE doctor_specialties ds
+      SET is_primary = (ranked.rn = 1)
+      FROM ranked
+      WHERE ds.doctor_user_id = ranked.doctor_user_id
+        AND ds.specialty_id = ranked.specialty_id
+    `);
+
+    // ---- seed future schedules for booking (idempotent)
+    // 14 days ahead, Monday-Saturday, 2 sessions/day (09:00-10:00 and 14:00-15:00 in Asia/Ho_Chi_Minh).
+    const toVnDate = (d: Date) =>
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Ho_Chi_Minh',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(d);
+
+    const approvedProfiles = await txDoctorRepo.find({
+      where: { isVerified: true, verificationStatus: 'approved' },
+      order: { priorityScore: 'DESC', createdAt: 'ASC' },
+    });
+
+    for (const profile of approvedProfiles) {
+      // eslint-disable-next-line no-await-in-loop
+      const primaryLink = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: profile.userId, isPrimary: true },
+        order: { createdAt: 'ASC' },
+      });
+      if (!primaryLink) continue;
+
+      const specialtyId = asNumberId(primaryLink.specialtyId);
+      for (let offset = 1; offset <= 14; offset++) {
+        const dateStr = toVnDate(new Date(Date.now() + offset * day));
+        const dayInVn = new Date(`${dateStr}T00:00:00+07:00`).getDay();
+        if (dayInVn === 0) continue; // Skip Sunday
+
+        const slots = [
+          { start: `${dateStr}T09:00:00+07:00`, end: `${dateStr}T10:00:00+07:00` },
+          { start: `${dateStr}T14:00:00+07:00`, end: `${dateStr}T15:00:00+07:00` },
+        ];
+
+        for (const item of slots) {
+          const startAt = new Date(item.start);
+          const endAt = new Date(item.end);
+          // eslint-disable-next-line no-await-in-loop
+          const existed = await txSlotRepo.findOne({
+            where: { doctorUserId: profile.userId, startAt, endAt },
+          });
+          if (existed) continue;
+
+          // eslint-disable-next-line no-await-in-loop
+          await txSlotRepo.save(
+            txSlotRepo.create({
+              doctorUserId: profile.userId,
+              specialtyId,
+              slotDate: new Date(`${dateStr}T12:00:00+07:00`), // noon to avoid timezone date drift
+              startAt,
+              endAt,
+              maxBookings: 3,
+              bookedCount: 0,
+              status: 'available',
+              source: 'seed_schedule',
+            }),
+          );
+        }
+      }
     }
 
     // ---- demo patient

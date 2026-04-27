@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 
 import { DoctorAvailableSlot } from '../entities/doctor-available-slot.entity';
 import { DoctorProfile } from '../entities/doctor-profile.entity';
@@ -40,6 +40,22 @@ export type PublicDoctorSlot = {
   status: string;
 };
 
+export type RecommendDoctorsOptions = {
+  specialtyId: number;
+  limit?: number;
+  locationHint?: string | null;
+  workplaceQuery?: string | null;
+};
+
+type HardLocationScope = 'district' | 'province';
+
+type WorkplaceSignals = {
+  districtHint?: string;
+  provinceHint?: string;
+  fullPhrase?: string;
+  keywords: string[];
+};
+
 @Injectable()
 export class DoctorsService {
   constructor(
@@ -66,10 +82,112 @@ export class DoctorsService {
     return links[0] ?? null;
   }
 
+  private normalizeInput(value?: string | null): string {
+    return (value ?? '').trim().replace(/\s+/g, ' ');
+  }
+
+  private toKeywords(value?: string | null): string[] {
+    const text = this.normalizeInput(value).toLowerCase();
+    if (!text) return [];
+    const stopWords = new Set([
+      'o',
+      'ở',
+      'tai',
+      'tại',
+      'gan',
+      'gần',
+      'phong',
+      'phòng',
+      'kham',
+      'khám',
+      'benh',
+      'bệnh',
+      'vien',
+      'viện',
+      'clinic',
+      'hospital',
+    ]);
+    const tokens = text
+      .split(/[\s,.-/]+/)
+      .map((t) => t.trim())
+      .filter((t) => t.length >= 2 && !stopWords.has(t));
+    return Array.from(new Set(tokens)).slice(0, 8);
+  }
+
+  private buildWorkplaceSignals(workplaceQuery?: string, locationHint?: string): WorkplaceSignals {
+    const cleanWorkplaceQuery = this.normalizeInput(workplaceQuery);
+    const cleanLocationHint = this.normalizeInput(locationHint);
+    const locationParts = cleanLocationHint
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const districtHint = locationParts.length >= 2 ? locationParts[0] : undefined;
+    const provinceHint = locationParts.length >= 1 ? locationParts[locationParts.length - 1] : undefined;
+    const fullPhrase = cleanWorkplaceQuery || cleanLocationHint || undefined;
+    const keywords = this.toKeywords([cleanWorkplaceQuery, cleanLocationHint].filter(Boolean).join(' '));
+
+    return { districtHint, provinceHint, fullPhrase, keywords };
+  }
+
+  private applyRanking(qb: SelectQueryBuilder<DoctorProfile>, signals: WorkplaceSignals): void {
+    const workplaceExpr =
+      "unaccent(lower(coalesce(d.workplace_name, '') || ' ' || coalesce(d.workplace_address, '')))";
+    const hasAvailableSlotExpr =
+      "CASE WHEN EXISTS (SELECT 1 FROM doctor_available_slots s WHERE s.doctor_user_id = d.user_id AND s.start_at >= NOW() AND s.booked_count < s.max_bookings AND s.status = 'available') THEN 1 ELSE 0 END";
+    const nextAvailableSlotExpr =
+      "(SELECT MIN(s.start_at) FROM doctor_available_slots s WHERE s.doctor_user_id = d.user_id AND s.start_at >= NOW() AND s.booked_count < s.max_bookings AND s.status = 'available')";
+
+    const scorePieces: string[] = [];
+    if (signals.districtHint) {
+      qb.setParameter('districtHint', signals.districtHint);
+      scorePieces.push(
+        `CASE WHEN ${workplaceExpr} LIKE '%' || unaccent(lower(:districtHint)) || '%' THEN 40 ELSE 0 END`,
+      );
+    }
+    if (signals.provinceHint) {
+      qb.setParameter('provinceHint', signals.provinceHint);
+      scorePieces.push(
+        `CASE WHEN ${workplaceExpr} LIKE '%' || unaccent(lower(:provinceHint)) || '%' THEN 25 ELSE 0 END`,
+      );
+    }
+    if (signals.fullPhrase) {
+      qb.setParameter('fullPhrase', signals.fullPhrase);
+      scorePieces.push(
+        `CASE WHEN ${workplaceExpr} LIKE '%' || unaccent(lower(:fullPhrase)) || '%' THEN 15 ELSE 0 END`,
+      );
+    }
+    if (signals.keywords.length > 0) {
+      const keywordMatches: string[] = [];
+      signals.keywords.forEach((keyword, idx) => {
+        const name = `workplaceKeyword${idx}`;
+        qb.setParameter(name, keyword);
+        keywordMatches.push(`${workplaceExpr} LIKE '%' || unaccent(lower(:${name})) || '%'`);
+      });
+      scorePieces.push(`CASE WHEN (${keywordMatches.join(' OR ')}) THEN 10 ELSE 0 END`);
+    }
+
+    const workplaceScoreExpr = scorePieces.length > 0 ? scorePieces.join(' + ') : '0';
+
+    qb.addSelect(workplaceScoreExpr, 'workplace_score');
+    qb.addSelect(hasAvailableSlotExpr, 'has_available_slot');
+    qb.addSelect(nextAvailableSlotExpr, 'next_available_slot');
+    qb.orderBy('workplace_score', 'DESC');
+    qb.addOrderBy('has_available_slot', 'DESC');
+    qb.addOrderBy('d.priorityScore', 'DESC');
+    qb.addOrderBy('d.yearsOfExperience', 'DESC');
+    qb.addOrderBy('next_available_slot', 'ASC', 'NULLS LAST');
+    qb.addOrderBy('d.createdAt', 'DESC');
+  }
+
   async listPublicDoctors(params: {
     specialtyId?: number;
     provinceCode?: string;
     districtCode?: string;
+    workplaceQuery?: string;
+    locationHint?: string;
+    hardLocationScope?: HardLocationScope;
+    excludeDoctorUserIds?: string[];
     page?: number;
     limit?: number;
   }): Promise<{ items: PublicDoctorCard[]; total: number; page: number; limit: number }> {
@@ -79,16 +197,14 @@ export class DoctorsService {
     const qb = this.doctorRepo
       .createQueryBuilder('d')
       .innerJoinAndSelect('d.user', 'u')
-      .where('d.is_verified = TRUE')
-      .andWhere('d.verification_status = :status', { status: 'approved' })
-      .orderBy('d.priorityScore', 'DESC')
-      .addOrderBy('d.createdAt', 'DESC');
+      .where('d.isVerified = TRUE')
+      .andWhere('d.verificationStatus = :status', { status: 'approved' });
 
     if (specialtyId != null) {
       qb.innerJoin(
         DoctorSpecialty,
         'ds_filter',
-        'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid AND ds_filter.is_primary = TRUE',
+        'ds_filter.doctorUserId = d.userId AND ds_filter.specialtyId = :sid AND ds_filter.isPrimary = TRUE',
         { sid: specialtyId },
       );
     }
@@ -98,9 +214,26 @@ export class DoctorsService {
     if (params.districtCode) {
       qb.andWhere('d.district_code = :districtCode', { districtCode: params.districtCode });
     }
+    if (params.excludeDoctorUserIds && params.excludeDoctorUserIds.length > 0) {
+      qb.andWhere('d.user_id NOT IN (:...excludeDoctorUserIds)', {
+        excludeDoctorUserIds: params.excludeDoctorUserIds,
+      });
+    }
+
+    const signals = this.buildWorkplaceSignals(params.workplaceQuery, params.locationHint);
+    const workplaceExpr =
+      "unaccent(lower(coalesce(d.workplace_name, '') || ' ' || coalesce(d.workplace_address, '')))";
+    if (params.hardLocationScope === 'district' && signals.districtHint) {
+      qb.setParameter('hardDistrictHint', signals.districtHint);
+      qb.andWhere(`${workplaceExpr} LIKE '%' || unaccent(lower(:hardDistrictHint)) || '%'`);
+    } else if (params.hardLocationScope === 'province' && signals.provinceHint) {
+      qb.setParameter('hardProvinceHint', signals.provinceHint);
+      qb.andWhere(`${workplaceExpr} LIKE '%' || unaccent(lower(:hardProvinceHint)) || '%'`);
+    }
 
     const total = await qb.getCount();
-    const doctors = await qb.skip((safePage - 1) * safeLimit).take(safeLimit).getMany();
+    this.applyRanking(qb, signals);
+    const doctors = await qb.offset((safePage - 1) * safeLimit).limit(safeLimit).getMany();
     if (doctors.length === 0) {
       return { items: [], total, page: safePage, limit: safeLimit };
     }
@@ -145,71 +278,53 @@ export class DoctorsService {
     return { items, total, page: safePage, limit: safeLimit };
   }
 
-  async recommendDoctors(specialtyId: number, limit: number = 3): Promise<PublicDoctorCard[]> {
-    const qb = this.doctorRepo
-      .createQueryBuilder('d')
-      .innerJoinAndSelect('d.user', 'u')
-      .innerJoin(
-        DoctorSpecialty,
-        'ds_filter',
-        'ds_filter.doctor_user_id = d.user_id AND ds_filter.specialty_id = :sid AND ds_filter.is_primary = TRUE',
-        { sid: specialtyId }
-      )
-      .innerJoin(
-        DoctorAvailableSlot,
-        'slot',
-        'slot.doctor_user_id = d.user_id AND slot.start_at >= NOW() AND slot.booked_count < slot.max_bookings AND slot.status = :slotStatus',
-        { slotStatus: 'available' }
-      )
-      .where('d.is_verified = TRUE')
-      .andWhere('d.verification_status = :status', { status: 'approved' })
-      .groupBy('d.user_id')
-      .addGroupBy('u.id')
-      .orderBy('d.priority_score', 'DESC')
-      .addOrderBy('d.years_of_experience', 'DESC')
-      .addOrderBy('MIN(slot.start_at)', 'ASC')
-      .take(limit);
+  async recommendDoctors(options: RecommendDoctorsOptions): Promise<PublicDoctorCard[]> {
+    const limit = options.limit ?? 3;
+    const locationHint = options.locationHint ?? undefined;
+    const workplaceQuery = options.workplaceQuery ?? undefined;
+    const signals = this.buildWorkplaceSignals(workplaceQuery, locationHint);
 
-    const doctors = await qb.getMany();
-    if (doctors.length === 0) return [];
+    const selected: PublicDoctorCard[] = [];
+    const selectedIds = new Set<string>();
 
-    const doctorIds = doctors.map((d) => d.userId);
-    const links = await this.doctorSpecialtyRepo.find({
-      where: doctorIds.map((id) => ({ doctorUserId: id })),
-      order: { isPrimary: 'DESC', createdAt: 'ASC' },
-    });
+    const appendUnique = (items: PublicDoctorCard[]) => {
+      for (const item of items) {
+        if (selectedIds.has(item.userId)) continue;
+        selected.push(item);
+        selectedIds.add(item.userId);
+        if (selected.length >= limit) break;
+      }
+    };
 
-    const specIds = Array.from(new Set(links.map((l) => Number(l.specialtyId))));
-    const specs = specIds.length
-      ? await this.specialtyRepo.find({
-          where: specIds.map((id) => ({ id, status: 'active' })),
-          select: ['id', 'name'],
-        })
-      : [];
-    const specById = new Map(specs.map((s) => [Number(s.id), s]));
+    const fetchStage = async (hardLocationScope?: HardLocationScope) => {
+      const result = await this.listPublicDoctors({
+        specialtyId: options.specialtyId,
+        workplaceQuery,
+        locationHint,
+        hardLocationScope,
+        excludeDoctorUserIds: Array.from(selectedIds),
+        page: 1,
+        limit: limit - selected.length,
+      });
+      appendUnique(result.items);
+    };
 
-    const byDoctor = new Map<string, PublicDoctorCard['specialties']>();
-    for (const l of links) {
-      if (byDoctor.has(l.doctorUserId)) continue;
-      const sid = Number(l.specialtyId);
-      const s = specById.get(sid);
-      if (!s) continue;
-      byDoctor.set(l.doctorUserId, [{ id: sid, name: s.name, isPrimary: true }]);
+    // Stage 1: same district first (if location has district signal)
+    if (signals.districtHint) {
+      await fetchStage('district');
     }
 
-    return doctors.map((d) => ({
-      userId: d.userId,
-      fullName: d.user?.fullName ?? '',
-      avatarUrl: d.user?.avatarUrl ?? null,
-      professionalTitle: d.professionalTitle,
-      workplaceName: d.workplaceName,
-      workplaceAddress: d.workplaceAddress,
-      provinceCode: d.provinceCode,
-      districtCode: d.districtCode,
-      wardCode: d.wardCode,
-      consultationFee: d.consultationFee,
-      specialties: byDoctor.get(d.userId) ?? [],
-    }));
+    // Stage 2: same province next (if still missing and province signal exists)
+    if (selected.length < limit && signals.provinceHint) {
+      await fetchStage('province');
+    }
+
+    // Stage 3: cross-province fallback only when still missing.
+    if (selected.length < limit) {
+      await fetchStage(undefined);
+    }
+
+    return selected.slice(0, limit);
   }
 
   async getPublicDoctorDetail(doctorUserId: string): Promise<PublicDoctorDetail> {

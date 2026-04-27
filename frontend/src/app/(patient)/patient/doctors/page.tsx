@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, BadgeCheck, Stethoscope, X } from 'lucide-react';
@@ -23,6 +23,14 @@ export default function PatientFindDoctorsPage() {
   const [nearByMode, setNearByMode] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [focusedDoctorId, setFocusedDoctorId] = useState<string | null>(null);
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   const { data: specialtiesData } = useQuery({
     queryKey: ['public-specialties'],
@@ -30,12 +38,13 @@ export default function PatientFindDoctorsPage() {
   });
 
   const { data: doctorsData, isLoading } = useQuery({
-    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode],
+    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode, debouncedSearchTerm],
     queryFn: () =>
       doctorsApi.list({
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode || undefined,
         districtCode: districtCode || undefined,
+        workplaceQuery: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -70,21 +79,16 @@ export default function PatientFindDoctorsPage() {
 
   const filteredDoctors = useMemo(() => {
     const rows = doctorsData?.items ?? [];
-    const search = searchTerm.toLowerCase();
     const meProvince = user?.patientProfile?.provinceCode ?? '';
     const meDistrict = user?.patientProfile?.districtCode ?? '';
 
     const list = rows.filter((doc) => {
-      const matchName =
-        doc.fullName.toLowerCase().includes(search) ||
-        (doc.workplaceName ?? '').toLowerCase().includes(search) ||
-        (doc.workplaceAddress ?? '').toLowerCase().includes(search);
       const fee = Number(doc.consultationFee);
       let matchPrice = true;
       if (priceFilter === 'under500') matchPrice = fee < 500000;
       else if (priceFilter === '500to1m') matchPrice = fee >= 500000 && fee <= 1000000;
       else if (priceFilter === 'over1m') matchPrice = fee > 1000000;
-      return matchName && matchPrice;
+      return matchPrice;
     });
 
     if (!nearByMode || (!meProvince && !meDistrict)) return list;
@@ -97,7 +101,7 @@ export default function PatientFindDoctorsPage() {
       };
       return score(b) - score(a);
     });
-  }, [doctorsData?.items, nearByMode, priceFilter, searchTerm, user?.patientProfile?.districtCode, user?.patientProfile?.provinceCode]);
+  }, [doctorsData?.items, nearByMode, priceFilter, user?.patientProfile?.districtCode, user?.patientProfile?.provinceCode]);
   const focusedDoctor =
     (focusedDoctorId ? filteredDoctors.find((d) => d.userId === focusedDoctorId) : null) ?? filteredDoctors[0] ?? null;
   const mapQuery = focusedDoctor

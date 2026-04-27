@@ -21,9 +21,28 @@ type PatientContextPayload = {
   chronic_conditions?: string[];
 };
 
+type RecommendationOption = {
+  id: 'doctor' | 'facility';
+  label: string;
+  message: string;
+};
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
+  private readonly specialtySynonyms: Array<{ keywords: string[]; slugs: string[] }> = [
+    { keywords: ['rang ham mat', 'nha khoa', 'dau rang', 'sau rang', 'rang'], slugs: ['rang-ham-mat', 'tai-mui-hong', 'ngoai-khoa', 'noi-tong-quat'] },
+    { keywords: ['co xuong khop', 'xuong khop', 'cot song', 'thoat vi', 'dau lung'], slugs: ['co-xuong-khop', 'ngoai-khoa', 'than-kinh'] },
+    { keywords: ['tim mach', 'huyet ap', 'nhip tim'], slugs: ['tim-mach', 'noi-tong-quat'] },
+    { keywords: ['ho hap', 'phoi', 'viem phe quan', 'hen'], slugs: ['ho-hap', 'noi-tong-quat'] },
+    { keywords: ['tieu hoa', 'da day', 'ruot', 'gan mat'], slugs: ['tieu-hoa', 'noi-tong-quat'] },
+    { keywords: ['than kinh', 'dau dau', 'te bi'], slugs: ['than-kinh', 'noi-tong-quat'] },
+    { keywords: ['da lieu', 'di ung da', 'mun', 'eczema'], slugs: ['da-lieu', 'noi-tong-quat'] },
+    { keywords: ['san phu khoa', 'phu khoa', 'thai ky', 'kinh nguyet'], slugs: ['san-phu-khoa', 'noi-tong-quat'] },
+    { keywords: ['tai mui hong', 'viem xoang', 'dau hong'], slugs: ['tai-mui-hong', 'noi-tong-quat'] },
+    { keywords: ['nhi khoa', 'tre em', 'nhi'], slugs: ['nhi-khoa', 'noi-tong-quat'] },
+    { keywords: ['nhan khoa', 'mat', 'thi luc'], slugs: ['nhan-khoa', 'noi-tong-quat'] },
+  ];
   constructor(
     private readonly config: ConfigService,
     private readonly doctorsService: DoctorsService,
@@ -69,19 +88,151 @@ export class AiService {
       });
     }
 
+    const locationHint = this.buildLocationHint(dto.message, dto.user_location, data?.hospital_suggestion);
+
     // Process doctor recommendation if there's a suggested specialty
     const suggestedSpecialty = data?.final_result?.top_diseases?.[0]?.suggested_specialty;
     if (suggestedSpecialty && typeof suggestedSpecialty === 'string') {
-      const spec = await this.specialtyRepo.findOne({
-        where: { name: ILike(`%${suggestedSpecialty}%`), status: 'active' },
-      });
+      const spec = await this.findBestSpecialty(suggestedSpecialty);
       if (spec) {
-        const recommendedDoctors = await this.doctorsService.recommendDoctors(Number(spec.id), 3);
+        let recommendedDoctors = await this.doctorsService.recommendDoctors({
+          specialtyId: Number(spec.id),
+          limit: 3,
+          locationHint,
+          workplaceQuery: locationHint,
+        });
+
+        // Fallback: nếu chưa có bác sĩ có slot trống, vẫn trả bác sĩ đã duyệt theo chuyên khoa
+        // để UI không bị rỗng hoàn toàn.
+        if (!recommendedDoctors || recommendedDoctors.length === 0) {
+          const fallback = await this.doctorsService.listPublicDoctors({
+            specialtyId: Number(spec.id),
+            page: 1,
+            limit: 3,
+          });
+          recommendedDoctors = fallback.items;
+        }
+
+        // Fallback 2: chuyên khoa hiện chưa có bác sĩ trong DB -> trả top bác sĩ public
+        if (!recommendedDoctors || recommendedDoctors.length === 0) {
+          const broadFallback = await this.doctorsService.listPublicDoctors({
+            page: 1,
+            limit: 3,
+          });
+          recommendedDoctors = broadFallback.items;
+        }
+
         data.doctor_recommendations = recommendedDoctors;
       }
     }
 
+    if (data?.final_result && !this.hasRecommendationSelectionIntent(dto.message)) {
+      const recommendationPrompt =
+        'Bạn muốn tôi gợi ý Bác sĩ uy tín (kèm thông tin bác sĩ và địa chỉ khám) hay các bệnh viện, phòng khám gần bạn?';
+      if (typeof data.reply === 'string' && !data.reply.includes('Bạn muốn tôi gợi ý Bác sĩ uy tín')) {
+        data.reply = `${data.reply}\n\n${recommendationPrompt}`;
+      }
+      data.recommendation_options = this.buildRecommendationOptions();
+    }
+
     return data;
+  }
+
+  private buildRecommendationOptions(): RecommendationOption[] {
+    return [
+      {
+        id: 'doctor',
+        label: 'Gợi ý bác sĩ uy tín',
+        message: 'Tôi muốn được gợi ý bác sĩ uy tín phù hợp với tình trạng hiện tại.',
+      },
+      {
+        id: 'facility',
+        label: 'Bệnh viện/phòng khám gần tôi',
+        message: 'Tôi muốn xem các bệnh viện, phòng khám gần tôi.',
+      },
+    ];
+  }
+
+  private hasRecommendationSelectionIntent(message?: string | null): boolean {
+    const normalized = this.normalizeText(message);
+    if (!normalized) return false;
+    const doctorIntentKeywords = ['goi y bac si', 'bac si uy tin', 'dat lich bac si', 'tim bac si'];
+    const facilityIntentKeywords = ['benh vien', 'phong kham', 'co so y te', 'gan toi', 'gan ban'];
+    return (
+      doctorIntentKeywords.some((k) => normalized.includes(k)) ||
+      facilityIntentKeywords.some((k) => normalized.includes(k))
+    );
+  }
+
+  private buildLocationHint(
+    message: string,
+    userLocation?: string | null,
+    hospitalSuggestion?: { location_used?: string | null } | null,
+  ): string | undefined {
+    const cleanUserLocation = this.normalizeHint(userLocation);
+    if (cleanUserLocation) return cleanUserLocation;
+
+    const fromMessage = this.extractLocationFromMessage(message);
+    if (fromMessage) return fromMessage;
+
+    const hospitalLocation = this.normalizeHint(hospitalSuggestion?.location_used);
+    return hospitalLocation || undefined;
+  }
+
+  private extractLocationFromMessage(message?: string | null): string | undefined {
+    const text = this.normalizeHint(message);
+    if (!text) return undefined;
+
+    const locationRegex = /\b(?:ở|o|tại|tai)\s+([^.!?]+)/iu;
+    const match = text.match(locationRegex);
+    if (!match?.[1]) return undefined;
+    return this.normalizeHint(match[1]) || undefined;
+  }
+
+  private normalizeHint(value?: string | null): string | null {
+    const text = (value ?? '').trim().replace(/\s+/g, ' ');
+    return text.length > 0 ? text : null;
+  }
+
+  private normalizeText(value?: string | null): string {
+    return (value ?? '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private async findBestSpecialty(suggestedSpecialty: string): Promise<Specialty | null> {
+    const direct = await this.specialtyRepo.findOne({
+      where: { name: ILike(`%${suggestedSpecialty}%`), status: 'active' },
+    });
+    if (direct) return direct;
+
+    const allActive = await this.specialtyRepo.find({ where: { status: 'active' } });
+    if (!allActive.length) return null;
+
+    const normalizedSuggested = this.normalizeText(suggestedSpecialty);
+    const byName = allActive.find((s) => {
+      const normalizedName = this.normalizeText(s.name);
+      return (
+        normalizedName.includes(normalizedSuggested) || normalizedSuggested.includes(normalizedName)
+      );
+    });
+    if (byName) return byName;
+
+    const synonymRule = this.specialtySynonyms.find((rule) =>
+      rule.keywords.some((keyword) => normalizedSuggested.includes(keyword)),
+    );
+    if (!synonymRule) return null;
+
+    for (const slug of synonymRule.slugs) {
+      const match = allActive.find((s) => s.slug === slug);
+      if (match) return match;
+    }
+    return null;
   }
 
   async getSessions(userId: string) {
