@@ -1,0 +1,376 @@
+/* ============================================================
+   CLINICAL PRECISION — MARKETING DESIGN SYSTEM
+   ============================================================ */
+
+html { scroll-behavior: smooth; }
+
+/* ---------- Design Tokens ---------- */
+:root {
+  --teal:       #0D9E75;
+  --teal-hover: #0B8A65;
+  --teal-10:    rgba(13,158,117,0.10);
+  --teal-shadow:0 4px 20px rgba(13,158,117,0.35);
+  --radius-card:   16px;
+  --radius-btn:    10px;
+  --radius-badge:  20px;
+  --transition:    all 0.2s ease;
+}
+
+/* ---------- Utilities ---------- */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Scroll-aware Navbar ---------- */
+.navbar-scrolled {
+  backdrop-filter: blur(14px) !important;
+  background: rgba(255,255,255,0.85) !important;
+  border-bottom: 0.5px solid rgba(0,0,0,0.08) !important;
+}
+
+/* ---------- Buttons ---------- */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 600;
+  padding: 14px 32px;
+  border-radius: var(--radius-btn);
+  box-shadow: none;
+  transition: var(--transition);
+  text-decoration: none;
+}
+.btn-primary:hover {
+  background: var(--teal-hover);
+  box-shadow: var(--teal-shadow);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #1e293b;
+  font-weight: 600;
+  padding: 14px 32px;
+  border-radius: var(--radius-btn);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: var(--transition);
+  text-decoration: none;
+}
+.btn-secondary:hover {
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
+}
+.btn-secondary:active { transform: scale(0.97); }
+
+/* ---------- Hero ---------- */
+.hero-section {
+  background: radial-gradient(ellipse 80% 60% at 0% 0%, #E8F8F2, #ffffff);
+  position: relative;
+  overflow: hidden;
+}
+.hero-mesh {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230D9E75' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* AI Chat Mockup card */
+.ai-chat-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12);
+  transform: rotate(2deg);
+  position: relative;
+  overflow: hidden;
+}
+.ai-chat-glow {
+  position: absolute;
+  inset: -8px;
+  border-radius: calc(var(--radius-card) + 8px);
+  background: radial-gradient(ellipse, rgba(13,158,117,0.35), transparent 70%);
+  animation: glow-pulse 3s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes glow-pulse {
+  0%, 100% { transform: scale(1);   opacity: 0.4; }
+  50%       { transform: scale(1.02); opacity: 0.7; }
+}
+
+/* Stat count-up items */
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1;
+}
+.stat-label {
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+/* ---------- How It Works (Stepper) ---------- */
+.stepper-connector {
+  flex: 1;
+  height: 1px;
+  border-top: 1px dashed rgba(13,158,117,0.3);
+  margin-top: 36px; /* align with icon center */
+  position: relative;
+  overflow: hidden;
+}
+.stepper-connector::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--teal);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: connector-fill 0.6s ease forwards;
+}
+.stepper-connector.animate::after { transform: scaleX(1); }
+@keyframes connector-fill {
+  to { transform: scaleX(1); }
+}
+.step-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--teal-10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--teal);
+  transition: var(--transition);
+  position: relative;
+  flex-shrink: 0;
+}
+.step-card:hover .step-icon-wrap { transform: scale(1.1); }
+
+/* ---------- Specialty Cards ---------- */
+.specialty-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  transition: var(--transition);
+  text-decoration: none;
+  cursor: pointer;
+}
+.specialty-card:hover {
+  border-color: var(--teal);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(13,158,117,0.12);
+}
+.specialty-img-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background: #F0FBF7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: var(--transition);
+  padding: 12px;
+}
+.specialty-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+.specialty-card:hover .specialty-img-wrap {
+  background: #E0F5EE;
+}
+.specialty-card:hover .specialty-img {
+  transform: scale(1.08);
+}
+
+/* ---------- Doctor Cards ---------- */
+.doctor-card {
+  background: #fff;
+  border: 0.5px solid #e5e7eb;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: var(--transition);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+}
+.doctor-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.10);
+  border-color: var(--teal);
+}
+.doctor-badge {
+  display: inline-flex;
+  align-items: center;
+  background: var(--teal-10);
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--radius-badge);
+}
+.doctor-see-more {
+  font-size: 13px;
+  color: var(--teal);
+  font-weight: 500;
+  text-decoration: none;
+  transition: var(--transition);
+}
+.doctor-see-more:hover { text-decoration: underline; }
+
+/* ---------- Testimonials ---------- */
+.testimonial-section { background: #F0FBF7; }
+.testimonial-card {
+  background: #fff;
+  border-radius: var(--radius-card);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: var(--transition);
+}
+.testimonial-card:hover {
+  box-shadow: 0 8px 24px rgba(13,158,117,0.10);
+  transform: translateY(-2px);
+}
+.testimonial-stars { display: flex; gap: 3px; }
+.testimonial-stars svg { color: var(--teal); fill: var(--teal); }
+.testimonial-quote {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #475569;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+  margin: 12px 0;
+}
+.testimonial-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--teal);
+  flex-shrink: 0;
+}
+.testimonial-avatar-initials {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  border: 2px solid var(--teal);
+  flex-shrink: 0;
+}
+
+/* ---------- FAQ Accordion ---------- */
+.faq-item {
+  border-bottom: 0.5px solid #e2e8f0;
+}
+.faq-item:last-child { border-bottom: none; }
+.faq-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: left;
+  gap: 16px;
+  transition: color 0.2s ease;
+}
+.faq-trigger:hover { color: var(--teal); }
+.faq-chevron {
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+.faq-chevron.open {
+  transform: rotate(180deg);
+  color: var(--teal);
+}
+/* CSS grid rows trick for smooth open/close */
+.faq-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+.faq-panel.open { grid-template-rows: 1fr; }
+.faq-panel-inner {
+  overflow: hidden;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.7;
+  padding-bottom: 0;
+  transition: padding-bottom 0.25s ease;
+}
+.faq-panel.open .faq-panel-inner { padding-bottom: 20px; }
+
+/* ---------- Footer ---------- */
+.footer-dark {
+  background: #0D1F1A;
+  color: rgba(255,255,255,0.6);
+  border-top: 1px solid rgba(255,255,255,0.10);
+}
+.footer-social-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.7);
+  transition: var(--transition);
+  text-decoration: none;
+}
+.footer-social-btn:hover { background: rgba(255,255,255,0.20); color: #fff; }
+
+/* ---------- Scroll Fade-up ---------- */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

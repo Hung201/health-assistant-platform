@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "nodemailer": "^8.0.5",
+    "qrcode": "^1.5.4",
+    "react-select": "^5.10.2"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
+    "@types/qrcode": "^1.5.6"
+  }
+}

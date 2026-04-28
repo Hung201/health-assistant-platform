@@ -1,26 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { Activity, MapPin, BadgeCheck, Stethoscope, Star, Clock, GraduationCap, ArrowLeft, CalendarCheck, User as UserIcon } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { MapPin, BadgeCheck, Stethoscope, Star, Clock, GraduationCap, ArrowLeft, CalendarCheck, User as UserIcon } from 'lucide-react';
 
-import { authApi, doctorsApi } from '@/lib/api';
+import { doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchVnDistricts, fetchVnProvinces, fetchVnWards } from '@/lib/vn-location';
 
 export default function DoctorDetailPage({ params }: { params: { id: string } }) {
-  const router = useRouter();
   const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => {
-      logout();
-      router.refresh();
-    },
-  });
 
   const { data: doctor, isLoading } = useQuery({
     queryKey: ['public-doctor', params.id],
@@ -44,15 +33,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  const appHref = user?.roles?.includes('admin')
-    ? '/admin'
-    : user?.roles?.includes('doctor')
-      ? '/doctor'
-      : user
-        ? '/patient'
-        : '/login';
 
-  const aiHref = user ? '/patient/ai-assistant' : '/ai';
   const provinceName = provinces.find((p) => String(p.code) === doctor?.provinceCode)?.name ?? doctor?.provinceCode;
   const districtName = districts.find((d) => String(d.code) === doctor?.districtCode)?.name ?? doctor?.districtCode;
   const wardName = wards.find((w) => String(w.code) === doctor?.wardCode)?.name ?? doctor?.wardCode;
@@ -66,66 +47,8 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     .join(', ');
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans flex flex-col">
-      <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href={aiHref}>
-              AI
-            </Link>
-            <Link className="text-sm font-semibold text-teal-600 transition-colors hover:text-teal-700" href="/doctors">
-              Bác sĩ
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/#blog">
-              Blog
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href={appHref}
-                >
-                  Vào ứng dụng
-                </Link>
-                <button
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => logoutMutation.mutate()}
-                  type="button"
-                >
-                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href="/login"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700"
-                  href="/register"
-                >
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 pb-24 pt-8">
-        <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div className="bg-[#fafafb] pb-24 pt-8">
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-8">
           <Link href="/doctors" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-teal-600 transition-colors mb-8">
             <ArrowLeft size={16} /> Quay lại danh sách
           </Link>
@@ -266,29 +189,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
               </div>
             </div>
           )}
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-100 py-8 border-t border-slate-200 mt-auto">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold text-[#003f87]">Clinical Precision</h2>
-            </div>
-            
-            <div className="flex gap-6 text-sm font-medium text-slate-600">
-              <a href="#" className="hover:text-teal-600 transition-colors">Chính sách bảo mật</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Điều khoản sử dụng</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Liên hệ</a>
-            </div>
-            
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">
-              © 2024 ETHOS CLINICAL SYSTEMS. ALL RIGHTS RESERVED.
-            </p>
-          </div>
-        </div>
-      </footer>
+      </div>
     </div>
   );
 }

@@ -11,27 +11,6 @@ import { useAuthStore } from '@/stores/auth.store';
 
 export default function PublicBlogPage() {
   const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => {
-      logout();
-      router.refresh();
-    },
-  });
-
-  const appHref = user?.roles?.includes('admin')
-    ? '/admin'
-    : user?.roles?.includes('doctor')
-      ? '/doctor'
-      : user
-        ? '/patient'
-        : '/login';
-
-  const aiHref = user ? '/patient/ai-assistant' : '/ai';
-
   const [page, setPage] = useState(1);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const limit = 20;
@@ -70,65 +49,8 @@ export default function PublicBlogPage() {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans flex flex-col">
-      <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href={aiHref}>
-              AI
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/doctors">
-              Bác sĩ
-            </Link>
-            <Link className="text-sm font-semibold text-teal-600 transition-colors hover:text-teal-700" href="/blog">
-              Blog
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href={appHref}
-                >
-                  Vào ứng dụng
-                </Link>
-                <button
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => logoutMutation.mutate()}
-                  type="button"
-                >
-                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href="/login"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700"
-                  href="/register"
-                >
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 py-12">
+    <>
+      <div className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-extrabold tracking-tight text-[#003f87] sm:text-5xl">
@@ -243,28 +165,7 @@ export default function PublicBlogPage() {
             </div>
           )}
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-100 py-8 border-t border-slate-200 mt-auto">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold text-[#003f87]">Clinical Precision</h2>
-            </div>
-            
-            <div className="flex gap-6 text-sm font-medium text-slate-600">
-              <a href="#" className="hover:text-teal-600 transition-colors">Chính sách bảo mật</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Điều khoản sử dụng</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Liên hệ</a>
-            </div>
-            
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">
-              © 2024 ETHOS CLINICAL SYSTEMS. ALL RIGHTS RESERVED.
-            </p>
-          </div>
-        </div>
-      </footer>
+      </div>
 
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar {
@@ -275,6 +176,6 @@ export default function PublicBlogPage() {
           scrollbar-width: none;
         }
       `}} />
-    </div>
+    </>
   );
 }

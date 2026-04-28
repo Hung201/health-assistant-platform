@@ -11,15 +11,14 @@ import { authApi, doctorsApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import { fetchVnDistricts, fetchVnProvinces } from '@/lib/vn-location';
 
+
 type LocationOption = { value: string; label: string };
 
-export default function DoctorsPage() {
-  const router = useRouter();
-  const user = useAuthStore((s) => s.user);
-  const logout = useAuthStore((s) => s.logout);
-
+export default function DoctorsPage({ searchParams }: { searchParams: { specialtyId?: string } }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(null);
+  const [selectedSpecialty, setSelectedSpecialty] = useState<number | null>(
+    searchParams?.specialtyId ? Number(searchParams.specialtyId) : null
+  );
   const [provinceCode, setProvinceCode] = useState('');
   const [districtCode, setDistrictCode] = useState('');
   const [priceFilter, setPriceFilter] = useState<string>('all');
@@ -31,14 +30,6 @@ export default function DoctorsPage() {
     }, 300);
     return () => clearTimeout(timeout);
   }, [searchTerm]);
-
-  const logoutMutation = useMutation({
-    mutationFn: authApi.logout,
-    onSettled: () => {
-      logout();
-      router.refresh();
-    },
-  });
 
   const { data: specialtiesData } = useQuery({
     queryKey: ['public-specialties'],
@@ -83,15 +74,6 @@ export default function DoctorsPage() {
     menu: (base: any) => ({ ...base, zIndex: 30 }),
   };
 
-  const appHref = user?.roles?.includes('admin')
-    ? '/admin'
-    : user?.roles?.includes('doctor')
-      ? '/doctor'
-      : user
-        ? '/patient'
-        : '/login';
-
-  const aiHref = user ? '/patient/ai-assistant' : '/ai';
 
   // Client-side filtering by name and price
   const filteredDoctors = doctorsData?.items?.filter((doc) => {
@@ -105,65 +87,8 @@ export default function DoctorsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#fafafb] text-slate-900 font-sans flex flex-col">
-      <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link className="flex items-center gap-2" href="/">
-            <div className="rounded-lg bg-teal-500 p-1.5 text-white">
-              <Activity size={20} />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</h1>
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href={aiHref}>
-              AI
-            </Link>
-            <Link className="text-sm font-semibold text-teal-600 transition-colors hover:text-teal-700" href="/doctors">
-              Bác sĩ
-            </Link>
-            <Link className="text-sm font-semibold text-slate-600 transition-colors hover:text-teal-600" href="/#blog">
-              Blog
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            {user ? (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href={appHref}
-                >
-                  Vào ứng dụng
-                </Link>
-                <button
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => logoutMutation.mutate()}
-                  type="button"
-                >
-                  {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  className="rounded-full px-5 py-2.5 text-sm font-bold text-slate-700 transition-colors hover:bg-slate-100"
-                  href="/login"
-                >
-                  Đăng nhập
-                </Link>
-                <Link
-                  className="rounded-full bg-teal-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-teal-700"
-                  href="/register"
-                >
-                  Đăng ký
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 pb-24 pt-12">
+    <>
+      <div className="pb-24 pt-12">
         <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12">
             <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Danh bạ Bác sĩ</h1>
@@ -323,28 +248,7 @@ export default function DoctorsPage() {
             )}
           </div>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-slate-100 py-8 border-t border-slate-200 mt-auto">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold text-[#003f87]">Clinical Precision</h2>
-            </div>
-            
-            <div className="flex gap-6 text-sm font-medium text-slate-600">
-              <a href="#" className="hover:text-teal-600 transition-colors">Chính sách bảo mật</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Điều khoản sử dụng</a>
-              <a href="#" className="hover:text-teal-600 transition-colors">Liên hệ</a>
-            </div>
-            
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">
-              © 2024 ETHOS CLINICAL SYSTEMS. ALL RIGHTS RESERVED.
-            </p>
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </>
   );
 }
