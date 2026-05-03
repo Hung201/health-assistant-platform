@@ -18,6 +18,7 @@ import { BookingStatusLog } from './entities/booking-status-log.entity';
 import { Post } from './entities/post.entity';
 import { Comment } from './entities/comment.entity';
 import { CommentReaction } from './entities/comment-reaction.entity';
+import { DoctorReview } from './entities/doctor-review.entity';
 import { POST_STATUS_PENDING_REVIEW } from './admin/admin.service';
 
 loadEnv();
@@ -62,6 +63,7 @@ async function seed() {
       Post,
       Comment,
       CommentReaction,
+      DoctorReview,
     ],
     synchronize: false,
     logging: false,
@@ -84,6 +86,7 @@ async function seed() {
   const postRepo = dataSource.getRepository(Post);
   const commentRepo = dataSource.getRepository(Comment);
   const reactionRepo = dataSource.getRepository(CommentReaction);
+  const reviewRepo = dataSource.getRepository(DoctorReview);
 
   await dataSource.transaction(async (manager) => {
     // Rebind repos inside transaction.
@@ -102,6 +105,7 @@ async function seed() {
     const txPostRepo = manager.getRepository(Post);
     const txCommentRepo = manager.getRepository(Comment);
     const txReactionRepo = manager.getRepository(CommentReaction);
+    const txReviewRepo = manager.getRepository(DoctorReview);
 
     // ---- roles (idempotent)
     const roleSeeds: Array<{ code: string; name: string }> = [
@@ -454,12 +458,190 @@ async function seed() {
       }
     }
 
+    // ---- ENT doctor in Ha Noi (Nam Tu Liem) for location-priority recommendation
+    const entDoctorUser = await ensureUser({
+      email: 'doctor_ent_hanoi_01@precision.vn',
+      password: 'Doctor@123',
+      fullName: 'BS TMH Nam Tu Liem',
+      phone: '0900 003 201',
+    });
+    await ensureUserRole(entDoctorUser.id, 'doctor');
+    const entProfile = await txDoctorRepo.findOne({ where: { userId: entDoctorUser.id } });
+    if (!entProfile) {
+      await txDoctorRepo.save(
+        txDoctorRepo.create({
+          userId: entDoctorUser.id,
+          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
+          licenseNumber: 'ENT-HN-01/CCHN',
+          workplaceName: 'Phong kham Tai Mui Hong Nam Tu Liem',
+          workplaceAddress: '88 Ho Tung Mau, Phuong My Dinh 2, Quan Nam Tu Liem, Ha Noi',
+          provinceCode: '01',
+          districtCode: '019',
+          yearsOfExperience: 11,
+          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem tai giua, viem hong, viem mui xoang.',
+          isVerified: true,
+          verificationStatus: 'approved',
+          consultationFee: '320000',
+          priorityScore: 92,
+          isAvailableForBooking: true,
+        }),
+      );
+    } else {
+      entProfile.isVerified = true;
+      entProfile.verificationStatus = 'approved';
+      entProfile.workplaceName = entProfile.workplaceName ?? 'Phong kham Tai Mui Hong Nam Tu Liem';
+      entProfile.workplaceAddress =
+        entProfile.workplaceAddress ?? '88 Ho Tung Mau, Phuong My Dinh 2, Quan Nam Tu Liem, Ha Noi';
+      entProfile.provinceCode = entProfile.provinceCode ?? '01';
+      entProfile.districtCode = entProfile.districtCode ?? '019';
+      entProfile.isAvailableForBooking = true;
+      await txDoctorRepo.save(entProfile);
+    }
+    const entSpecialty =
+      allSpecs.find((s) => s.slug === 'tai-mui-hong') ??
+      (await txSpecialtyRepo.findOne({ where: { slug: 'tai-mui-hong', status: 'active' } }));
+    if (entSpecialty) {
+      const entSpecId = asNumberId(entSpecialty.id);
+      const existingEntLinks = await txDoctorSpecialtyRepo.find({
+        where: { doctorUserId: entDoctorUser.id },
+      });
+      for (const link of existingEntLinks) {
+        if (asNumberId(link.specialtyId) === entSpecId) continue;
+        if (!link.isPrimary) continue;
+        link.isPrimary = false;
+        await txDoctorSpecialtyRepo.save(link);
+      }
+      const entPrimary = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: entDoctorUser.id, specialtyId: entSpecId },
+      });
+      if (!entPrimary) {
+        await txDoctorSpecialtyRepo.save(
+          txDoctorSpecialtyRepo.create({
+            doctorUserId: entDoctorUser.id,
+            specialtyId: entSpecId,
+            isPrimary: true,
+          }),
+        );
+      } else if (!entPrimary.isPrimary) {
+        entPrimary.isPrimary = true;
+        await txDoctorSpecialtyRepo.save(entPrimary);
+      }
+    }
+
+    // ---- add 2 more ENT doctors in Ha Noi for locality-first AI recommendation
+    const ensurePrimaryEntSpecialty = async (doctorUserId: string) => {
+      if (!entSpecialty) return;
+      const entSpecId = asNumberId(entSpecialty.id);
+      const links = await txDoctorSpecialtyRepo.find({ where: { doctorUserId } });
+      for (const link of links) {
+        if (asNumberId(link.specialtyId) === entSpecId) continue;
+        if (!link.isPrimary) continue;
+        link.isPrimary = false;
+        await txDoctorSpecialtyRepo.save(link);
+      }
+      const entLink = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId, specialtyId: entSpecId },
+      });
+      if (!entLink) {
+        await txDoctorSpecialtyRepo.save(
+          txDoctorSpecialtyRepo.create({
+            doctorUserId,
+            specialtyId: entSpecId,
+            isPrimary: true,
+          }),
+        );
+      } else if (!entLink.isPrimary) {
+        entLink.isPrimary = true;
+        await txDoctorSpecialtyRepo.save(entLink);
+      }
+    };
+
+    const entDoctorCauGiayUser = await ensureUser({
+      email: 'doctor_ent_hanoi_02@precision.vn',
+      password: 'Doctor@123',
+      fullName: 'BS TMH Cau Giay',
+      phone: '0900 003 202',
+    });
+    await ensureUserRole(entDoctorCauGiayUser.id, 'doctor');
+    const entProfileCauGiay = await txDoctorRepo.findOne({ where: { userId: entDoctorCauGiayUser.id } });
+    if (!entProfileCauGiay) {
+      await txDoctorRepo.save(
+        txDoctorRepo.create({
+          userId: entDoctorCauGiayUser.id,
+          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
+          licenseNumber: 'ENT-HN-02/CCHN',
+          workplaceName: 'Phong kham Tai Mui Hong Cau Giay',
+          workplaceAddress: '123 Tran Thai Tong, Phuong Dich Vong Hau, Quan Cau Giay, Ha Noi',
+          provinceCode: '01',
+          districtCode: '005',
+          yearsOfExperience: 9,
+          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem mui xoang, viem hong man tinh.',
+          isVerified: true,
+          verificationStatus: 'approved',
+          consultationFee: '300000',
+          priorityScore: 88,
+          isAvailableForBooking: true,
+        }),
+      );
+    } else {
+      entProfileCauGiay.isVerified = true;
+      entProfileCauGiay.verificationStatus = 'approved';
+      entProfileCauGiay.workplaceName = entProfileCauGiay.workplaceName ?? 'Phong kham Tai Mui Hong Cau Giay';
+      entProfileCauGiay.workplaceAddress =
+        entProfileCauGiay.workplaceAddress ?? '123 Tran Thai Tong, Phuong Dich Vong Hau, Quan Cau Giay, Ha Noi';
+      entProfileCauGiay.provinceCode = entProfileCauGiay.provinceCode ?? '01';
+      entProfileCauGiay.districtCode = entProfileCauGiay.districtCode ?? '005';
+      entProfileCauGiay.isAvailableForBooking = true;
+      await txDoctorRepo.save(entProfileCauGiay);
+    }
+    await ensurePrimaryEntSpecialty(entDoctorCauGiayUser.id);
+
+    const entDoctorThanhXuanUser = await ensureUser({
+      email: 'doctor_ent_hanoi_03@precision.vn',
+      password: 'Doctor@123',
+      fullName: 'BS TMH Thanh Xuan',
+      phone: '0900 003 203',
+    });
+    await ensureUserRole(entDoctorThanhXuanUser.id, 'doctor');
+    const entProfileThanhXuan = await txDoctorRepo.findOne({ where: { userId: entDoctorThanhXuanUser.id } });
+    if (!entProfileThanhXuan) {
+      await txDoctorRepo.save(
+        txDoctorRepo.create({
+          userId: entDoctorThanhXuanUser.id,
+          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
+          licenseNumber: 'ENT-HN-03/CCHN',
+          workplaceName: 'Phong kham Tai Mui Hong Thanh Xuan',
+          workplaceAddress: '45 Nguyen Trai, Phuong Thuong Dinh, Quan Thanh Xuan, Ha Noi',
+          provinceCode: '01',
+          districtCode: '007',
+          yearsOfExperience: 10,
+          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem tai ngoai, viem amidan, roi loan gioi noi.',
+          isVerified: true,
+          verificationStatus: 'approved',
+          consultationFee: '310000',
+          priorityScore: 90,
+          isAvailableForBooking: true,
+        }),
+      );
+    } else {
+      entProfileThanhXuan.isVerified = true;
+      entProfileThanhXuan.verificationStatus = 'approved';
+      entProfileThanhXuan.workplaceName = entProfileThanhXuan.workplaceName ?? 'Phong kham Tai Mui Hong Thanh Xuan';
+      entProfileThanhXuan.workplaceAddress =
+        entProfileThanhXuan.workplaceAddress ?? '45 Nguyen Trai, Phuong Thuong Dinh, Quan Thanh Xuan, Ha Noi';
+      entProfileThanhXuan.provinceCode = entProfileThanhXuan.provinceCode ?? '01';
+      entProfileThanhXuan.districtCode = entProfileThanhXuan.districtCode ?? '007';
+      entProfileThanhXuan.isAvailableForBooking = true;
+      await txDoctorRepo.save(entProfileThanhXuan);
+    }
+    await ensurePrimaryEntSpecialty(entDoctorThanhXuanUser.id);
+
     // ---- bulk approved doctors for richer demo data (idempotent)
     const demoDoctorCount = 20;
     const safeSpecs = allSpecs.length > 0 ? allSpecs : primarySpec ? [primarySpec] : [];
     const day = 24 * 60 * 60 * 1000;
     const now = new Date();
-    const approvedDoctorIds: string[] = [approvedDoctorUser.id, dentalDoctorUser.id];
+    const approvedDoctorIds: string[] = [approvedDoctorUser.id, dentalDoctorUser.id, entDoctorUser.id];
 
     const ensureApprovedDoctor = async (idx: number) => {
       const n = String(idx).padStart(2, '0');
@@ -810,6 +992,145 @@ async function seed() {
       );
     }
 
+    // ---- completed booking + reviews seed (idempotent, richer dataset for rating/ranking/UI)
+    const reviewPatients = [
+      { email: 'patient_review_01@precision.vn', fullName: 'Le Minh An', phone: '0900 100 001' },
+      { email: 'patient_review_02@precision.vn', fullName: 'Tran Thu Ha', phone: '0900 100 002' },
+      { email: 'patient_review_03@precision.vn', fullName: 'Pham Quoc Bao', phone: '0900 100 003' },
+      { email: 'patient_review_04@precision.vn', fullName: 'Nguyen Hoang Long', phone: '0900 100 004' },
+      { email: 'patient_review_05@precision.vn', fullName: 'Vo Mai Linh', phone: '0900 100 005' },
+      { email: 'patient_review_06@precision.vn', fullName: 'Doan Gia Huy', phone: '0900 100 006' },
+      { email: 'patient_review_07@precision.vn', fullName: 'Dang Ngoc Anh', phone: '0900 100 007' },
+      { email: 'patient_review_08@precision.vn', fullName: 'Bui Thanh Van', phone: '0900 100 008' },
+    ];
+    const reviewPatientUsers: User[] = [];
+    for (const p of reviewPatients) {
+      // eslint-disable-next-line no-await-in-loop
+      const u = await ensureUser({
+        email: p.email,
+        password: 'Patient@123',
+        fullName: p.fullName,
+        phone: p.phone,
+      });
+      // eslint-disable-next-line no-await-in-loop
+      await ensureUserRole(u.id, 'patient');
+      // eslint-disable-next-line no-await-in-loop
+      await txUserRepo.update({ id: u.id }, { emailVerifiedAt: new Date() });
+      // eslint-disable-next-line no-await-in-loop
+      const patientProfile = await txPatientRepo.findOne({ where: { userId: u.id } });
+      if (!patientProfile) {
+        // eslint-disable-next-line no-await-in-loop
+        await txPatientRepo.save(
+          txPatientRepo.create({
+            userId: u.id,
+            emergencyContactName: `Nguoi than ${p.fullName}`,
+            emergencyContactPhone: p.phone,
+            addressLine: 'Dia chi demo patient review',
+            occupation: 'Nhan vien van phong',
+            bloodType: null,
+          }),
+        );
+      }
+      reviewPatientUsers.push(u);
+    }
+    reviewPatientUsers.unshift(patientUser);
+
+    const approvedDoctorsForReview = await txDoctorRepo.find({
+      where: { isVerified: true, verificationStatus: 'approved' },
+      relations: ['user'],
+      order: { priorityScore: 'DESC', createdAt: 'ASC' },
+      take: 10,
+    });
+    const ratingPattern = [5, 5, 4, 5, 4, 3, 5, 4, 5, 4, 3, 2];
+    const reviewComments = [
+      'Bac si tu van ky, de hieu.',
+      'Thai do than thien, huong dan ro rang.',
+      'Kham nhanh va dung gio.',
+      'Giai thich benh tinh rat chi tiet.',
+      'Dat cau hoi dung van de, toi rat yen tam.',
+      'Thoi gian cho hoi lau nhung chat luong tot.',
+      'Bac si nhiet tinh va theo doi sau kham.',
+      'Phong kham sach se, quy trinh ro rang.',
+      'Can doi them ve thu tuc nhung bac si tot.',
+      'Tra loi day du, de thuc hien theo huong dan.',
+      'Muc do hai long trung binh kha.',
+      'Can cai thien toc do tiep don.',
+    ];
+
+    for (let doctorIdx = 0; doctorIdx < approvedDoctorsForReview.length; doctorIdx++) {
+      const profile = approvedDoctorsForReview[doctorIdx];
+      // eslint-disable-next-line no-await-in-loop
+      const primaryLink = await txDoctorSpecialtyRepo.findOne({
+        where: { doctorUserId: profile.userId, isPrimary: true },
+        order: { createdAt: 'ASC' },
+      });
+      if (!primaryLink) continue;
+      const specialty = allSpecs.find((s) => asNumberId(s.id) === asNumberId(primaryLink.specialtyId));
+      if (!specialty) continue;
+
+      for (let i = 0; i < ratingPattern.length; i++) {
+        const doctorCode = profile.userId.replace(/-/g, '').slice(0, 8).toUpperCase();
+        const bookingCode = `BK-DEMO-REVIEW-${doctorCode}-${String(i + 1).padStart(2, '0')}`;
+        const reviewer = reviewPatientUsers[(doctorIdx + i) % reviewPatientUsers.length];
+        // eslint-disable-next-line no-await-in-loop
+        let booking = await txBookingRepo.findOne({ where: { bookingCode } });
+        if (!booking) {
+          const startAt = new Date(Date.now() - (7 + doctorIdx * 2 + i) * day);
+          startAt.setHours(9 + (i % 5), 0, 0, 0);
+          const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
+          // eslint-disable-next-line no-await-in-loop
+          booking = await txBookingRepo.save(
+            txBookingRepo.create({
+              bookingCode,
+              patientUserId: reviewer.id,
+              doctorUserId: profile.userId,
+              specialtyId: asNumberId(primaryLink.specialtyId),
+              availableSlotId: null,
+              patientNote: 'Seed booking cho rating/review demo',
+              status: 'completed',
+              paymentMethod: 'pay_at_clinic',
+              paymentStatus: 'paid',
+              appointmentDate: new Date(startAt.toISOString().slice(0, 10)),
+              appointmentStartAt: startAt,
+              appointmentEndAt: endAt,
+              doctorNameSnapshot: profile.user?.fullName ?? 'Bac si',
+              specialtyNameSnapshot: specialty.name,
+              consultationFee: profile.consultationFee ?? '250000',
+              platformFee: '0',
+              totalFee: profile.consultationFee ?? '250000',
+            }),
+          );
+        } else if (booking.status !== 'completed' || booking.paymentStatus !== 'paid') {
+          booking.status = 'completed';
+          booking.paymentStatus = 'paid';
+          // eslint-disable-next-line no-await-in-loop
+          booking = await txBookingRepo.save(booking);
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        const existingReview = await txReviewRepo.findOne({ where: { bookingId: booking.id } });
+        if (!existingReview) {
+          const rating = ratingPattern[(doctorIdx + i) % ratingPattern.length];
+          const subRatingDelta = i % 2 === 0 ? 0 : 1;
+          // eslint-disable-next-line no-await-in-loop
+          await txReviewRepo.save(
+            txReviewRepo.create({
+              bookingId: booking.id,
+              doctorUserId: booking.doctorUserId,
+              patientUserId: reviewer.id,
+              rating,
+              bedsideManner: Math.max(1, rating - (subRatingDelta % 2)),
+              clarity: Math.max(1, rating - ((subRatingDelta + 1) % 2)),
+              waitTime: Math.max(1, rating - 1),
+              comment: reviewComments[(doctorIdx + i) % reviewComments.length],
+              isAnonymous: i % 5 === 0,
+              status: 'published',
+            }),
+          );
+        }
+      }
+    }
+
     // ---- pending posts for admin review (professional-ish demo content, idempotent by slug)
     const postSeeds: Array<{
       slug: string;
@@ -964,6 +1285,7 @@ async function seed() {
     postRepo.count(),
     commentRepo.count(),
     reactionRepo.count(),
+    reviewRepo.count(),
   ]);
 
   // eslint-disable-next-line no-console
@@ -982,6 +1304,7 @@ async function seed() {
       `posts=${counts[9]}`,
       `comments=${counts[10]}`,
       `reactions=${counts[11]}`,
+      `reviews=${counts[12]}`,
     ].join(' | '),
   );
 

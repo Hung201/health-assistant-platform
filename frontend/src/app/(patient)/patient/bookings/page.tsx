@@ -15,9 +15,10 @@ import {
   X,
   Wallet,
   ExternalLink,
+  Star,
 } from 'lucide-react';
 
-import { bookingsApi } from '@/lib/api';
+import { bookingsApi, doctorsApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
@@ -66,6 +67,11 @@ export default function PatientBookingsPage() {
   const [cancelId, setCancelId] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  const [reviewBookingId, setReviewBookingId] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewAnonymous, setReviewAnonymous] = useState(false);
+  const [reviewedBookingIds, setReviewedBookingIds] = useState<Record<string, true>>({});
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['patient', 'bookings', 'me'],
@@ -106,23 +112,67 @@ export default function PatientBookingsPage() {
       });
     },
   });
+  const reviewMutation = useMutation({
+    mutationFn: (payload: { doctorUserId: string; bookingId: string; rating: number; comment?: string; isAnonymous?: boolean }) =>
+      doctorsApi.createReview(payload.doctorUserId, {
+        bookingId: payload.bookingId,
+        rating: payload.rating,
+        comment: payload.comment,
+        isAnonymous: payload.isAnonymous,
+      }),
+    onSuccess: async (_, payload) => {
+      toast.show({ variant: 'success', title: 'Đã gửi đánh giá', message: 'Cảm ơn bạn đã phản hồi về bác sĩ.' });
+      setReviewedBookingIds((prev) => ({ ...prev, [payload.bookingId]: true }));
+      setReviewBookingId(null);
+      setReviewRating(5);
+      setReviewComment('');
+      setReviewAnonymous(false);
+      await qc.invalidateQueries({ queryKey: ['patient', 'bookings', 'me'] });
+      await qc.invalidateQueries({ queryKey: ['public', 'doctor', payload.doctorUserId] });
+      await qc.invalidateQueries({ queryKey: ['patient', 'doctor-reviews', payload.doctorUserId] });
+      await qc.invalidateQueries({ queryKey: ['public-doctor-reviews', payload.doctorUserId] });
+      await qc.invalidateQueries({ queryKey: ['public-doctor', payload.doctorUserId] });
+      await qc.invalidateQueries({ queryKey: ['public-doctors'] });
+    },
+    onError: (e: unknown) => {
+      const message = e instanceof Error ? e.message : 'Không thể gửi đánh giá. Vui lòng thử lại.';
+      if (message.toLowerCase().includes('đã được đánh giá') || message.toLowerCase().includes('da duoc danh gia')) {
+        if (selectedRow) {
+          setReviewedBookingIds((prev) => ({ ...prev, [selectedRow.id]: true }));
+        }
+        setReviewBookingId(null);
+      }
+      toast.show({
+        variant: 'error',
+        title: 'Gửi đánh giá thất bại',
+        message,
+      });
+    },
+  });
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!selectedId && !cancelId) return;
+    if (!selectedId && !cancelId && !reviewBookingId) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setSelectedId(null);
         setCancelId(null);
+        setReviewBookingId(null);
         setCancelReason('');
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedId, cancelId]);
+  }, [selectedId, cancelId, reviewBookingId]);
+
+  const canReviewSelected =
+    selectedRow &&
+    !reviewedBookingIds[selectedRow.id] &&
+    (selectedRow.status === 'completed' ||
+      (selectedRow.status === 'approved' && new Date(selectedRow.appointmentEndAt).getTime() <= Date.now()));
 
   return (
     <div className="space-y-6 pb-12">
@@ -413,6 +463,21 @@ export default function PatientBookingsPage() {
                   Huỷ lịch hẹn
                 </button>
               ) : null}
+              {canReviewSelected ? (
+                <button
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-6 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 shadow-sm transition-all"
+                  type="button"
+                  onClick={() => setReviewBookingId(selectedRow.id)}
+                >
+                  <Star size={16} />
+                  Đánh giá bác sĩ
+                </button>
+              ) : null}
+              {selectedRow && reviewedBookingIds[selectedRow.id] ? (
+                <span className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-3 text-sm font-bold text-emerald-700">
+                  Đã đánh giá
+                </span>
+              ) : null}
             </div>
             </div>
           </div>,
@@ -467,6 +532,79 @@ export default function PatientBookingsPage() {
                 Quay lại
               </button>
             </div>
+            </div>
+          </div>,
+          document.body,
+        )
+        : null}
+      {isMounted && reviewBookingId && selectedRow
+        ? createPortal(
+          <div className="fixed inset-0 z-[1015] flex items-center justify-center p-4" aria-modal="true" role="dialog">
+            <div className="absolute inset-0 bg-slate-950/65 backdrop-blur-[2px]" onClick={() => setReviewBookingId(null)} />
+            <div className="relative w-full max-w-lg rounded-3xl bg-white shadow-2xl p-8">
+              <h4 className="text-2xl font-extrabold text-slate-900 mb-2">Đánh giá bác sĩ</h4>
+              <p className="text-sm text-slate-500 mb-6">{selectedRow.doctorName}</p>
+              <div className="mb-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Điểm đánh giá</p>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewRating(star)}
+                      className={cn(
+                        'rounded-lg border px-3 py-2 text-sm font-bold',
+                        reviewRating >= star ? 'border-amber-300 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-500',
+                      )}
+                    >
+                      ★ {star}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mb-5">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500" htmlFor="reviewComment">
+                  Nhận xét
+                </label>
+                <textarea
+                  id="reviewComment"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-medium text-slate-700 outline-none transition-all focus:border-amber-400 focus:bg-white focus:ring-4 focus:ring-amber-100 placeholder:text-slate-400 resize-none"
+                  rows={4}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder="Chia sẻ trải nghiệm của bạn..."
+                />
+              </div>
+              <label className="mb-6 flex items-center gap-2 text-sm font-medium text-slate-600">
+                <input type="checkbox" checked={reviewAnonymous} onChange={(e) => setReviewAnonymous(e.target.checked)} />
+                Gửi ẩn danh
+              </label>
+              <div className="flex flex-col gap-3">
+                <button
+                  className="w-full flex items-center justify-center rounded-xl bg-amber-600 px-6 py-4 text-sm font-bold text-white shadow-lg transition-all hover:bg-amber-700 disabled:opacity-60"
+                  type="button"
+                  disabled={reviewMutation.isPending}
+                  onClick={() =>
+                    reviewMutation.mutate({
+                      doctorUserId: selectedRow.doctorUserId,
+                      bookingId: selectedRow.id,
+                      rating: reviewRating,
+                      comment: reviewComment.trim() || undefined,
+                      isAnonymous: reviewAnonymous,
+                    })
+                  }
+                >
+                  {reviewMutation.isPending ? 'Đang gửi…' : 'Gửi đánh giá'}
+                </button>
+                <button
+                  className="w-full flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+                  type="button"
+                  disabled={reviewMutation.isPending}
+                  onClick={() => setReviewBookingId(null)}
+                >
+                  Đóng
+                </button>
+              </div>
             </div>
           </div>,
           document.body,

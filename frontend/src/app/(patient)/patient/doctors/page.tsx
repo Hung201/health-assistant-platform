@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { Search, MapPin, BadgeCheck, Stethoscope, X } from 'lucide-react';
+import { Search, MapPin, BadgeCheck, Stethoscope, X, Star } from 'lucide-react';
 import Select from 'react-select';
 import Image from 'next/image';
 
@@ -326,6 +326,10 @@ export default function PatientFindDoctorsPage() {
                 
                 <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
                   <div>
+                    <p className="text-xs font-bold text-amber-600">
+                      <span className="inline-flex items-center gap-1"><Star size={12} className="fill-current" /> {doctor.ratingAverage?.toFixed(1) || '0.0'}</span>
+                      <span className="ml-1 text-muted-foreground">({doctor.ratingCount ?? 0})</span>
+                    </p>
                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Giá khám</p>
                     <p className="font-extrabold text-teal-600">
                       {Number(doctor.consultationFee).toLocaleString('vi-VN')} ₫

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Activity, Search, MapPin, BadgeCheck, Stethoscope } from 'lucide-react';
+import { Activity, Search, MapPin, BadgeCheck, Stethoscope, Star } from 'lucide-react';
 import Select from 'react-select';
 
 import { authApi, doctorsApi } from '@/lib/api';
@@ -233,6 +233,10 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
                     
                     <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div>
+                        <p className="text-xs font-bold text-amber-600">
+                          <span className="inline-flex items-center gap-1"><Star size={12} className="fill-current" /> {doctor.ratingAverage?.toFixed(1) || '0.0'}</span>
+                          <span className="ml-1 text-slate-500">({doctor.ratingCount ?? 0})</span>
+                        </p>
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Giá khám</p>
                         <p className="font-extrabold text-teal-700">
                           {Number(doctor.consultationFee).toLocaleString('vi-VN')} ₫

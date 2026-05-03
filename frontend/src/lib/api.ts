@@ -193,6 +193,10 @@ export type PublicDoctorCard = {
   districtCode: string | null;
   wardCode: string | null;
   consultationFee: string;
+  ratingAverage: number;
+  ratingCount: number;
+  recommendationRate: number;
+  rankingScore: number;
   specialties: Array<{ id: number; name: string; isPrimary: boolean }>;
 };
 
@@ -211,6 +215,26 @@ export type PublicDoctorSlot = {
   maxBookings: number;
   bookedCount: number;
   status: string;
+};
+
+export type PublicDoctorReview = {
+  id: number;
+  rating: number;
+  bedsideManner: number | null;
+  clarity: number | null;
+  waitTime: number | null;
+  comment: string | null;
+  isAnonymous: boolean;
+  patientName: string;
+  createdAt: string;
+};
+
+export type DoctorRatingSummary = {
+  doctorUserId: string;
+  ratingAverage: number;
+  ratingCount: number;
+  recommendationRate: number;
+  rankingScore: number;
 };
 
 export const doctorsApi = {
@@ -244,6 +268,33 @@ export const doctorsApi = {
       `/doctors/${encodeURIComponent(doctorUserId)}/slots${qs ? `?${qs}` : ''}`,
     );
   },
+  reviews: (doctorUserId: string, params?: { page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.page != null) q.set('page', String(params.page));
+    if (params?.limit != null) q.set('limit', String(params.limit));
+    const qs = q.toString();
+    return apiPublic<Paginated<PublicDoctorReview>>(
+      `/doctors/${encodeURIComponent(doctorUserId)}/reviews${qs ? `?${qs}` : ''}`,
+    );
+  },
+  ratingSummary: (doctorUserId: string) =>
+    apiPublic<DoctorRatingSummary>(`/doctors/${encodeURIComponent(doctorUserId)}/rating-summary`),
+  createReview: (
+    doctorUserId: string,
+    data: {
+      bookingId: string;
+      rating: number;
+      bedsideManner?: number;
+      clarity?: number;
+      waitTime?: number;
+      comment?: string;
+      isAnonymous?: boolean;
+    },
+  ) =>
+    api<{ ok: boolean; reviewId: number }>(`/doctors/${encodeURIComponent(doctorUserId)}/reviews`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 export type MyBookingRow = {
