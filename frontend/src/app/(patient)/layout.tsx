@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 import { PatientLayoutClient } from './patient-layout-client';
+import './patient.css';
 
 export const metadata: Metadata = {
   title: 'Bệnh nhân | Clinical Precision',
