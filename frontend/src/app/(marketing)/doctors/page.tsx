@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { Activity, Search, MapPin, BadgeCheck, Stethoscope } from 'lucide-react';
+import { Activity, Search, MapPin, BadgeCheck, Stethoscope, Star } from 'lucide-react';
 import Select from 'react-select';
 
 import { authApi, doctorsApi } from '@/lib/api';
@@ -22,6 +22,14 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
   const [provinceCode, setProvinceCode] = useState('');
   const [districtCode, setDistrictCode] = useState('');
   const [priceFilter, setPriceFilter] = useState<string>('all');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchTerm]);
 
   const { data: specialtiesData } = useQuery({
     queryKey: ['public-specialties'],
@@ -29,12 +37,13 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
   });
 
   const { data: doctorsData, isLoading } = useQuery({
-    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode],
+    queryKey: ['public-doctors', selectedSpecialty, provinceCode, districtCode, debouncedSearchTerm],
     queryFn: () =>
       doctorsApi.list({
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode.trim() || undefined,
         districtCode: districtCode.trim() || undefined,
+        workplaceQuery: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -68,18 +77,13 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
 
   // Client-side filtering by name and price
   const filteredDoctors = doctorsData?.items?.filter((doc) => {
-    const search = searchTerm.toLowerCase();
-    const matchName =
-      doc.fullName.toLowerCase().includes(search) ||
-      (doc.workplaceName ?? '').toLowerCase().includes(search) ||
-      (doc.workplaceAddress ?? '').toLowerCase().includes(search);
     const fee = Number(doc.consultationFee);
     let matchPrice = true;
     if (priceFilter === 'under500') matchPrice = fee < 500000;
     else if (priceFilter === '500to1m') matchPrice = fee >= 500000 && fee <= 1000000;
     else if (priceFilter === 'over1m') matchPrice = fee > 1000000;
     
-    return matchName && matchPrice;
+    return matchPrice;
   });
 
   return (
@@ -229,6 +233,10 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
                     
                     <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div>
+                        <p className="text-xs font-bold text-amber-600">
+                          <span className="inline-flex items-center gap-1"><Star size={12} className="fill-current" /> {doctor.ratingAverage?.toFixed(1) || '0.0'}</span>
+                          <span className="ml-1 text-slate-500">({doctor.ratingCount ?? 0})</span>
+                        </p>
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Giá khám</p>
                         <p className="font-extrabold text-teal-700">
                           {Number(doctor.consultationFee).toLocaleString('vi-VN')} ₫

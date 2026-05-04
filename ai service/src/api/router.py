@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from src.api.v1 import health, diagnostic, chat
+from src.api.v1 import health, diagnostic, chat, chat_v1
 
 api_router = APIRouter()
 
@@ -9,3 +9,4 @@ api_router.include_router(health.router)
 # V1 endpoints
 api_router.include_router(diagnostic.router, prefix="/api/v1")
 api_router.include_router(chat.router, prefix="/api/v1")
+api_router.include_router(chat_v1.router)

@@ -5,6 +5,8 @@
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- 1) users
 CREATE TABLE users (
@@ -362,6 +364,28 @@ CREATE TABLE IF NOT EXISTS doctor_questions (
     CONSTRAINT chk_doctor_questions_status CHECK (status IN ('pending_review', 'approved', 'answered', 'rejected'))
 );
 
+-- 21) doctor_reviews
+CREATE TABLE IF NOT EXISTS doctor_reviews (
+    id BIGSERIAL PRIMARY KEY,
+    booking_id UUID NOT NULL UNIQUE REFERENCES bookings(id) ON DELETE CASCADE,
+    doctor_user_id UUID NOT NULL REFERENCES doctor_profiles(user_id) ON DELETE CASCADE,
+    patient_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating SMALLINT NOT NULL,
+    bedside_manner SMALLINT,
+    clarity SMALLINT,
+    wait_time SMALLINT,
+    comment TEXT,
+    is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
+    status VARCHAR(20) NOT NULL DEFAULT 'published',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT chk_doctor_reviews_rating CHECK (rating BETWEEN 1 AND 5),
+    CONSTRAINT chk_doctor_reviews_bedside CHECK (bedside_manner IS NULL OR bedside_manner BETWEEN 1 AND 5),
+    CONSTRAINT chk_doctor_reviews_clarity CHECK (clarity IS NULL OR clarity BETWEEN 1 AND 5),
+    CONSTRAINT chk_doctor_reviews_wait CHECK (wait_time IS NULL OR wait_time BETWEEN 1 AND 5),
+    CONSTRAINT chk_doctor_reviews_status CHECK (status IN ('published', 'hidden'))
+);
+
 -- ============================================================
 -- Indexes
 -- ============================================================
@@ -370,6 +394,9 @@ CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_user_roles_user_id ON user_roles(user_id);
 CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
 CREATE INDEX idx_doctor_specialties_specialty_id ON doctor_specialties(specialty_id);
+CREATE UNIQUE INDEX idx_doctor_specialties_one_primary_per_doctor
+    ON doctor_specialties(doctor_user_id)
+    WHERE is_primary = TRUE;
 CREATE INDEX idx_slots_doctor_date_status ON doctor_available_slots(doctor_user_id, slot_date, status);
 CREATE INDEX idx_bookings_patient ON bookings(patient_user_id);
 CREATE INDEX idx_bookings_doctor ON bookings(doctor_user_id);
@@ -386,3 +413,10 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id,
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_created ON doctor_questions(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_status ON doctor_questions(status);
 CREATE INDEX IF NOT EXISTS idx_doctor_questions_patient ON doctor_questions(patient_user_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_reviews_doctor_created ON doctor_reviews(doctor_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_doctor_reviews_patient ON doctor_reviews(patient_user_id);
+CREATE INDEX IF NOT EXISTS idx_doctor_reviews_status ON doctor_reviews(status);
+CREATE INDEX IF NOT EXISTS idx_doctor_profiles_workplace_search
+    ON doctor_profiles USING gin (
+      unaccent(lower(coalesce(workplace_name, '') || ' ' || coalesce(workplace_address, ''))) gin_trgm_ops
+    );

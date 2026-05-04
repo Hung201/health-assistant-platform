@@ -5,6 +5,13 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  recommendationOptions?: RecommendationOption[];
+}
+
+export interface RecommendationOption {
+  id: 'doctor' | 'facility';
+  label: string;
+  message: string;
 }
 
 export interface HospitalResult {
@@ -121,7 +128,10 @@ export const useChatStore = create<ChatState>()(
           const aiMsg: ChatMessage = {
             role: 'assistant',
             content: data.reply,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            recommendationOptions: Array.isArray(data.recommendation_options)
+              ? data.recommendation_options
+              : undefined,
           };
 
           set({

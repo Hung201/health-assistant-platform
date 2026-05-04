@@ -242,7 +242,7 @@ async def chat(
         intent_keywords = ["bệnh viện", "phòng khám", "ở đâu", "gợi ý", "địa chỉ", "khám tại", "cơ sở y tế"]
         has_location_intent = any(k in body.message.lower() for k in intent_keywords)
 
-        if is_ready or has_location_intent:
+        if is_ready or has_location_intent or extracted_loc:
             # Ghép toàn bộ tin nhắn user trong session này để phân tích
             combined_symptoms = " ".join([m.content for m in history_msgs if m.role == "user"])
             if body.message not in combined_symptoms:
@@ -266,7 +266,12 @@ async def chat(
                 if summary.found:
                     hospital_suggestion = _build_hospital_suggestion(summary, top_specialty or "")
             elif top_score >= threshold and not final_location:
-                clean_reply += "\n\n💡 *Bạn có thể cho tôi biết khu vực của bạn để tôi gợi ý các phòng khám gần đó nhé!*"
+                asked_once = bool((session.metadata_json or {}).get("location_prompted_once"))
+                if not asked_once:
+                    clean_reply += "\n\n💡 *Bạn có thể cho tôi biết khu vực của bạn để tôi gợi ý các phòng khám gần đó nhé!*"
+                    if not session.metadata_json:
+                        session.metadata_json = {}
+                    session.metadata_json["location_prompted_once"] = True
 
         return ChatResponse(
             session_id=str(session.id),
