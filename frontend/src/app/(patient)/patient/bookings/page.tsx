@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
 import {
   Calendar,
   User as UserIcon,
@@ -190,24 +191,25 @@ export default function PatientBookingsPage() {
     { key: 'cancelled', label: 'Đã hủy' },
   ];
 
+  const cardsRef = useRef<HTMLDivElement>(null);
+  useScrollReveal(cardsRef, { y: 18, stagger: 0.07, start: 'top 90%' });
+
   return (
     <div className="space-y-6 pb-12">
-      {/* Tab bar */}
-      <div className="flex flex-wrap gap-2">
+      {/* ── Tab bar — pill style ── */}
+      <div className="patient-tab-bar flex-wrap">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold transition-all',
-              activeTab === tab.key
-                ? 'bg-[#0D9E75] text-white shadow-sm'
-                : 'border border-[#E8EDF2] bg-white text-[#64748B] hover:border-[#0D9E75] hover:text-[#0D9E75]',
-            )}
+            className={cn('patient-tab', activeTab === tab.key ? 'active' : '')}
           >
             {tab.label}
-            <span className={cn('rounded-full px-1.5 py-0.5 text-[11px] font-bold', activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500')}>
+            <span className={cn(
+              'ml-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold',
+              activeTab === tab.key ? 'bg-white/25 text-white' : 'bg-slate-200/80 text-slate-600'
+            )}>
               {tabCounts[tab.key]}
             </span>
           </button>
@@ -221,7 +223,7 @@ export default function PatientBookingsPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[20px] border border-[#E8EDF2] bg-white shadow-sm">
+      <div ref={cardsRef} className="overflow-hidden rounded-[20px] border border-[#E8EDF2] bg-white shadow-sm">
         {isLoading ? (
           <div className="p-12 text-center text-slate-400">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0D9E75] border-r-transparent" />
@@ -232,13 +234,14 @@ export default function PatientBookingsPage() {
             {filteredData.map((b) => (
               <button
                 key={b.id}
-                className="group flex w-full flex-col gap-4 p-5 text-left transition-colors hover:bg-[#0D9E75]/5 md:flex-row md:items-center md:justify-between"
+                data-reveal
+                className="group flex w-full flex-col gap-4 p-5 text-left transition-all duration-200 hover:bg-[#0D9E75]/5 hover:-translate-y-[1px] hover:shadow-sm md:flex-row md:items-center md:justify-between"
                 type="button"
                 onClick={() => setSelectedId(b.id)}
               >
                 <div className="flex items-start gap-4">
                   <div className="mt-1 h-10 w-1 shrink-0 rounded-full" style={{ background: STATUS_COLOR[b.status] ?? '#94A3B8' }} />
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-colors group-hover:bg-[#0D9E75]/10 group-hover:text-[#0D9E75]">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-400 transition-all duration-200 group-hover:bg-[#0D9E75]/10 group-hover:text-[#0D9E75] group-hover:scale-110">
                     <Calendar size={18} />
                   </div>
                   <div>
@@ -266,16 +269,20 @@ export default function PatientBookingsPage() {
         ) : (
           /* ── EMPTY STATE ── */
           <div className="flex flex-col items-center px-8 py-20 text-center">
-            <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#0D9E75]/10">
-              <Calendar size={48} className="text-[#0D9E75]" />
+            <div
+              className="mb-6 flex h-24 w-24 items-center justify-center rounded-full"
+              style={{ background: 'linear-gradient(135deg, rgba(13,158,117,0.12), rgba(27,175,124,0.06))' }}
+            >
+              <Calendar size={44} className="text-[#0D9E75]" />
             </div>
-            <h3 className="mb-3 text-[18px] font-bold text-[#1a3353]">Chưa có lịch hẹn nào</h3>
+            <div className="mb-2 h-[2px] w-10 rounded-full bg-gradient-to-r from-[#0D9E75] to-[#1BAF7C] mx-auto" />
+            <h3 className="mt-3 mb-2 text-[18px] font-bold text-[#1a3353]">Chưa có lịch hẹn nào</h3>
             <p className="mb-8 max-w-[280px] text-[14px] leading-relaxed text-[#64748B]">
               Bạn chưa đặt lịch hẹn khám nào trên hệ thống. Đặt lịch ngay để được chăm sóc sức khoẻ tốt nhất.
             </p>
             <a
               href="/patient/doctors"
-              className="inline-flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(13,158,117,0.3)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(13,158,117,0.35)] active:scale-[.97]"
+              className="inline-flex items-center gap-2 rounded-xl px-7 py-3 text-sm font-semibold text-white shadow-[0_4px_16px_rgba(13,158,117,0.30)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(13,158,117,0.38)] active:scale-[.97]"
               style={{ background: 'linear-gradient(135deg, #0D9E75, #0B8A65)' }}
             >
               <CalendarPlus size={18} />

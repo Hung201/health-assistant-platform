@@ -141,9 +141,10 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
       {/* ── SIDEBAR ── */}
       <aside
         className={cn(
-          'fixed z-30 flex h-full w-[260px] flex-col bg-white border-r border-[#E8EDF2] shadow-sm transition-transform duration-200 ease-out',
+          'fixed z-30 flex h-full w-[260px] flex-col border-r border-[#E8EDF2] shadow-sm transition-transform duration-200 ease-out',
           mobileNavOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
+        style={{ background: 'linear-gradient(175deg, #ffffff 0%, #f4fbf8 100%)' }}
         id="patient-sidebar-nav"
       >
         {/* Logo area */}
@@ -189,20 +190,23 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
                 className={cn(
                   'mx-2 my-0.5 flex h-11 items-center gap-[10px] rounded-[10px] px-3 text-[14px] font-medium transition-all duration-150',
                   active
-                    ? 'text-white shadow-[0_4px_12px_rgba(13,158,117,0.3)]'
-                    : 'text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0D9E75]',
+                    ? 'nav-item-active text-white shadow-[0_4px_14px_rgba(13,158,117,0.32)]'
+                    : 'text-[#475569] hover:bg-[#E8F8F2]/60 hover:text-[#0D9E75]',
                 )}
                 style={active ? { background: 'linear-gradient(135deg, #0D9E75, #0B8A65)' } : {}}
               >
-                <Icon size={18} className={active ? 'text-white' : 'text-[#94A3B8]'} />
+                <Icon size={18} className={active ? 'text-white' : 'text-[#94A3B8] group-hover:text-[#0D9E75]'} />
                 <span className="flex-1">{item.label}</span>
+                {active && <span className="h-1.5 w-1.5 rounded-full bg-white/60" />}
               </Link>
             );
           })}
         </nav>
 
         {/* Bottom user card */}
-        <div className="shrink-0 border-t border-[#E8EDF2] p-4">
+        <div className="shrink-0 border-t border-[#E8EDF2] p-4 bg-white/60">
+          {/* Teal top accent */}
+          <div className="mb-3 h-[2px] w-8 rounded-full bg-gradient-to-r from-[#0D9E75] to-[#1BAF7C]" />
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0D9E75]/10 flex items-center justify-center text-[#0D9E75] text-sm font-bold">
               {user?.avatarUrl
@@ -228,17 +232,21 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
       {/* ── MAIN CONTENT ── */}
       <div className="ml-0 flex min-h-screen flex-1 flex-col lg:ml-[260px]">
         {/* Top Header */}
-        <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8EDF2] bg-white/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8EDF2]/80 bg-white/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 lg:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all lg:hidden"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Mở menu"
             >
               <AlignJustify size={20} />
             </button>
-            <h1 className="text-[20px] font-bold text-[#1a3353] truncate">{pageTitle}</h1>
+            {/* Breadcrumb accent line + title */}
+            <div className="flex min-w-0 items-center gap-0">
+              <span className="breadcrumb-accent hidden sm:inline-block" aria-hidden />
+              <h1 className="text-[18px] sm:text-[20px] font-bold text-[#1a3353] truncate">{pageTitle}</h1>
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-3">
@@ -372,7 +380,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main key={pathname} className="flex-1 p-4 sm:p-6 lg:p-8 page-enter">{children}</main>
       </div>
     </div>
   );
