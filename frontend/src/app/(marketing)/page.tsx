@@ -16,16 +16,39 @@ import { authApi, doctorsApi, livestreamsApi, publicPostsApi, qaApi } from '@/li
 import { useAuthStore } from '@/stores/auth.store';
 import './marketing.css';
 
+const removeAccents = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+
 const getSpecialtyImage = (name: string): string => {
-  const n = name.toLowerCase();
-  if (n.includes('nội') || n.includes('tổng quát')) return '/images/specialties/internal-medicine.png';
-  if (n.includes('tim')) return '/images/specialties/cardiology.png';
-  if (n.includes('xương') || n.includes('khớp')) return '/images/specialties/orthopedics.png';
-  if (n.includes('da')) return '/images/specialties/dermatology.png';
-  if (n.includes('thần kinh')) return '/images/specialties/neurology.png';
-  if (n.includes('mắt')) return '/images/specialties/ophthalmology.png';
-  if (n.includes('nhi')) return '/images/specialties/pediatrics.png';
-  if (n.includes('sản') || n.includes('phụ')) return '/images/specialties/obstetrics.png';
+  const raw = name.toLowerCase();
+  const n = removeAccents(name); // "Thần kinh" → "than kinh", "Da liễu" → "da lieu"
+
+  // Da liễu → dermatology
+  if (raw.includes('da liễu') || raw.includes('da lieu') || n === 'da lieu' || n.startsWith('da lieu')) return '/images/specialties/dermatology.png';
+
+  // Tim mạch → cardiology
+  if (raw.includes('tim') || n.includes('tim') || n.includes('mach tim')) return '/images/specialties/cardiology.png';
+
+  // Xương khớp / Chỉnh hình / Cơ xương → orthopedics
+  if (raw.includes('xương') || raw.includes('khớp') || raw.includes('chỉnh hình') ||
+      n.includes('xuong') || n.includes('khop') || n.includes('chinh hinh')) return '/images/specialties/orthopedics.png';
+
+  // Thần kinh → neurology
+  if (raw.includes('thần kinh') || n.includes('than kinh')) return '/images/specialties/neurology.png';
+
+  // Nhãn khoa / Mắt → ophthalmology
+  if (raw.includes('mắt') || raw.includes('nhãn') || n.includes('mat') || n.includes('nhan khoa')) return '/images/specialties/ophthalmology.png';
+
+  // Nhi khoa → pediatrics
+  if (raw.includes('nhi') || n.includes('nhi') || raw.includes('trẻ em')) return '/images/specialties/pediatrics.png';
+
+  // Sản phụ khoa → obstetrics
+  if (raw.includes('sản') || raw.includes('phụ khoa') || n.includes('san phu') || n.includes('phu san')) return '/images/specialties/obstetrics.png';
+
+  // Nội khoa / Nội tổng quát / Tổng quát → internal-medicine  
+  if (raw.includes('nội') || raw.includes('tổng quát') || n.includes('noi') || n.includes('tong quat')) return '/images/specialties/internal-medicine.png';
+
+  // Tất cả còn lại (Ngoại khoa, Hô hấp, Tai mũi họng, Tâm thần, Ung bướu...) → default
   return '/images/specialties/default.png';
 };
 
