@@ -44,7 +44,7 @@ export default function PatientFindDoctorsPage() {
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode || undefined,
         districtCode: districtCode || undefined,
-        workplaceQuery: debouncedSearchTerm || undefined,
+        nameQuery: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -247,7 +247,7 @@ export default function PatientFindDoctorsPage() {
                   onClick={() => setFocusedDoctorId(doctor.userId)}
                   className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${
                     focusedDoctor?.userId === doctor.userId
-                      ? 'border-[#003f87] bg-[#003f87] text-white'
+                      ? 'border-[#0D9E75] bg-[#0D9E75] text-white'
                       : 'border-border bg-background text-muted-foreground hover:bg-muted'
                   }`}
                 >

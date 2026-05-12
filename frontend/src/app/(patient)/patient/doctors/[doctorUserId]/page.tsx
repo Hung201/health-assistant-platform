@@ -174,7 +174,7 @@ export default function PatientDoctorDetailPage() {
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {(doctorError as Error).message}
         </div>
-        <Link className="text-sm font-semibold text-[#003f87] hover:underline" href="/patient/doctors">
+        <Link className="text-sm font-semibold text-[#0D9E75] hover:underline" href="/patient/doctors">
           ← Quay lại danh sách bác sĩ
         </Link>
       </div>
@@ -184,14 +184,14 @@ export default function PatientDoctorDetailPage() {
   return (
     <div className="space-y-6 pb-12">
       <header className="flex items-center justify-between">
-        <Link className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#003f87] transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100" href="/patient/doctors">
+        <Link className="flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-[#0D9E75] transition-colors bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-100" href="/patient/doctors">
           <ArrowLeft size={16} /> Chi tiết Bác sĩ
         </Link>
       </header>
 
       {isLoadingDoctor ? (
         <div className="py-20 text-center text-slate-500">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#003f87] border-r-transparent mb-4"></div>
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0D9E75] border-r-transparent mb-4"></div>
           <p>Đang tải thông tin bác sĩ...</p>
         </div>
       ) : doctor ? (
@@ -209,11 +209,11 @@ export default function PatientDoctorDetailPage() {
                  <img alt={doctor.fullName} src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'} className="w-full h-full object-cover" />
                </div>
                
-               <h2 className="text-[22px] font-extrabold text-[#003f87] text-center px-4 leading-tight mb-1.5">
+               <h2 className="text-[22px] font-extrabold text-[#1a3353] text-center px-4 leading-tight mb-1.5">
                  {doctor.professionalTitle ? `${doctor.professionalTitle}. ` : ''}{doctor.fullName}
                </h2>
                
-               <p className="text-[#0056b3] font-bold text-sm mb-8">
+               <p className="text-[#0D9E75] font-bold text-sm mb-8">
                  {doctor.specialties?.[0]?.name || 'Đa khoa'}
                </p>
 
@@ -534,7 +534,7 @@ export default function PatientDoctorDetailPage() {
                     Ghi chú cho bác sĩ <span className="text-slate-400 font-medium">(Tùy chọn)</span>
                   </label>
                   <textarea
-                    className="w-full border-2 border-slate-100 bg-slate-50 rounded-2xl p-4 text-sm font-medium focus:border-[#003f87] focus:bg-white outline-none transition-colors resize-none"
+                    className="w-full border-2 border-slate-100 bg-slate-50 rounded-2xl p-4 text-sm font-medium focus:border-[#0D9E75] focus:bg-white outline-none transition-colors resize-none"
                     rows={3}
                     value={patientNote}
                     onChange={(e) => setPatientNote(e.target.value)}

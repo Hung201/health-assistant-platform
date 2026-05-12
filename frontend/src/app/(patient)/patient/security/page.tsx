@@ -24,7 +24,7 @@ function Field({
     <label className="block">
       <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</div>
       <input
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#003f87] focus:bg-white focus:ring-4 focus:ring-[#003f87]/10 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-slate-400"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#0D9E75] focus:bg-white focus:ring-4 focus:ring-[#0D9E75]/10 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-slate-400"
         disabled={disabled}
         placeholder={placeholder}
         type={type}
@@ -46,14 +46,14 @@ export default function PatientSecurityPage() {
         <div className="w-16 h-16 rounded-3xl bg-teal-50 text-teal-600 flex items-center justify-center mx-auto mb-4 border border-teal-100 shadow-sm">
            <Lock size={32} />
         </div>
-        <h2 className="text-3xl font-extrabold text-[#003f87]">Cài đặt bảo mật</h2>
+        <h2 className="text-3xl font-extrabold text-[#1a3353]">Cài đặt bảo mật</h2>
         <p className="mt-2 text-sm font-medium text-slate-500">Đổi mật khẩu và thiết lập các biện pháp bảo vệ tài khoản của bạn.</p>
       </header>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-8 sm:p-10 border-b border-slate-100">
           <div className="flex items-start gap-4 mb-8">
-             <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+             <div className="w-10 h-10 rounded-full bg-[#E8F8F2] text-[#0D9E75] flex items-center justify-center shrink-0">
                <KeyRound size={20} />
              </div>
              <div>
@@ -114,7 +114,7 @@ export default function PatientSecurityPage() {
              <ShieldAlert size={16} /> Chúng tôi mã hóa 100% dữ liệu của bạn
           </div>
           <button
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#003f87] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#003f87]/20 transition-all hover:bg-[#002b5e] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:transform-none"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#0D9E75] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#0D9E75]/20 transition-all hover:bg-[#0B8A65] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:transform-none"
             disabled={saving}
             type="button"
             onClick={async () => {

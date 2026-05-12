@@ -43,7 +43,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode.trim() || undefined,
         districtCode: districtCode.trim() || undefined,
-        workplaceQuery: debouncedSearchTerm || undefined,
+        nameQuery: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });

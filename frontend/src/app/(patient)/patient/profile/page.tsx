@@ -34,7 +34,7 @@ function Field({
         {icon} {label}
       </div>
       <input
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#003f87] focus:bg-white focus:ring-4 focus:ring-[#003f87]/10 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-slate-400"
+        className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#0D9E75] focus:bg-white focus:ring-4 focus:ring-[#0D9E75]/10 disabled:cursor-not-allowed disabled:opacity-60 placeholder:text-slate-400"
         disabled={disabled}
         placeholder={placeholder}
         type={type}
@@ -103,10 +103,10 @@ export default function PatientProfilePage() {
       ...base,
       minHeight: 52,
       borderRadius: 16,
-      borderColor: state.isFocused ? '#003f87' : '#e2e8f0',
-      boxShadow: state.isFocused ? '0 0 0 4px rgba(0,63,135,0.1)' : 'none',
+      borderColor: state.isFocused ? '#0D9E75' : '#e2e8f0',
+      boxShadow: state.isFocused ? '0 0 0 4px rgba(13,158,117,0.1)' : 'none',
       backgroundColor: '#f8fafc',
-      '&:hover': { borderColor: '#003f87' },
+      '&:hover': { borderColor: '#0D9E75' },
     }),
     menu: (base: any) => ({ ...base, zIndex: 30 }),
   };
@@ -125,7 +125,7 @@ export default function PatientProfilePage() {
     <div className="space-y-8 pb-12 max-w-5xl">
       <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-extrabold text-[#003f87]">Hồ sơ cá nhân</h2>
+          <h2 className="text-3xl font-extrabold text-[#1a3353]">Hồ sơ cá nhân</h2>
           <p className="mt-1 text-sm font-medium text-slate-500">Cập nhật thông tin y tế và thông tin liên hệ của bạn để có trải nghiệm tốt nhất.</p>
         </div>
         <div className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full mt-4 sm:mt-0 inline-flex items-center gap-1.5">
@@ -261,7 +261,7 @@ export default function PatientProfilePage() {
                     <User size={14} /> Giới tính
                   </div>
                   <select
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#003f87] focus:bg-white focus:ring-4 focus:ring-[#003f87]/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-medium text-slate-900 outline-none transition-all focus:border-[#0D9E75] focus:bg-white focus:ring-4 focus:ring-[#0D9E75]/10 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={saving}
                     value={form.gender}
                     onChange={(e) => setForm((s) => ({ ...s, gender: e.target.value }))}
@@ -415,7 +415,7 @@ export default function PatientProfilePage() {
                 ) : 'Đảm bảo thông tin của bạn luôn được cập nhật chính xác.'}
               </div>
               <button
-                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#003f87] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#003f87]/20 transition-all hover:bg-[#002b5e] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:transform-none"
+                className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-[#0D9E75] px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#0D9E75]/20 transition-all hover:bg-[#0B8A65] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none disabled:transform-none"
                 disabled={saving}
                 type="button"
                 onClick={async () => {
