@@ -1,5 +1,14 @@
 import { Type } from 'class-transformer';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class FeaturePermissionsPatchDto {
   @IsOptional()
@@ -23,7 +32,13 @@ export class UpdateUserDto {
   @IsIn(['active', 'disabled'])
   status?: 'active' | 'disabled';
 
+  /** Bật/tắt livestream (ưu tiên khi gửi trực tiếp từ admin UI). */
   @IsOptional()
+  @IsBoolean()
+  livestream?: boolean;
+
+  @IsOptional()
+  @IsObject()
   @ValidateNested()
   @Type(() => FeaturePermissionsPatchDto)
   featurePermissions?: FeaturePermissionsPatchDto;

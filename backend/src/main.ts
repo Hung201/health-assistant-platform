@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
@@ -38,7 +39,7 @@ async function bootstrap() {
     app.useGlobalPipes(
       new ValidationPipe({
         whitelist: true,
-        forbidNonWhitelisted: true,
+        forbidNonWhitelisted: false,
         transform: true,
       }),
     );

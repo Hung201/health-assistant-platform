@@ -828,6 +828,8 @@ export const adminApi = {
       fullName?: string;
       phone?: string | null;
       status?: 'active' | 'disabled';
+      /** Bật/tắt quyền phát livestream (bác sĩ). */
+      livestream?: boolean;
       featurePermissions?: Partial<AdminUserFeaturePermissions>;
     },
   ) =>
