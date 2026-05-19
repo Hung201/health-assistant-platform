@@ -88,6 +88,11 @@ export default function AIAssistantPage() {
     !isLoading &&
     !hasRecommendationOptionsInMessages &&
     !hasSelectedRecommendationIntent;
+  const formatRating = (value?: number) => {
+    const rating = Number(value ?? 0);
+    if (!Number.isFinite(rating) || rating <= 0) return 'Chưa có';
+    return rating.toFixed(1);
+  };
 
   return (
     <div className="flex h-[calc(100vh-120px)] gap-6">
@@ -259,6 +264,9 @@ export default function AIAssistantPage() {
                         {doc.workplaceAddress && (
                           <p className="text-xs text-slate-500 mt-0.5">{doc.workplaceAddress}</p>
                         )}
+                        <p className="text-xs text-amber-600 mt-1">
+                          ★ {formatRating(doc.ratingAverage)} ({doc.ratingCount ?? 0} đánh giá)
+                        </p>
                       </div>
                       <a href={`/patient/doctors/${doc.userId}`} className="rounded-lg bg-[#003f87] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0056b3]">
                         Đặt lịch

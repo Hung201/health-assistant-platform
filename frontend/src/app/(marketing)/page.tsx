@@ -5,6 +5,9 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import gsap from 'gsap';
+import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   Activity, Brain,
   Stethoscope, CalendarCheck, FileBadge,
@@ -12,20 +15,47 @@ import {
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 
+import { StatCounter } from '@/components/ui/StatCounter';
+import { FaqAccordion } from '@/components/sections/FaqAccordion';
+import { useScrollReveal } from '@/hooks/useScrollReveal';
+
 import { authApi, doctorsApi, livestreamsApi, publicPostsApi, qaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 import './marketing.css';
 
+const removeAccents = (s: string) =>
+  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+
 const getSpecialtyImage = (name: string): string => {
-  const n = name.toLowerCase();
-  if (n.includes('nội') || n.includes('tổng quát')) return '/images/specialties/internal-medicine.png';
-  if (n.includes('tim')) return '/images/specialties/cardiology.png';
-  if (n.includes('xương') || n.includes('khớp')) return '/images/specialties/orthopedics.png';
-  if (n.includes('da')) return '/images/specialties/dermatology.png';
-  if (n.includes('thần kinh')) return '/images/specialties/neurology.png';
-  if (n.includes('mắt')) return '/images/specialties/ophthalmology.png';
-  if (n.includes('nhi')) return '/images/specialties/pediatrics.png';
-  if (n.includes('sản') || n.includes('phụ')) return '/images/specialties/obstetrics.png';
+  const raw = name.toLowerCase();
+  const n = removeAccents(name); // "Thần kinh" → "than kinh", "Da liễu" → "da lieu"
+
+  // Da liễu → dermatology
+  if (raw.includes('da liễu') || raw.includes('da lieu') || n === 'da lieu' || n.startsWith('da lieu')) return '/images/specialties/dermatology.png';
+
+  // Tim mạch → cardiology
+  if (raw.includes('tim') || n.includes('tim') || n.includes('mach tim')) return '/images/specialties/cardiology.png';
+
+  // Xương khớp / Chỉnh hình / Cơ xương → orthopedics
+  if (raw.includes('xương') || raw.includes('khớp') || raw.includes('chỉnh hình') ||
+      n.includes('xuong') || n.includes('khop') || n.includes('chinh hinh')) return '/images/specialties/orthopedics.png';
+
+  // Thần kinh → neurology
+  if (raw.includes('thần kinh') || n.includes('than kinh')) return '/images/specialties/neurology.png';
+
+  // Nhãn khoa / Mắt → ophthalmology
+  if (raw.includes('mắt') || raw.includes('nhãn') || n.includes('mat') || n.includes('nhan khoa')) return '/images/specialties/ophthalmology.png';
+
+  // Nhi khoa → pediatrics
+  if (raw.includes('nhi') || n.includes('nhi') || raw.includes('trẻ em')) return '/images/specialties/pediatrics.png';
+
+  // Sản phụ khoa → obstetrics
+  if (raw.includes('sản') || raw.includes('phụ khoa') || n.includes('san phu') || n.includes('phu san')) return '/images/specialties/obstetrics.png';
+
+  // Nội khoa / Nội tổng quát / Tổng quát → internal-medicine  
+  if (raw.includes('nội') || raw.includes('tổng quát') || n.includes('noi') || n.includes('tong quat')) return '/images/specialties/internal-medicine.png';
+
+  // Tất cả còn lại (Ngoại khoa, Hô hấp, Tai mũi họng, Tâm thần, Ung bướu...) → default
   return '/images/specialties/default.png';
 };
 
@@ -36,15 +66,26 @@ const FAQS = [
   { question: "Chi phí sử dụng nền tảng là bao nhiêu?", answer: "Việc sử dụng Trợ lý AI và đặt lịch hoàn toàn miễn phí. Bạn chỉ thanh toán phí khám bệnh cho bác sĩ theo bảng giá được niêm yết công khai trên hồ sơ của họ." },
 ];
 
+gsap.registerPlugin(ScrollTrigger);
+
 export default function Home() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  // openFaq state is now managed inside FaqAccordion component
   const [scrolled, setScrolled] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const doctorsScrollRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  const heroEyebrowRef = useRef<HTMLDivElement>(null);
+  const heroHeadingRef = useRef<HTMLHeadingElement>(null);
+  const heroDescRef = useRef<HTMLParagraphElement>(null);
+  const heroCTARef = useRef<HTMLDivElement>(null);
+  const heroCardRef = useRef<HTMLDivElement>(null);
+  const qaRef = useRef<HTMLElement>(null);
+  const howItWorksRef = useRef<HTMLElement>(null);
+  const testimonialsRef = useRef<HTMLElement>(null);
 
   const scrollSpecialties = (dir: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -72,6 +113,34 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  useGSAP(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.7 } });
+    tl.fromTo(heroEyebrowRef.current,
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1 }
+    )
+    .fromTo(heroHeadingRef.current,
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1 },
+      '-=0.55'
+    )
+    .fromTo(heroDescRef.current,
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1 },
+      '-=0.55'
+    )
+    .fromTo(heroCTARef.current,
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1 },
+      '-=0.55'
+    )
+    .fromTo(heroCardRef.current,
+      { scale: 0.92, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.9 },
+      0.3
+    );
+  }, { scope: heroRef });
+
   useEffect(() => {
     const els = document.querySelectorAll('.animate-on-scroll');
     const obs = new IntersectionObserver(
@@ -81,6 +150,11 @@ export default function Home() {
     els.forEach(el => obs.observe(el));
     return () => obs.disconnect();
   }, []);
+
+  // Scroll reveal for QA, How-it-works, and Testimonials sections
+  useScrollReveal(qaRef, { y: 24, stagger: 0.12 });
+  useScrollReveal(howItWorksRef, { y: 30, stagger: 0.15 });
+  useScrollReveal(testimonialsRef, { y: 24, stagger: 0.12 });
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -129,26 +203,47 @@ export default function Home() {
   return (
     <>
       {/* ── HERO ── */}
-        {/* ── HERO ── */}
-        <section className="hero-section relative overflow-hidden py-20 lg:py-28">
+        <section ref={heroRef} className="hero-section relative overflow-hidden py-20 lg:py-28">
           <div className="hero-mesh" />
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Asymmetric 55/45 split */}
+            <div className="grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-12 lg:gap-16 items-center">
 
-              {/* Left: text */}
-              <div className="animate-on-scroll">
-                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#E8F8F2] px-3 py-1.5 text-sm font-semibold text-[#0D9E75] ring-1 ring-inset ring-[#0D9E75]/20">
+              {/* ── Left column: text (left-aligned) ── */}
+              <div className="flex flex-col items-start">
+                {/* Decorative thin green line above eyebrow */}
+                <div className="mb-3 h-[2px] w-16 rounded-full bg-[#1BAF7C]" />
+
+                {/* Eyebrow */}
+                <div
+                  ref={heroEyebrowRef}
+                  className="mb-5 inline-flex items-center gap-2 rounded-full bg-[#E8F8F2] px-3 py-1.5 text-sm font-semibold text-[#0D9E75] ring-1 ring-inset ring-[#0D9E75]/20"
+                >
                   <span className="flex h-2 w-2 rounded-full bg-[#0D9E75] animate-pulse" />
                   Được hỗ trợ bởi AI Tiên Tiến
                 </div>
-                <h1 className="mb-5 text-[48px] font-bold tracking-tight text-slate-900 leading-[1.1]">
-                  Chẩn đoán sức khỏe <br />
-                  <span className="text-[#0D9E75]">thông minh</span> với AI
+
+                {/* Heading — AI on its own line */}
+                <h1
+                  ref={heroHeadingRef}
+                  className="mb-5 font-bold tracking-tight text-slate-900 leading-[1.1] text-left"
+                  style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)' }}
+                >
+                  Chẩn đoán sức khỏe thông minh với{' '}
+                  <br className="hidden sm:block" />
+                  <span className="text-[#1BAF7C]">AI</span>
                 </h1>
-                <p className="mb-8 text-base leading-relaxed text-slate-600 max-w-lg">
+
+                {/* Description */}
+                <p
+                  ref={heroDescRef}
+                  className="mb-8 text-base leading-relaxed text-slate-600 max-w-lg"
+                >
                   Ứng dụng trí tuệ nhân tạo tiên tiến giúp bạn phân tích triệu chứng ban đầu, tìm bác sĩ phù hợp và đặt lịch hẹn khám nhanh chóng ngay tại nhà.
                 </p>
-                <div className="flex flex-col sm:flex-row items-start gap-3 mb-10">
+
+                {/* CTA buttons */}
+                <div ref={heroCTARef} className="flex flex-col sm:flex-row items-start gap-3 mb-10">
                   <Link href={aiHref} className="btn-primary">
                     <Activity size={18} />
                     Thử phân tích với AI
@@ -157,26 +252,20 @@ export default function Home() {
                     Tìm bác sĩ ngay
                   </Link>
                 </div>
+
                 {/* Stats bar */}
                 <div className="grid grid-cols-3 gap-6 border-t border-slate-200/70 pt-8">
-                  {[
-                    { n: '500+', label: 'Bác sĩ uy tín' },
-                    { n: '50+',  label: 'Chuyên khoa' },
-                    { n: '98%',  label: 'Bệnh nhân hài lòng' },
-                  ].map(s => (
-                    <div key={s.label} className="stat-item">
-                      <span className="stat-number">{s.n}</span>
-                      <span className="stat-label">{s.label}</span>
-                    </div>
-                  ))}
+                  <StatCounter end={500} suffix="+" label="Bác sĩ uy tín" />
+                  <StatCounter end={50} suffix="+" label="Chuyên khoa" />
+                  <StatCounter end={98} suffix="%" label="Bệnh nhân hài lòng" />
                 </div>
               </div>
 
-              {/* Right: AI chat mockup */}
-              <div className="hidden lg:flex justify-center items-center">
+              {/* ── Right column: AI chat card ── */}
+              <div ref={heroCardRef} className="hidden lg:flex justify-center items-center">
                 <div className="relative">
                   <div className="ai-chat-glow" />
-                  <div className="ai-chat-card w-[340px]">
+                  <div className="ai-chat-card w-[360px]">
                     {/* Header */}
                     <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-[#0D9E75]">
                       <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -187,6 +276,7 @@ export default function Home() {
                         <p className="text-[11px] text-green-100">Đang hoạt động</p>
                       </div>
                     </div>
+
                     {/* Messages */}
                     <div className="px-5 py-4 space-y-3 bg-[#f8fffe]">
                       <div className="flex gap-2">
@@ -197,11 +287,13 @@ export default function Home() {
                           Xin chào! Bạn đang có triệu chứng gì?
                         </div>
                       </div>
+
                       <div className="flex gap-2 justify-end">
                         <div className="bg-[#0D9E75] rounded-2xl rounded-tr-none px-3 py-2 text-xs text-white max-w-[200px]">
                           Tôi bị đau đầu và sốt nhẹ 2 ngày nay
                         </div>
                       </div>
+
                       <div className="flex gap-2">
                         <div className="w-7 h-7 rounded-full bg-[#0D9E75]/10 flex items-center justify-center flex-shrink-0">
                           <Activity size={12} className="text-[#0D9E75]" />
@@ -210,7 +302,22 @@ export default function Home() {
                           Dựa vào triệu chứng, tôi gợi ý bạn khám <strong className="text-[#0D9E75]">Nội tổng quát</strong> hoặc <strong className="text-[#0D9E75]">Tai Mũi Họng</strong>.
                         </div>
                       </div>
+
+                      {/* Typing indicator */}
+                      <div className="flex gap-2">
+                        <div className="w-7 h-7 rounded-full bg-[#0D9E75]/10 flex items-center justify-center flex-shrink-0">
+                          <Activity size={12} className="text-[#0D9E75]" />
+                        </div>
+                        <div className="bg-white rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center">
+                          <div className="typing-indicator">
+                            <span className="typing-dot" />
+                            <span className="typing-dot" style={{ animationDelay: '0.15s' }} />
+                            <span className="typing-dot" style={{ animationDelay: '0.30s' }} />
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
                     {/* Input */}
                     <div className="px-4 py-3 border-t border-slate-100 flex gap-2 items-center">
                       <div className="flex-1 rounded-lg bg-slate-100 px-3 py-2 text-xs text-slate-400">Nhập triệu chứng của bạn…</div>
@@ -258,17 +365,17 @@ export default function Home() {
         ) : null}
 
         {/* QA Section */}
-        <section className="border-b border-slate-200 bg-[#f6fbfb] py-16">
+        <section ref={qaRef} className="border-b border-slate-200 bg-[#f6fbfb] py-16">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-8">
+            <div className="mb-8" data-reveal>
               <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600">Bác sĩ hỏi đáp</h3>
-              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">Hỏi bác sĩ miễn phí & Cẩm nang hỏi đáp</h2>
+              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">Hỏi bác sĩ miễn phí &amp; Cẩm nang hỏi đáp</h2>
               <p className="mt-3 max-w-3xl text-slate-600">
                 Đặt câu hỏi trực tuyến để bác sĩ giải đáp, đồng thời tra cứu kho bài viết chăm sóc sức khỏe phù hợp từng vấn đề.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
-              <Link href="/hoi-bac-si-mien-phi" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
+              <Link data-reveal href="/hoi-bac-si-mien-phi" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
                 <div className="overflow-hidden rounded-2xl">
                   <img
                     src="/images/ask-doctor.png"
@@ -279,7 +386,7 @@ export default function Home() {
                 <h4 className="mt-4 text-3xl font-extrabold text-[#003f87]">Hỏi bác sĩ miễn phí</h4>
                 <p className="mt-2 text-sm text-slate-600">Gửi câu hỏi của bạn và nhận phản hồi trực tiếp từ bác sĩ trên hệ thống.</p>
               </Link>
-              <Link href="/blog" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
+              <Link data-reveal href="/blog" className="group rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition-all hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg">
                 <div className="overflow-hidden rounded-2xl">
                   <img
                     src="/images/health-handbook.png"
@@ -293,7 +400,7 @@ export default function Home() {
             </div>
 
             {qaData?.items?.length ? (
-              <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
+              <div data-reveal className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <h4 className="text-lg font-extrabold text-slate-900">Câu hỏi mới trong cộng đồng</h4>
                   <Link href="/hoi-bac-si-mien-phi" className="text-sm font-bold text-teal-600 hover:text-teal-700">Xem tất cả →</Link>
@@ -312,36 +419,88 @@ export default function Home() {
         </section>
 
         {/* ── HOW IT WORKS ── */}
-        <section className="bg-white py-20 animate-on-scroll">
+        <section ref={howItWorksRef} className="bg-white py-20">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-14 text-center">
-              <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Quy trình đơn giản</p>
-              <h2 className="text-[36px] font-bold text-slate-900 mb-3">Cách thức hoạt động</h2>
-              <p className="text-slate-500 max-w-xl mx-auto text-base">Trải nghiệm chăm sóc sức khỏe liền mạch từ lúc xuất hiện triệu chứng đến khi gặp chuyên gia.</p>
+            {/* Section heading */}
+            <div className="mb-16 text-center" data-reveal>
+              <div className="mb-3 flex items-center justify-center gap-3">
+                <span className="h-[2px] w-8 rounded-full bg-[#1BAF7C]" />
+                <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75]">Quy trình đơn giản</p>
+                <span className="h-[2px] w-8 rounded-full bg-[#1BAF7C]" />
+              </div>
+              <h2 className="text-[38px] font-bold text-slate-900 mb-3 leading-tight">Cách thức hoạt động</h2>
+              <p className="text-slate-500 max-w-xl mx-auto text-base">
+                Trải nghiệm chăm sóc sức khỏe liền mạch từ lúc xuất hiện triệu chứng đến khi gặp chuyên gia.
+              </p>
             </div>
-            <div className="flex flex-col md:flex-row items-start gap-0 md:gap-0">
+
+            {/* Step cards grid */}
+            <div className="how-it-works-grid">
               {[
-                { icon: MessageSquare, title: 'Chat với AI', desc: 'Mô tả triệu chứng để AI chẩn đoán sơ bộ.' },
-                { icon: Stethoscope,  title: 'Gợi ý Chuyên khoa', desc: 'Nhận kết quả và danh sách bác sĩ phù hợp.' },
-                { icon: CalendarCheck,title: 'Đặt lịch hẹn', desc: 'Chọn giờ khám trực tuyến hoặc tại phòng khám.' },
-                { icon: FileBadge,    title: 'Khám & Hồ sơ', desc: 'Quản lý kết quả và đơn thuốc dễ dàng trên hệ thống.' },
+                {
+                  icon: MessageSquare,
+                  title: 'Chat với AI',
+                  desc: 'Mô tả triệu chứng bằng ngôn ngữ tự nhiên — AI sẽ lắng nghe và phân tích ngay.',
+                  color: '#0D9E75',
+                  gradient: 'linear-gradient(135deg, #0D9E75 0%, #1BAF7C 100%)',
+                },
+                {
+                  icon: Stethoscope,
+                  title: 'Gợi ý Chuyên khoa',
+                  desc: 'Nhận kết quả phân tích sơ bộ và danh sách bác sĩ phù hợp nhất với bạn.',
+                  color: '#3B82F6',
+                  gradient: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+                },
+                {
+                  icon: CalendarCheck,
+                  title: 'Đặt lịch hẹn',
+                  desc: 'Chọn khung giờ thuận tiện — khám trực tuyến hoặc trực tiếp tại phòng khám.',
+                  color: '#8B5CF6',
+                  gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+                },
+                {
+                  icon: FileBadge,
+                  title: 'Khám & Hồ sơ',
+                  desc: 'Lưu trữ kết quả, đơn thuốc và lịch sử khám bệnh an toàn trên hệ thống.',
+                  color: '#F59E0B',
+                  gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+                },
               ].map((step, idx, arr) => {
                 const Icon = step.icon;
                 return (
-                  <div key={idx} className="flex md:flex-col flex-1 items-start md:items-center gap-4 md:gap-0 step-card" style={{ animationDelay: `${idx * 0.15}s` }}>
-                    <div className="flex md:flex-col items-center w-full">
-                      <div className="step-icon-wrap mx-auto mb-0 md:mb-4 relative">
-                        <Icon size={28} />
-                        <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#0D9E75] text-white text-[10px] font-bold flex items-center justify-center border border-white">{idx+1}</span>
+                  <div key={idx} className="relative" data-reveal>
+                    <div className="hiw-card h-full">
+                      {/* Giant watermark step number */}
+                      <span className="hiw-step-number">{idx + 1}</span>
+
+                      {/* Icon box */}
+                      <div
+                        className="hiw-icon-wrap"
+                        style={{
+                          background: `linear-gradient(135deg, ${step.color}1A 0%, ${step.color}0D 100%)`,
+                        }}
+                      >
+                        <Icon size={26} style={{ color: step.color }} strokeWidth={1.8} />
+                        <span className="hiw-badge">{idx + 1}</span>
                       </div>
-                      {idx < arr.length - 1 && (
-                        <div className="hidden md:block stepper-connector mx-2" />
-                      )}
-                    </div>
-                    <div className="md:text-center px-3 pb-6">
-                      <h4 className="text-[16px] font-semibold text-slate-900 mb-1">{step.title}</h4>
+
+                      {/* Text */}
+                      <h4 className="text-[17px] font-bold text-slate-900 mb-2 leading-snug">{step.title}</h4>
                       <p className="text-[14px] text-slate-500 leading-relaxed">{step.desc}</p>
+
+                      {/* Bottom accent colour bar driven by step colour */}
+                      <div
+                        className="absolute bottom-0 left-0 right-0 h-[3px] rounded-b-[20px] scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-350 hiw-bar"
+                        style={{ background: step.gradient }}
+                      />
                     </div>
+
+                    {/* Connector arrow to next step */}
+                    {idx < arr.length - 1 && (
+                      <div className="hiw-connector">
+                        <div className="hiw-connector-line" />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -465,7 +624,7 @@ export default function Home() {
               <div ref={doctorsScrollRef} className="flex gap-6 lg:gap-10 overflow-x-auto pb-8 pt-4 snap-x snap-mandatory hide-scrollbar">
                 {doctorsData?.items?.length ? (
                   doctorsData.items.map((doctor, idx) => (
-                    <Link key={doctor.userId} href={`/doctors/${doctor.userId}`} className="shrink-0 w-[240px] lg:w-[280px] snap-start flex flex-col items-center group/card" style={{ animationDelay: `${idx * 40}ms` }}>
+                    <Link key={doctor.userId} href={`/doctors/${doctor.userId}`} className="relative overflow-hidden group shrink-0 w-[240px] lg:w-[280px] snap-start flex flex-col items-center group/card hover:-translate-y-1 transition-transform duration-300 pb-4 rounded-xl" style={{ animationDelay: `${idx * 40}ms` }}>
                       <div className="relative w-40 h-40 lg:w-48 lg:h-48 rounded-full overflow-hidden mb-6 border-4 border-white shadow-lg transition-transform duration-300 group-hover/card:scale-105 bg-slate-100 shrink-0">
                         <img
                           alt={doctor.fullName}
@@ -483,6 +642,24 @@ export default function Home() {
                         <p className="text-[12px] lg:text-[13px] text-slate-400 mt-2 line-clamp-1 px-4">
                           {doctor.workplaceName || 'Phòng khám Clinical Precision'}
                         </p>
+                      </div>
+
+                      {/* Hover Overlay Panel */}
+                      <div className="absolute inset-x-0 bottom-0 h-auto bg-white/95 backdrop-blur-sm border-t border-[#1BAF7C]/20 p-4 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex flex-col gap-3">
+                        {/* TODO: Integrate real experience/patient count from backend */}
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div>
+                            <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider mb-1">Kinh nghiệm</p>
+                            <p className="text-sm font-semibold text-slate-800">8 năm</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-slate-500 uppercase font-bold tracking-wider mb-1">Bệnh nhân</p>
+                            <p className="text-sm font-semibold text-slate-800">1,200+</p>
+                          </div>
+                        </div>
+                        <button className="w-full bg-[#1BAF7C] text-white text-sm py-1.5 rounded-lg font-semibold hover:bg-[#158f64] transition-colors">
+                          Đặt lịch
+                        </button>
                       </div>
                     </Link>
                   ))
@@ -510,9 +687,9 @@ export default function Home() {
         </section>
 
         {/* ── TESTIMONIALS ── */}
-        <section className="testimonial-section py-20 animate-on-scroll">
+        <section ref={testimonialsRef} className="testimonial-section py-20">
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="mb-12 text-center">
+            <div className="mb-12 text-center" data-reveal>
               <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Đánh giá thực tế</p>
               <h2 className="text-[36px] font-bold text-slate-900 mb-3">Hàng ngàn người đã tin tưởng</h2>
               <p className="text-slate-500 max-w-xl mx-auto">Những chia sẻ từ bệnh nhân sau khi sử dụng hệ thống đặt khám thông minh.</p>
@@ -523,7 +700,7 @@ export default function Home() {
                 { name: 'Trần Thị B',   role: 'Bệnh nhân', text: 'Ứng dụng cực kỳ tiện lợi. Tôi có thể xem hồ sơ bác sĩ chi tiết trước khi đặt hẹn. Các bác sĩ tư vấn rất nhiệt tình và chuyên môn cao.' },
                 { name: 'Lê Hoàng C',   role: 'Bệnh nhân', text: 'Bảo mật thông tin tốt, tôi hoàn toàn yên tâm. Trải nghiệm từ lúc nhập triệu chứng đến lúc đến phòng khám đều rất trơn tru.' },
               ].map((review, i) => (
-                <div key={i} className="testimonial-card">
+                <div key={i} data-reveal className="testimonial-card">
                   <div className="testimonial-stars">
                     {[...Array(5)].map((_, j) => (
                       <svg key={j} width="15" height="15" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
@@ -614,30 +791,14 @@ export default function Home() {
         </section>
 
         {/* ── FAQ ── */}
-        <section className="bg-white py-20 animate-on-scroll">
+        <section className="bg-white py-20">
           <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 lg:px-8">
             <div className="mb-10 text-center">
               <p className="text-sm font-semibold uppercase tracking-widest text-[#0D9E75] mb-2">Hỗ trợ</p>
               <h2 className="text-[36px] font-bold text-slate-900 mb-2">Câu hỏi thường gặp</h2>
               <p className="text-slate-500">Giải đáp nhanh những thắc mắc của bạn về nền tảng.</p>
             </div>
-            <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white">
-              {FAQS.map((faq, index) => (
-                <div key={index} className="faq-item">
-                  <button
-                    onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                    className="faq-trigger"
-                    aria-expanded={openFaq === index}
-                  >
-                    <span>{faq.question}</span>
-                    <ChevronDown size={18} className={`faq-chevron ${openFaq === index ? 'open' : ''}`} />
-                  </button>
-                  <div className={`faq-panel ${openFaq === index ? 'open' : ''}`}>
-                    <div className="faq-panel-inner">{faq.answer}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <FaqAccordion items={FAQS} />
           </div>
         </section>
     </>

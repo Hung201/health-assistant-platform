@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { BadgeCheck, Calendar as CalendarIcon, ArrowLeft, ArrowRight, Wallet, CircleDotDashed, CheckCircle2, AlertTriangle, MapPin } from 'lucide-react';
+import { BadgeCheck, Calendar as CalendarIcon, ArrowLeft, ArrowRight, Wallet, CircleDotDashed, CheckCircle2, AlertTriangle, MapPin, Star } from 'lucide-react';
 
 import { bookingsApi, doctorsApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
@@ -52,6 +52,12 @@ export default function PatientDoctorDetailPage() {
   const { data: slots, isLoading: isLoadingSlots } = useQuery({
     queryKey: ['public', 'doctorSlots', doctorUserId],
     queryFn: () => doctorsApi.slots(doctorUserId),
+    enabled: Boolean(doctorUserId),
+    staleTime: 10_000,
+  });
+  const { data: reviewsData } = useQuery({
+    queryKey: ['patient', 'doctor-reviews', doctorUserId],
+    queryFn: () => doctorsApi.reviews(doctorUserId, { page: 1, limit: 5 }),
     enabled: Boolean(doctorUserId),
     staleTime: 10_000,
   });
@@ -221,7 +227,9 @@ export default function PatientDoctorDetailPage() {
                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Bệnh<br/>Nhân</span>
                   </div>
                   <div className="bg-slate-50 rounded-2xl py-3 px-2 flex flex-col items-center justify-center text-center border border-slate-100">
-                     <span className="font-extrabold text-[#003f87] text-lg leading-none mb-1.5">4.9</span>
+                     <span className="font-extrabold text-[#003f87] text-lg leading-none mb-1.5">
+                       {doctor.ratingAverage?.toFixed(1) || '0.0'}
+                     </span>
                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Đánh<br/>Giá</span>
                   </div>
                </div>
@@ -264,6 +272,29 @@ export default function PatientDoctorDetailPage() {
                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-[#003f87]">
                    <Wallet size={20} />
                  </div>
+               </div>
+
+               <div className="w-full mt-6 rounded-2xl border border-slate-100 bg-white p-4">
+                 <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-3 text-sm">
+                   <Star size={16} className="text-amber-500" /> Đánh giá gần đây ({doctor.ratingCount ?? 0})
+                 </h3>
+                 {reviewsData?.items?.length ? (
+                   <div className="space-y-3">
+                     {reviewsData.items.map((review) => (
+                       <div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                         <div className="flex items-center justify-between">
+                           <p className="text-xs font-bold text-slate-800">{review.patientName}</p>
+                           <p className="text-xs font-bold text-amber-600">★ {review.rating.toFixed(1)}</p>
+                         </div>
+                         {review.comment ? (
+                           <p className="mt-1 text-xs text-slate-600">{review.comment}</p>
+                         ) : null}
+                       </div>
+                     ))}
+                   </div>
+                 ) : (
+                   <p className="text-xs text-slate-500">Chưa có đánh giá nào.</p>
+                 )}
                </div>
             </div>
           </div>

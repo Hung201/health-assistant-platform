@@ -75,7 +75,7 @@ export default function AdminUsersPage() {
 
   const updateFeaturesMutation = useMutation({
     mutationFn: ({ id, livestream }: { id: string; livestream: boolean }) =>
-      adminApi.updateUser(id, { featurePermissions: { livestream } }),
+      adminApi.updateUser(id, { livestream }),
     onSuccess: async (_, v) => {
       await qc.invalidateQueries({ queryKey: ['admin', 'users'] });
       await qc.invalidateQueries({ queryKey: ['admin', 'users', 'detail', v.id] });

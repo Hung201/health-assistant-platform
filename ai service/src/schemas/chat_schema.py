@@ -60,6 +60,24 @@ class HospitalSuggestion(BaseModel):
     location_used: str = Field(..., description="Dia chi da dung de tim kiem")
 
 
+class RecommendationOption(BaseModel):
+    """Lua chon recommendation de UI hien button."""
+    id: Literal["doctor", "facility"] = Field(..., description="Ma lua chon")
+    label: str = Field(..., description="Nhan hien thi")
+    message: str = Field(..., description="Noi dung gui lai khi user click")
+
+
+class ChatTelemetry(BaseModel):
+    """Telemetry de Nest shadow-compare va observability."""
+    provider: str = Field(default="python_v1")
+    specialty_selected: Optional[str] = Field(None, description="Chuyen khoa suy ra")
+    location_hint_used: Optional[str] = Field(None, description="Location da su dung")
+    top_doctor_ids: List[str] = Field(default_factory=list, description="Dinh danh bac si top (neu co)")
+    ranking_scores: List[float] = Field(default_factory=list, description="Diem xep hang doctor (neu co)")
+    confidence_top_score: Optional[float] = Field(None, description="Top score cua final_result")
+    latency_ms: Optional[int] = Field(None, description="Do tre xu ly tai Python")
+
+
 class ChatResponse(BaseModel):
     """Response tu chat endpoint."""
     session_id: str = Field(..., description="ID phien hoi thoai")
@@ -75,4 +93,16 @@ class ChatResponse(BaseModel):
     hospital_suggestion: Optional[HospitalSuggestion] = Field(
         None,
         description="Goi y co so y te gan do neu co du location va confidence"
+    )
+    doctor_recommendations: Optional[list] = Field(
+        None,
+        description="De trong cho contract tuong thich; doctor ranking hien tai do Nest bo sung"
+    )
+    recommendation_options: Optional[List[RecommendationOption]] = Field(
+        None,
+        description="Lua chon goi y de UI hien thi button"
+    )
+    telemetry: Optional[ChatTelemetry] = Field(
+        None,
+        description="Du lieu telemetry phuc vu shadow compare/monitor"
     )

@@ -3,6 +3,7 @@ export * from './role.entity';
 export * from './user-role.entity';
 export * from './patient-profile.entity';
 export * from './doctor-profile.entity';
+export * from './doctor-review.entity';
 export * from './specialty.entity';
 export * from './doctor-specialty.entity';
 export * from './medical-profile.entity';

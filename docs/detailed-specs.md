@@ -1,109 +1,65 @@
-# Đặc tả Hệ thống Chi tiết (Code + Ảnh chụp DB thực tế)
+# Đặc tả hệ thống chi tiết (đối chiếu code + DB thực tế)
 
-Dự án: `health-assistant-platform`  
-Cập nhật lúc: `2026-04-23` (múi giờ: Asia/Saigon)  
-Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-assistant-db`)
+Cập nhật: `2026-05-02` (Asia/Saigon)
 
----
+## 1) Kiến trúc và runtime
 
-## 1. Tổng quan hệ thống
+## 1.1 Thành phần
 
-### 1.1 Thành phần runtime
+1. `frontend` (Next.js)
+2. `backend` (NestJS + TypeORM)
+3. `ai service` (FastAPI)
+4. `PostgreSQL` (Docker container `health-assistant-db`)
 
-1. `frontend` (Next.js): giao diện marketing, patient, doctor, admin.
-2. `backend` (NestJS + TypeORM): API chính, auth, booking, nội dung, moderation, notifications, AI proxy.
-3. `ai service` (FastAPI): chat nhiều lượt, phân tích chẩn đoán, gợi ý cơ sở y tế.
-4. `postgres` (Docker): cơ sở dữ liệu quan hệ chính.
+## 1.2 Luồng request chính
 
-### 1.2 Luồng tích hợp
+1. Frontend gọi `/api/*`.
+2. Next rewrite sang backend `http://localhost:4000/*`.
+3. Backend xử lý nghiệp vụ, truy cập PostgreSQL.
+4. Riêng AI chat: backend gọi `ai service /api/v1/chat/`, sau đó enrich thêm doctor recommendations.
 
-1. Frontend gọi backend qua rewrite: `/api/* -> http://localhost:4000/*`.
-2. Backend module AI gọi AI service (`/api/v1/chat/`) và truyền ngữ cảnh user đã đăng nhập.
-3. AI service lưu session/message vào PostgreSQL (`chat_sessions`, `chat_messages`).
-4. Backend enrich kết quả AI bằng danh sách bác sĩ gợi ý theo chuyên khoa.
+## 2) API backend theo controller
 
----
-
-## 2. Các phân hệ chức năng (theo trạng thái code hiện tại)
-
-### 2.1 Xác thực & định danh
-
-- Đăng ký/đăng nhập/đăng xuất bằng email + password.
-- Hỗ trợ Google OAuth (`/auth/google`, `/auth/google/callback`).
-- Xác thực email bệnh nhân bằng OTP:
-  - `POST /auth/register/patient/verify-email`
-  - `POST /auth/register/patient/resend-code`
-- Phân quyền RBAC qua `roles` + `user_roles` (`patient`, `doctor`, `admin`).
-- Trạng thái user đang dùng trong code: `pending_email_verification`, `active`, `disabled`.
-
-### 2.2 Cổng bệnh nhân (Patient Portal)
-
-- Quản lý hồ sơ và dữ liệu y tế:
-  - `users`, `patient_profiles`, `medical_profiles`, `patient_chronic_conditions`.
-- Tìm bác sĩ theo chuyên khoa/khu vực (`provinceCode`, `districtCode`).
-- Đặt lịch khám (đăng nhập và khách):
-  - `POST /bookings`
-  - `POST /bookings/guest`
-  - `PATCH /bookings/me/:id/cancel`
-- Lấy thông tin thanh toán + xử lý IPN MoMo.
-- AI assistant có lịch sử phiên và gợi ý bác sĩ.
-- Notifications (danh sách/đánh dấu đọc/đọc tất cả + SSE stream).
-- Blog công khai + bình luận + reaction bình luận.
-- Q&A công khai.
-- Xem/tham gia livestream.
-
-### 2.3 Cổng bác sĩ (Doctor Portal)
-
-- Quản lý hồ sơ bác sĩ + chuyên khoa.
-- Quản lý lịch trống (`/doctor/slots`).
-- Duyệt/từ chối lịch hẹn.
-- CRUD bài viết bác sĩ (`/doctor/posts`).
-- Điều khiển livestream:
-  - create, go-live, end, publisher-token, mine/list.
-- Hộp thư Q&A và trả lời.
-- Dashboard doanh thu/thanh toán.
-
-### 2.4 Cổng admin
-
-- Dashboard tổng quan.
-- Quản lý user + quyền tính năng (`users.feature_permissions`).
-- Duyệt hồ sơ bác sĩ.
-- Duyệt bài viết và câu hỏi Q&A.
-- CRUD chuyên khoa + quản lý trạng thái.
-
----
-
-## 3. Danh sách API (đọc từ controller)
-
-### 3.1 Core
+## 2.1 Core
 
 - `GET /`
 
-### 3.2 Auth
+## 2.2 Auth (`/auth`)
 
 - `POST /auth/register`
 - `POST /auth/register/patient/verify-email`
 - `POST /auth/register/patient/resend-code`
+- `POST /auth/forgot-password`
+- `POST /auth/reset-password`
 - `POST /auth/login`
 - `POST /auth/logout`
 - `GET /auth/google`
 - `GET /auth/google/callback`
 - `GET /auth/specialties`
 
-### 3.3 Users
+## 2.3 Users (`/users`)
 
 - `GET /users/me`
 - `POST /users/me/avatar`
 - `PATCH /users/me`
 - `PATCH /users/me/password`
 
-### 3.4 Doctors (Public)
+## 2.4 Doctors public (`/doctors`)
 
 - `GET /doctors`
 - `GET /doctors/:doctorUserId`
 - `GET /doctors/:doctorUserId/slots`
 
-### 3.5 Bookings
+`GET /doctors` hiện hỗ trợ:
+
+- `specialtyId`
+- `provinceCode`
+- `districtCode`
+- `workplaceQuery`
+- `page`
+- `limit`
+
+## 2.5 Bookings (`/bookings`)
 
 - `POST /bookings/guest`
 - `POST /bookings`
@@ -112,7 +68,7 @@ Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-a
 - `GET /bookings/me/:id/payment`
 - `PATCH /bookings/me/:id/cancel`
 
-### 3.6 Doctor Portal
+## 2.6 Doctor portal (`/doctor`)
 
 - `GET /doctor/slots`
 - `POST /doctor/slots`
@@ -121,19 +77,35 @@ Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-a
 - `GET /doctor/dashboard/payment-summary`
 - `PATCH /doctor/bookings/:bookingId/approve`
 - `PATCH /doctor/bookings/:bookingId/reject`
+
+### Doctor posts (`/doctor/posts`)
+
 - `POST /doctor/posts`
 - `GET /doctor/posts`
 - `GET /doctor/posts/:id`
 - `PATCH /doctor/posts/:id`
 - `DELETE /doctor/posts/:id`
 
-### 3.7 AI
+### Doctor livestreams (`/doctor/livestreams`)
+
+- `POST /doctor/livestreams`
+- `PATCH /doctor/livestreams/:id/go-live`
+- `PATCH /doctor/livestreams/:id/end`
+- `GET /doctor/livestreams/mine/list`
+- `GET /doctor/livestreams/:id/publisher-token`
+
+## 2.7 Livestream public (`/livestreams`)
+
+- `GET /livestreams`
+- `GET /livestreams/:id`
+
+## 2.8 AI (`/ai`)
 
 - `POST /ai/chat`
 - `GET /ai/sessions`
 - `GET /ai/sessions/:id`
 
-### 3.8 Posts & Community
+## 2.9 Posts (`/posts`)
 
 - `GET /posts`
 - `GET /posts/:slug`
@@ -141,25 +113,7 @@ Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-a
 - `POST /posts/:slug/comments`
 - `POST /posts/comments/:id/react`
 
-### 3.9 Livestreams
-
-- Public:
-  - `GET /livestreams`
-  - `GET /livestreams/:id`
-- Doctor:
-  - `POST /doctor/livestreams`
-  - `PATCH /doctor/livestreams/:id/go-live`
-  - `PATCH /doctor/livestreams/:id/end`
-  - `GET /doctor/livestreams/mine/list`
-  - `GET /doctor/livestreams/:id/publisher-token`
-
-### 3.10 Notifications
-
-- `GET /notifications/me`
-- `PATCH /notifications/:id/read`
-- `PATCH /notifications/me/read-all`
-
-### 3.11 Q&A
+## 2.10 Q&A (`/qa`)
 
 - `GET /qa/questions`
 - `GET /qa/questions/:id`
@@ -167,7 +121,13 @@ Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-a
 - `GET /qa/doctor/inbox`
 - `PATCH /qa/doctor/questions/:id/answer`
 
-### 3.12 Admin
+## 2.11 Notifications (`/notifications`)
+
+- `GET /notifications/me`
+- `PATCH /notifications/:id/read`
+- `PATCH /notifications/me/read-all`
+
+## 2.12 Admin (`/admin`)
 
 - `GET /admin/dashboard/summary`
 - `GET /admin/users`
@@ -189,17 +149,64 @@ Phạm vi: backend, frontend, AI service và PostgreSQL chạy Docker (`health-a
 - `PATCH /admin/specialties/:id`
 - `PATCH /admin/specialties/:id/status`
 
-### 3.13 Payments
+## 2.13 Payments (`/payments`)
 
 - `POST /payments/momo/ipn`
 
----
+## 3) AI flow hiện tại
 
-## 4. Đặc tả Database (DB thực tế trong Docker)
+## 3.1 Backend AI proxy
 
-DB được kiểm tra từ container `health-assistant-db`, database `health_assistant`.
+`backend/src/ai/ai.service.ts`:
 
-### 4.1 Tổng số bảng: 24
+1. Nhận request từ frontend qua `/ai/chat` với user đã xác thực.
+2. Build `patient_context` từ:
+   - `users` (DOB/gender)
+   - `medical_profiles` (height/weight)
+   - `patient_chronic_conditions` + `chronic_conditions`
+3. Gọi AI service `/api/v1/chat/` với `user_id` + `patient_context`.
+4. Dựa vào `suggested_specialty`, map specialty trong DB và gọi recommendDoctors.
+5. Trả về:
+   - `final_result`
+   - `doctor_recommendations`
+   - `hospital_suggestion` (nếu có)
+   - `recommendation_options` (2 lựa chọn click trên UI)
+
+## 3.2 Recommendation options UI
+
+Frontend patient AI page:
+
+- Render options từ `message.recommendationOptions`.
+- Có fallback hiển thị 2 lựa chọn nếu đã có `final_result` nhưng message chưa có options.
+
+## 3.3 Logic gợi ý bác sĩ theo khu vực
+
+`DoctorsService.recommendDoctors` hiện chạy 3 stage:
+
+1. Lọc cứng theo quận/huyện (nếu trích được district từ location hint).
+2. Thiếu kết quả thì lọc cứng theo tỉnh/thành.
+3. Vẫn thiếu thì fallback liên tỉnh.
+
+Xếp hạng trong từng stage:
+
+1. `workplace_score DESC`
+2. `has_available_slot DESC`
+3. `priority_score DESC`
+4. `years_of_experience DESC`
+5. `next_available_slot ASC`
+
+`workplace_score` gồm:
+
+- district match
+- province match
+- full phrase match
+- keyword match
+
+Tìm kiếm dùng `unaccent + lower`, có index trigram.
+
+## 4) Database schema chính (theo `backend/database/schema.sql`)
+
+Tổng số bảng nghiệp vụ chính: 24
 
 1. `users`
 2. `user_identities`
@@ -219,309 +226,129 @@ DB được kiểm tra từ container `health-assistant-db`, database `health_as
 16. `booking_status_logs`
 17. `posts`
 18. `comments`
-19. `comment_reactions`
-20. `chat_sessions`
-21. `chat_messages`
-22. `live_streams`
-23. `notifications`
-24. `doctor_questions`
+19. `chat_sessions`
+20. `chat_messages`
+21. `live_streams`
+22. `notifications`
+23. `doctor_questions`
+24. `comment_reactions` (entity có dùng trong code; dữ liệu lưu reaction comment)
 
-### 4.2 Chi tiết bảng (cột)
+## 4.1 Extension và index quan trọng
 
-#### `users`
-- `id (uuid, PK, default uuid_generate_v4())`
-- `email (varchar, unique, not null)`
-- `phone (varchar, unique, nullable)`
-- `password_hash (text, not null)`
-- `full_name (varchar, not null)`
-- `avatar_url (text, nullable)`
-- `avatar_public_id (varchar, nullable)`
-- `date_of_birth (date, nullable)`
-- `gender (varchar, nullable)`
-- `status (varchar, default 'active')`
-- `feature_permissions (jsonb, default '{}'::jsonb)`
-- `email_verified_at, phone_verified_at, last_login_at, deleted_at`
-- `created_at, updated_at`
+- Extension:
+  - `uuid-ossp`
+  - `unaccent`
+  - `pg_trgm`
+- Index mới:
+  - `idx_doctor_profiles_workplace_search` (GIN trigram trên workplace normalized text)
+  - `idx_doctor_specialties_one_primary_per_doctor` (unique partial, đảm bảo tối đa 1 primary)
 
-#### `user_identities`
-- `id (uuid, PK)`
-- `user_id (uuid, FK -> users.id, not null)`
-- `provider (varchar, not null)`
-- `provider_sub (varchar, not null)`
-- `provider_email (varchar, nullable)`
-- `created_at, updated_at`
-- Cột dư trong DB thực tế: `userId (uuid, nullable)` (dấu vết drift lịch sử)
+## 4.2 Migrations hiện có
 
-#### `patient_email_verifications`
-- `id (uuid, PK)`
-- `user_id (uuid, unique FK -> users.id)`
-- `email, code_hash`
-- `expires_at`
-- `attempts (int, default 0)`
-- `created_at, updated_at`
+Trong `backend/database/migrations`:
 
-#### `roles`
-- `id (smallint, PK)`
-- `code (unique)`
-- `name`
+- `20260422_add_doctor_profile_location_fields.sql`
+- `20260422_add_doctor_questions.sql`
+- `20260422_add_notifications.sql`
+- `20260422_expand_doctor_profile_location_lengths.sql`
+- `20260422_update_doctor_questions_moderation_status.sql`
+- `20260423_add_users_password_reset.sql`
+- `20260426_add_workplace_search_extensions_and_index.sql`
+- `20260427_normalize_doctor_specialties_primary.sql`
 
-#### `user_roles`
-- `user_id (FK -> users.id)`
-- `role_id (FK -> roles.id)`
-- `created_at`
-- Composite PK: `(user_id, role_id)`
+## 5) Trạng thái dữ liệu thực tế (DB Docker)
 
-#### `patient_profiles`
-- `user_id (PK FK -> users.id)`
-- `emergency_contact_name`
-- `emergency_contact_phone`
-- `address_line`
-- `province_code, district_code, ward_code`
-- `occupation`
-- `blood_type`
-- `created_at, updated_at`
+Số lượng bản ghi hiện tại:
 
-#### `doctor_profiles`
-- `user_id (PK FK -> users.id)`
-- `professional_title`
-- `license_number`
-- `years_of_experience`
-- `bio`
-- `workplace_name`
-- `workplace_address`
-- `province_code, district_code, ward_code`
-- `consultation_fee (numeric, default 0)`
-- `priority_score (int, default 0)`
-- `is_available_for_booking (bool, default true)`
-- `is_verified (bool, default false)`
-- `verification_status (varchar, default 'pending')`
-- `created_at, updated_at`
+- `users`: 34
+- `doctor_profiles`: 31
+- `specialties`: 13
+- `doctor_specialties`: 63
+- `doctor_available_slots`: 616
+- `bookings`: 1
+- `chat_sessions`: 14
+- `chat_messages`: 100
+- `posts`: 14
+- `doctor_questions`: 0
+- `notifications`: 0
 
-#### `specialties`
-- `id (bigint, PK)`
-- `slug (unique)`
-- `name`
-- `description`
-- `icon_url`
-- `status (default 'active')`
-- `created_at, updated_at`
+Chất lượng dữ liệu:
 
-#### `doctor_specialties`
-- `doctor_user_id (FK -> doctor_profiles.user_id)`
-- `specialty_id (FK -> specialties.id)`
-- `is_primary (bool, default false)`
-- `created_at`
-- Composite PK: `(doctor_user_id, specialty_id)`
+- Bác sĩ có nhiều hơn 1 `is_primary=true`: `0`
 
-#### `medical_profiles`
-- `patient_user_id (PK FK -> patient_profiles.user_id)`
-- `height_cm, weight_kg, bmi`
-- `allergies`
-- `current_medications`
-- `family_history`
-- `note`
-- `updated_at`
+## 6) Frontend routes (App Router)
 
-#### `chronic_conditions`
-- `id (bigint, PK)`
-- `code (unique, nullable)`
-- `name`
-- `description`
-- `created_at`
+## 6.1 Marketing/Public
 
-#### `patient_chronic_conditions`
-- `id (bigint, PK)`
-- `patient_user_id (FK -> patient_profiles.user_id)`
-- `condition_id (FK -> chronic_conditions.id)`
-- `diagnosed_at`
-- `severity_level`
-- `note`
-- `created_at`
+- `/`
+- `/ai`
+- `/doctors`
+- `/doctors/[id]`
+- `/blog`
+- `/blog/[slug]`
+- `/dat-lich`
+- `/cam-nang-hoi-dap`
+- `/hoi-bac-si-mien-phi`
+- `/hoi-bac-si-mien-phi/[id]`
+- `/live/[streamId]`
 
-#### `doctor_available_slots`
-- `id (bigint, PK)`
-- `doctor_user_id (FK -> doctor_profiles.user_id)`
-- `specialty_id (FK -> specialties.id, nullable)`
-- `slot_date`
-- `start_at, end_at`
-- `max_bookings (default 1)`
-- `booked_count (default 0)`
-- `status (default 'available')`
-- `source (default 'manual')`
-- `created_at, updated_at`
+## 6.2 Auth
 
-#### `bookings`
-- `id (uuid, PK)`
-- `booking_code (varchar, unique)`
-- `patient_user_id (FK -> patient_profiles.user_id, nullable cho guest flow)`
-- `doctor_user_id (FK -> doctor_profiles.user_id)`
-- `specialty_id (FK -> specialties.id)`
-- `available_slot_id (FK -> doctor_available_slots.id, nullable)`
-- `patient_note, doctor_note, rejection_reason, cancel_reason`
-- `status (varchar, default thực tế: 'pending')`
-- `payment_method (default 'momo')`
-- `payment_status (default 'unpaid')`
-- `guest_full_name, guest_phone, guest_email, guest_lookup_token (unique)`
-- `appointment_date`
-- `appointment_start_at, appointment_end_at`
-- `doctor_name_snapshot, specialty_name_snapshot`
-- `consultation_fee, platform_fee, total_fee`
-- `approved_at, approved_by`
-- `created_at, updated_at`
+- `/login`
+- `/register`
+- `/register/verify`
+- `/forgot-password`
+- `/reset-password`
+- `/oauth/google`
 
-#### `payments`
-- `id (uuid, PK)`
-- `booking_id (FK -> bookings.id)`
-- `provider (default 'momo')`
-- `amount`
-- `currency (default 'VND')`
-- `status (default 'pending')`
-- `provider_order_id (unique)`
-- `provider_trans_id`
-- `raw_create_response, raw_ipn_body`
-- `created_at, updated_at`
+## 6.3 Patient
 
-#### `booking_status_logs`
-- `id (bigint, PK)`
-- `booking_id (FK -> bookings.id)`
-- `old_status`
-- `new_status`
-- `changed_by (FK -> users.id)`
-- `note`
-- `created_at`
+- `/patient`
+- `/patient/ai-assistant`
+- `/patient/doctors`
+- `/patient/doctors/[doctorUserId]`
+- `/patient/bookings`
+- `/patient/profile`
+- `/patient/security`
 
-#### `posts`
-- `id (bigint, PK)`
-- `author_user_id (FK -> doctor_profiles.user_id)`
-- `title`
-- `slug (unique)`
-- `excerpt`
-- `content`
-- `thumbnail_url`
-- `post_type (default 'medical_article')`
-- `status (default 'draft')`
-- `reviewed_by (FK -> users.id)`
-- `reviewed_at, published_at`
-- `rejection_reason`
-- `view_count (default 0)`
-- `created_at, updated_at`
+## 6.4 Doctor
 
-#### `comments`
-- `id (bigint, PK)`
-- `post_id (FK -> posts.id)`
-- `user_id (FK -> users.id)`
-- `parent_comment_id (self FK, nullable)`
-- `content`
-- `status (default 'visible')`
-- `created_at, updated_at`
+- `/doctor`
+- `/doctor/slots`
+- `/doctor/bookings`
+- `/doctor/posts`
+- `/doctor/posts/create`
+- `/doctor/profile`
+- `/doctor/live`
+- `/doctor/qa`
+- `/doctor/settings`
+- `/doctor/security`
 
-#### `comment_reactions`
-- `id (bigint, PK)`
-- `comment_id (FK -> comments.id)`
-- `user_id (FK -> users.id)`
-- `type (default 'like')`
-- `created_at`
-- Unique constraint trên `(comment_id, user_id)`
+## 6.5 Admin
 
-#### `chat_sessions`
-- `id (uuid, PK)`
-- `user_id (FK -> users.id, nullable)`
-- `title`
-- `is_active (default true)`
-- `total_tokens (default 0)`
-- `metadata (jsonb, nullable)`
-- `created_at, updated_at`
+- `/admin`
+- `/admin/users`
+- `/admin/doctors/pending`
+- `/admin/posts/pending`
+- `/admin/questions/pending`
+- `/admin/specialties`
+- `/admin/settings`
 
-#### `chat_messages`
-- `id (bigint, PK)`
-- `session_id (FK -> chat_sessions.id)`
-- `role`
-- `content`
-- `token_count`
-- `created_at`
+## 7) Seed data thực tế
 
-#### `live_streams`
-- `id (uuid, PK)`
-- `doctor_user_id (FK -> users.id)`
-- `title`
-- `description`
-- `status (default 'scheduled')`
-- `room_name (unique)`
-- `started_at, ended_at`
-- `created_at, updated_at`
+`backend/src/seed.ts` hiện đã có:
 
-#### `notifications`
-- `id (uuid, PK)`
-- `user_id (FK -> users.id)`
-- `type`
-- `priority (default 'normal')`
-- `title`
-- `message`
-- `link`
-- `is_read (default false)`
-- `read_at`
-- `metadata (jsonb, default '{}'::jsonb)`
-- `created_at, updated_at`
+- 13 specialties (bao gồm `rang-ham-mat`)
+- demo doctors/pending doctors
+- địa chỉ fake tại 3 thành phố:
+  - Hà Nội
+  - TP Hồ Chí Minh
+  - Đà Nẵng
+- lịch khám tương lai theo khung giờ seed
+- normalize lại `doctor_specialties` để còn đúng 1 primary mỗi bác sĩ
 
-#### `doctor_questions`
-- `id (uuid, PK)`
-- `patient_user_id (FK -> users.id)`
-- `doctor_user_id (FK -> users.id, nullable)`
-- `title`
-- `question_content`
-- `answer_content`
-- `category`
-- `status (default thực tế: 'pending_review')`
-- `answered_at`
-- `created_at, updated_at`
+## 8) Rủi ro/khoảng trống còn lại
 
----
-
-## 5. AI + Recomment Bác sĩ (hành vi hiện tại)
-
-### 5.1 Chat AI có gắn user thật
-
-1. Frontend (`chat.store.ts`) gọi backend `/api/ai/chat`, không gọi trực tiếp AI service.
-2. Backend (`AiService.chat`) bổ sung:
-   - `user_id = currentUser.id`
-   - `patient_context` lấy từ:
-     - `users` (tuổi, giới tính)
-     - `medical_profiles` (chiều cao, cân nặng)
-     - `patient_chronic_conditions` + `chronic_conditions` (bệnh mãn tính)
-3. AI service lưu/cập nhật `chat_sessions.user_id`.
-
-### 5.2 Enrich danh sách bác sĩ gợi ý
-
-1. AI service trả về `final_result.top_diseases[*].suggested_specialty`.
-2. Backend map chuyên khoa bằng tên (`ILIKE` trong `specialties`, trạng thái `active`).
-3. Backend gọi `recommendDoctors` và trả `doctor_recommendations` cho frontend.
-
----
-
-## 6. Các điểm lệch schema đã xác nhận (Schema Drift / Risks)
-
-Các điểm dưới đây đã đối chiếu giữa file DDL và DB thực tế tại `2026-04-23`:
-
-1. `comment_reactions` có trong DB thực tế và entity code, nhưng chưa có trong `backend/database/schema.sql`.
-2. `users.feature_permissions` có trong DB thực tế và entity code, nhưng thiếu trong `schema.sql`.
-3. `user_identities.userId` là cột dư trong DB thực tế (artifact lịch sử), không có trong `schema.sql`.
-4. `bookings.status`:
-   - `schema.sql`: default `pending_review`
-   - DB thực tế + logic entity/service: `pending`
-5. `doctor_questions.status` trong `schema.sql` đang default `'pending'`, nhưng check constraint và DB thực tế dùng `pending_review`.
-6. Lệch kiểu thời gian:
-   - nhiều `created_at/updated_at` trong DB thực tế là `timestamp without time zone`
-   - trong DDL/entity thường định hướng `timestamptz`.
-7. `TypeORM synchronize` đang bật khi `NODE_ENV !== 'production'`, có thể tiếp tục tạo drift schema.
-
----
-
-## 7. Khuyến nghị tiếp theo để ổn định spec và DB
-
-1. Chốt nguồn sự thật schema bằng migration, tắt `synchronize` ở môi trường dùng chung.
-2. Tạo migration để đồng bộ:
-   - thêm DDL còn thiếu vào `schema.sql` (`comment_reactions`, `feature_permissions`)
-   - chuẩn hóa default/status (`bookings.status`, `doctor_questions.status`)
-   - xóa cột dư `user_identities.userId` nếu đã xác nhận không còn phụ thuộc.
-3. Sau mỗi lần pull/release lớn, cập nhật lại tài liệu này bằng introspection DB thực tế.
-
+1. `next build` trên môi trường local có thể bị EPERM/timeout do lock file `.next` (không phải lỗi nghiệp vụ).
+2. AI service vẫn phụ thuộc external APIs (Gemini, geocoding/overpass) nên cần retry/observability tốt ở production.
+3. Một số chỉ số UI marketing/doctor detail vẫn có phần mock (rating, social proof) nếu không có nguồn dữ liệu chuẩn hóa.

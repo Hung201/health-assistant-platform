@@ -408,8 +408,10 @@ export class AdminService {
     if (input.status != null) {
       u.status = input.status;
     }
-    if (input.featurePermissions != null && input.featurePermissions.livestream !== undefined) {
-      const wants = input.featurePermissions.livestream;
+    const livestreamWants =
+      input.livestream !== undefined ? input.livestream : input.featurePermissions?.livestream;
+    if (livestreamWants !== undefined) {
+      const wants = livestreamWants;
       if (!this.userHasDoctorRole(u)) {
         if (wants === true) {
           throw new BadRequestException('Quyền livestream chỉ cấp được cho tài khoản có vai trò bác sĩ.');

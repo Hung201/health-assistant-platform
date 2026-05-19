@@ -15,6 +15,11 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
     queryKey: ['public-doctor', params.id],
     queryFn: () => doctorsApi.detail(params.id),
   });
+  const { data: reviewsData } = useQuery({
+    queryKey: ['public-doctor-reviews', params.id],
+    queryFn: () => doctorsApi.reviews(params.id, { page: 1, limit: 5 }),
+    enabled: Boolean(params.id),
+  });
   const { data: provinces = [] } = useQuery({
     queryKey: ['vn-location', 'provinces', 'doctor-detail'],
     queryFn: fetchVnProvinces,
@@ -94,11 +99,9 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                     
                     <div className="flex items-center gap-1 mb-6 text-amber-500">
                       <Star size={16} className="fill-current" />
-                      <Star size={16} className="fill-current" />
-                      <Star size={16} className="fill-current" />
-                      <Star size={16} className="fill-current" />
-                      <Star size={16} className="fill-current" />
-                      <span className="text-sm font-semibold text-slate-600 ml-1">(5.0)</span>
+                      <span className="text-sm font-semibold text-slate-700 ml-1">
+                        {doctor.ratingAverage?.toFixed(1) || '0.0'} ({doctor.ratingCount ?? 0} đánh giá)
+                      </span>
                     </div>
 
                     <div className="space-y-4 mb-8">
@@ -185,6 +188,32 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                       <span>Nghỉ</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="rounded-2xl bg-white shadow-sm border border-slate-200 p-8">
+                  <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                    <Star size={20} className="text-amber-500" /> Đánh giá bệnh nhân
+                  </h3>
+                  {reviewsData?.items?.length ? (
+                    <div className="space-y-4">
+                      {reviewsData.items.map((review) => (
+                        <div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-slate-800">{review.patientName}</p>
+                            <p className="text-xs font-bold text-amber-600">★ {review.rating.toFixed(1)}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                          </p>
+                          {review.comment ? (
+                            <p className="mt-2 text-sm text-slate-700">{review.comment}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">Chưa có đánh giá nào cho bác sĩ này.</p>
+                  )}
                 </div>
               </div>
             </div>
