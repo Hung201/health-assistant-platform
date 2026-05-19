@@ -95,6 +95,10 @@ export class DoctorsService {
     private readonly doctorSpecialtyRepo: Repository<DoctorSpecialty>,
     @InjectRepository(Specialty)
     private readonly specialtyRepo: Repository<Specialty>,
+    @InjectRepository(Booking)
+    private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(DoctorReview)
+    private readonly doctorReviewRepo: Repository<DoctorReview>,
   ) { }
 
   private hasRole(user: User, code: string): boolean {
