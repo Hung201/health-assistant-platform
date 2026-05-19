@@ -8,7 +8,7 @@ import { DoctorsService } from './doctors.service';
 
 @Controller('doctors')
 export class DoctorsController {
-  constructor(private readonly doctorsService: DoctorsService) {}
+  constructor(private readonly doctorsService: DoctorsService) { }
 
   /** Danh sách bác sĩ công khai (chỉ bác sĩ đã được duyệt). */
   @Public()
@@ -17,15 +17,18 @@ export class DoctorsController {
     @Query('specialtyId') specialtyId?: string,
     @Query('provinceCode') provinceCode?: string,
     @Query('districtCode') districtCode?: string,
+    @Query('search') search?: string,
     @Query('workplaceQuery') workplaceQuery?: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
   ) {
     const sid = specialtyId ? Number(specialtyId) : undefined;
+    const searchTerm = search?.trim() || workplaceQuery?.trim() || undefined;
     return this.doctorsService.listPublicDoctors({
       specialtyId: sid != null && !Number.isNaN(sid) ? sid : undefined,
       provinceCode: provinceCode?.trim() || undefined,
       districtCode: districtCode?.trim() || undefined,
+      search: searchTerm,
       workplaceQuery: workplaceQuery?.trim() || undefined,
       page,
       limit,

@@ -3,9 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { LiveKitRoom, StartAudio, VideoConference } from '@livekit/components-react';
+import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
 
+import { LiveViewerStage } from '@/components/live/live-viewer-stage';
 import { livestreamsApi } from '@/lib/api';
 
 export default function PublicLiveViewerPage() {
@@ -45,6 +46,7 @@ export default function PublicLiveViewerPage() {
             </div>
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-lg">
               <LiveKitRoom
+                key={data.token}
                 serverUrl={data.serverUrl}
                 token={data.token}
                 connect
@@ -55,12 +57,7 @@ export default function PublicLiveViewerPage() {
                   console.error('[live viewer]', e);
                 }}
               >
-                <div className="relative flex min-h-0 w-full flex-1 flex-col">
-                  <VideoConference className="h-full min-h-0 w-full flex-1" />
-                  <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-3 [&>button]:pointer-events-auto">
-                    <StartAudio label="Bật âm thanh (nếu trình duyệt chặn tự phát)" />
-                  </div>
-                </div>
+                <LiveViewerStage />
               </LiveKitRoom>
             </div>
             <p className="mt-4 text-center text-xs text-slate-500">

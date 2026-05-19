@@ -242,6 +242,7 @@ export const doctorsApi = {
     specialtyId?: number;
     provinceCode?: string;
     districtCode?: string;
+    search?: string;
     workplaceQuery?: string;
     nameQuery?: string;
     page?: number;
@@ -251,6 +252,7 @@ export const doctorsApi = {
     if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
     if (params?.provinceCode) q.set('provinceCode', params.provinceCode);
     if (params?.districtCode) q.set('districtCode', params.districtCode);
+    if (params?.search) q.set('search', params.search);
     if (params?.workplaceQuery) q.set('workplaceQuery', params.workplaceQuery);
     if (params?.nameQuery) q.set('nameQuery', params.nameQuery);
     if (params?.page != null) q.set('page', String(params.page));
@@ -830,6 +832,8 @@ export const adminApi = {
       fullName?: string;
       phone?: string | null;
       status?: 'active' | 'disabled';
+      /** Bật/tắt quyền phát livestream (bác sĩ). */
+      livestream?: boolean;
       featurePermissions?: Partial<AdminUserFeaturePermissions>;
     },
   ) =>

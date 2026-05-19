@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   DefaultValuePipe,
@@ -9,10 +10,12 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import type { Request } from 'express';
 import { AdminGuard } from './admin.guard';
 import { AdminService } from './admin.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -25,7 +28,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('admin')
 @UseGuards(AdminGuard)
-@UsePipes(new ValidationPipe({ whitelist: true, transform: true }))
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
@@ -54,7 +56,18 @@ export class AdminController {
   }
 
   @Patch('users/:id')
-  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  async updateUser(@Param('id') id: string, @Req() req: Request) {
+    const dto = plainToInstance(UpdateUserDto, req.body ?? {});
+    const errors = await validate(dto, {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    });
+    if (errors.length > 0) {
+      const messages = errors.flatMap((e) =>
+        e.constraints ? Object.values(e.constraints) : [],
+      );
+      throw new BadRequestException(messages.length > 0 ? messages : errors);
+    }
     return this.adminService.updateUser(id, dto);
   }
 
