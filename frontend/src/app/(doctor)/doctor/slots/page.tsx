@@ -1,119 +1,115 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { Calendar, Clock, CheckCircle2, AlertCircle, Users } from 'lucide-react';
 
 import { doctorApi } from '@/lib/api';
 import { useToast } from '@/components/ui/toast';
-import { loadDoctorPortalSettings } from '@/lib/doctor-settings';
 import { useAuthStore } from '@/stores/auth.store';
 
-function statusBadgeClass(status: string) {
-  if (status === 'available') return 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300';
-  if (status === 'cancelled') return 'bg-muted text-muted-foreground';
-  if (status === 'expired') return 'bg-slate-500/10 text-slate-700 dark:text-slate-300';
-  return 'bg-muted text-muted-foreground';
+/* ── helpers ── */
+function fmtTime(h: number, m: number) {
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
-
+function fmtTimeRange(startAt: string, endAt: string) {
+  return `${new Date(startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} – ${new Date(endAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+}
+function fmtDateLabel(date: string) {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('vi-VN', {
+    weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric',
+  });
+}
+function statusBadge(status: string) {
+  if (status === 'available') return 'bg-emerald-100 text-emerald-700';
+  if (status === 'cancelled') return 'bg-slate-100 text-slate-500';
+  return 'bg-slate-100 text-slate-400';
+}
 function statusLabel(status: string) {
   if (status === 'available') return 'Sẵn sàng';
   if (status === 'cancelled') return 'Đã huỷ';
-  if (status === 'expired') return 'Đã qua';
-  return status;
+  return 'Đã qua';
 }
 
-function formatTimeRange(startAt: string, endAt: string) {
-  return `${new Date(startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${new Date(
-    endAt,
-  ).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+/* Generate 30-min slots from 06:00 → 22:00 */
+const ALL_SLOTS: { label: string; h: number; m: number }[] = [];
+for (let h = 6; h < 22; h++) {
+  for (const m of [0, 30]) {
+    ALL_SLOTS.push({ label: fmtTime(h, m), h, m });
+  }
 }
 
-function formatDateLabel(date: string) {
-  return new Date(`${date}T00:00:00`).toLocaleDateString('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-}
-
+/* ── component ── */
 export default function DoctorSlotsPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const user = useAuthStore((s) => s.user);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('09:30');
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [maxBookings, setMaxBookings] = useState(5);
-  const [defaultDurationMinutes, setDefaultDurationMinutes] = useState(30);
   const [filter, setFilter] = useState<'upcoming' | 'all'>('upcoming');
   const [cancelSlotId, setCancelSlotId] = useState<number | null>(null);
-  const [detailSlotId, setDetailSlotId] = useState<number | null>(null);
 
-  const doctorPrimarySpecialty = user?.doctorSpecialty ?? null;
+  const specialty = user?.doctorSpecialty ?? null;
 
-  const { data: slots, isLoading, isError, error } = useQuery({
+  const { data: slots, isLoading } = useQuery({
     queryKey: ['doctor', 'slots'],
     queryFn: doctorApi.mySlots,
     staleTime: 10_000,
   });
 
-  const startAtIso = useMemo(() => new Date(`${date}T${startTime}:00`).toISOString(), [date, startTime]);
-  const endAtIso = useMemo(() => new Date(`${date}T${endTime}:00`).toISOString(), [date, endTime]);
-  const startAtMs = useMemo(() => new Date(startAtIso).getTime(), [startAtIso]);
-  const endAtMs = useMemo(() => new Date(endAtIso).getTime(), [endAtIso]);
+  /* slots already created on selected date */
+  const existingTimesOnDate = useMemo(() => {
+    const set = new Set<string>();
+    (slots ?? [])
+      .filter((s) => s.slotDate === date && s.status !== 'cancelled')
+      .forEach((s) => {
+        const h = new Date(s.startAt).getHours();
+        const m = new Date(s.startAt).getMinutes();
+        set.add(fmtTime(h, m));
+      });
+    return set;
+  }, [slots, date]);
 
-  const validationError = useMemo(() => {
-    if (!doctorPrimarySpecialty) return 'Bạn chưa được gán chuyên khoa chính. Vui lòng liên hệ quản trị viên.';
-    if (!date) return 'Vui lòng chọn ngày.';
-    if (!startTime || !endTime) return 'Vui lòng chọn giờ bắt đầu/kết thúc.';
-    if (Number.isNaN(startAtMs) || Number.isNaN(endAtMs)) return 'Thời gian không hợp lệ.';
-    if (endAtMs <= startAtMs) return 'Giờ kết thúc phải sau giờ bắt đầu.';
-    const durationMin = Math.round((endAtMs - startAtMs) / 60000);
-    if (durationMin < 10) return 'Slot tối thiểu 10 phút.';
-    if (durationMin > 240) return 'Slot tối đa 4 giờ (hãy chia nhỏ).';
-    if (!Number.isFinite(maxBookings) || maxBookings < 1) return 'Số lượt tối thiểu là 1.';
-    if (maxBookings > 50) return 'Số lượt tối đa là 50.';
-    if (startAtMs < Date.now() - 60_000) return 'Không thể tạo slot ở quá khứ.';
-    return null;
-  }, [doctorPrimarySpecialty, date, startAtMs, endAtMs, maxBookings, startTime, endTime]);
-
-  const applyDurationFromStart = (minutes: number) => {
-    const [h, m] = startTime.split(':').map(Number);
-    if (!Number.isFinite(h) || !Number.isFinite(m)) return;
-    const base = h * 60 + m;
-    const total = Math.min(24 * 60 - 1, base + minutes);
-    const hh = String(Math.floor(total / 60)).padStart(2, '0');
-    const mm = String(total % 60).padStart(2, '0');
-    setEndTime(`${hh}:${mm}`);
+  const nowMs = Date.now();
+  const isPast = (h: number, m: number) => {
+    if (date > today) return false;
+    if (date < today) return true;
+    const slotMs = new Date(`${date}T${fmtTime(h, m)}:00`).getTime();
+    return slotMs <= nowMs;
   };
 
-  useEffect(() => {
-    const settings = loadDoctorPortalSettings();
-    setDefaultDurationMinutes(settings.defaultSlotDurationMinutes);
-    setMaxBookings(settings.defaultMaxBookings);
-    applyDurationFromStart(settings.defaultSlotDurationMinutes);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const toggleSlot = (label: string, h: number, m: number) => {
+    if (isPast(h, m) || existingTimesOnDate.has(label)) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
 
   const createSlot = useMutation({
-    mutationFn: () => {
-      return doctorApi.createSlot({
-        startAt: startAtIso,
-        endAt: endAtIso,
-        maxBookings,
-      });
+    mutationFn: async () => {
+      const sorted = ALL_SLOTS.filter((s) => selected.has(s.label));
+      await Promise.all(
+        sorted.map(({ h, m }) => {
+          const startAt = new Date(`${date}T${fmtTime(h, m)}:00`).toISOString();
+          const endDate = new Date(`${date}T${fmtTime(h, m)}:00`);
+          endDate.setMinutes(endDate.getMinutes() + 30);
+          return doctorApi.createSlot({ startAt, endAt: endDate.toISOString(), maxBookings });
+        }),
+      );
     },
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['doctor', 'slots'] });
-      toast.show({ variant: 'success', title: 'Đã tạo slot', message: 'Slot đã được thêm vào danh sách.' });
+      setSelected(new Set());
+      toast.show({ variant: 'success', title: 'Đã tạo slot', message: `Tạo thành công ${selected.size} slot.` });
     },
     onError: (e: unknown) => {
-      toast.show({
-        variant: 'error',
-        title: 'Tạo slot thất bại',
-        message: e instanceof Error ? e.message : 'Không thể tạo slot. Vui lòng thử lại.',
-      });
+      toast.show({ variant: 'error', title: 'Lỗi', message: e instanceof Error ? e.message : 'Không thể tạo slot.' });
     },
   });
 
@@ -121,43 +117,19 @@ export default function DoctorSlotsPage() {
     mutationFn: (id: number) => doctorApi.cancelSlot(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['doctor', 'slots'] });
-      toast.show({ variant: 'success', title: 'Đã huỷ slot', message: 'Slot đã được chuyển sang trạng thái cancelled.' });
+      toast.show({ variant: 'success', title: 'Đã huỷ slot' });
       setCancelSlotId(null);
     },
     onError: (e: unknown) => {
-      toast.show({
-        variant: 'error',
-        title: 'Huỷ slot thất bại',
-        message: e instanceof Error ? e.message : 'Không thể huỷ slot. Vui lòng thử lại.',
-      });
+      toast.show({ variant: 'error', title: 'Lỗi', message: e instanceof Error ? e.message : 'Không thể huỷ slot.' });
     },
   });
 
-  useEffect(() => {
-    if (cancelSlotId == null) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setCancelSlotId(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [cancelSlotId]);
-
-  useEffect(() => {
-    if (detailSlotId == null) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDetailSlotId(null);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [detailSlotId]);
-
   const grouped = useMemo(() => {
     const arr = (slots ?? []).slice().sort((a, b) => a.startAt.localeCompare(b.startAt));
-    const now = Date.now();
-    const filtered =
-      filter === 'all'
-        ? arr
-        : arr.filter((s) => new Date(s.endAt).getTime() >= now && s.status !== 'cancelled');
+    const filtered = filter === 'all'
+      ? arr
+      : arr.filter((s) => new Date(s.endAt).getTime() >= nowMs && s.status !== 'cancelled');
     const map = new Map<string, typeof arr>();
     for (const s of filtered) {
       const k = s.slotDate;
@@ -165,432 +137,302 @@ export default function DoctorSlotsPage() {
       list.push(s);
       map.set(k, list);
     }
-    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  }, [slots, filter]);
-
-  const specialtyMap = useMemo(() => {
-    const map = new Map<number, string>();
-    if (doctorPrimarySpecialty) map.set(doctorPrimarySpecialty.id, doctorPrimarySpecialty.name);
-    return map;
-  }, [doctorPrimarySpecialty]);
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+  }, [slots, filter, nowMs]);
 
   const summary = useMemo(() => {
     const all = slots ?? [];
-    const now = Date.now();
-    const upcoming = all.filter((s) => new Date(s.endAt).getTime() >= now && s.status !== 'cancelled');
+    const upcoming = all.filter((s) => new Date(s.endAt).getTime() >= nowMs && s.status !== 'cancelled');
     const full = all.filter((s) => s.bookedCount >= s.maxBookings && s.status === 'available');
     const cancelled = all.filter((s) => s.status === 'cancelled');
-    return {
-      total: all.length,
-      upcoming: upcoming.length,
-      full: full.length,
-      cancelled: cancelled.length,
-    };
-  }, [slots]);
+    return { total: all.length, upcoming: upcoming.length, full: full.length, cancelled: cancelled.length };
+  }, [slots, nowMs]);
 
-  const detailSlot = useMemo(() => (slots ?? []).find((s) => s.id === detailSlotId) ?? null, [slots, detailSlotId]);
+  const specialtyMap = useMemo(() => {
+    const m = new Map<number, string>();
+    if (specialty) m.set(specialty.id, specialty.name);
+    return m;
+  }, [specialty]);
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Lịch trống</h2>
-          <p className="text-sm text-muted-foreground">Quản lý toàn bộ slot khám, theo dõi tình trạng và thao tác nhanh.</p>
-        </div>
-      </header>
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-bold text-[#1a3353]">Lịch trống</h2>
+        <p className="text-sm text-slate-400 mt-0.5">Quản lý toàn bộ slot khám, theo dõi tình trạng và thao tác nhanh.</p>
+      </div>
 
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Tổng slot</p>
-          <p className="mt-2 text-2xl font-extrabold text-foreground">{summary.total}</p>
-        </div>
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm dark:border-emerald-900/40 dark:bg-emerald-950/20">
-          <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Sắp tới</p>
-          <p className="mt-2 text-2xl font-extrabold text-emerald-700 dark:text-emerald-200">{summary.upcoming}</p>
-        </div>
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm dark:border-amber-900/40 dark:bg-amber-950/20">
-          <p className="text-xs font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">Đã đầy</p>
-          <p className="mt-2 text-2xl font-extrabold text-amber-700 dark:text-amber-200">{summary.full}</p>
-        </div>
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900/40">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-700 dark:text-slate-300">Đã huỷ</p>
-          <p className="mt-2 text-2xl font-extrabold text-slate-700 dark:text-slate-200">{summary.cancelled}</p>
-        </div>
-      </section>
-
-      {isError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {(error as Error).message}
-        </div>
-      ) : null}
-
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-foreground">Tạo slot mới</h3>
-            <p className="text-sm text-muted-foreground">Thiết lập khung giờ khám để bệnh nhân có thể đặt lịch.</p>
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        {[
+          { label: 'Tổng slot', value: summary.total, color: '#1a3353', bg: '#F7FAFB' },
+          { label: 'Sắp tới', value: summary.upcoming, color: '#0D9E75', bg: '#E8F8F2' },
+          { label: 'Đã đầy', value: summary.full, color: '#F59E0B', bg: '#FFFBEB' },
+          { label: 'Đã huỷ', value: summary.cancelled, color: '#94A3B8', bg: '#F8FAFC' },
+        ].map((c) => (
+          <div key={c.label} className="rounded-2xl border border-[#E8EDF2] p-4 shadow-sm" style={{ background: c.bg }}>
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c.color, opacity: 0.7 }}>{c.label}</p>
+            <p className="mt-1 text-2xl font-extrabold" style={{ color: c.color }}>{c.value}</p>
           </div>
-          <div className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
-            Preview:{' '}
-            <span className="font-semibold text-foreground">
-              {new Date(startAtIso).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit' })} ·{' '}
-              {formatTimeRange(startAtIso, endAtIso)}
+        ))}
+      </div>
+
+      {/* ── NEW SLOT CREATOR ── */}
+      <div className="rounded-2xl border border-[#E8EDF2] bg-white shadow-sm overflow-hidden">
+        {/* Section header */}
+        <div className="flex items-center gap-3 border-b border-[#E8EDF2] bg-gradient-to-r from-[#F0FDF9] to-white px-5 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0D9E75]/10">
+            <Calendar size={18} className="text-[#0D9E75]" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-[#1a3353]">Tạo lịch trống</h3>
+            <p className="text-xs text-slate-400">Chọn ngày, bấm vào các ô giờ bạn muốn mở, rồi bấm Tạo slot.</p>
+          </div>
+          {specialty && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#0D9E75]/20 bg-[#E8F8F2] px-3 py-1 text-xs font-semibold text-[#0D9E75]">
+              {specialty.name}
+            </span>
+          )}
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* Date + maxBookings row */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[160px]">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Ngày khám</label>
+              <input
+                type="date"
+                value={date}
+                min={today}
+                onChange={(e) => { setDate(e.target.value); setSelected(new Set()); }}
+                className="w-full rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3353] outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
+              />
+            </div>
+            <div className="w-36">
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 flex items-center gap-1">
+                <Users size={12} /> Số lượt / slot
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={maxBookings}
+                onChange={(e) => setMaxBookings(Number(e.target.value))}
+                className="w-full rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3353] outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
+              />
+            </div>
+            {selected.size > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelected(new Set())}
+                className="rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-all"
+              >
+                Bỏ chọn tất cả
+              </button>
+            )}
+          </div>
+
+          {/* No specialty warning */}
+          {!specialty && (
+            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <AlertCircle size={16} className="shrink-0" />
+              Bạn chưa được gán chuyên khoa. Vui lòng liên hệ quản trị viên.
+            </div>
+          )}
+
+          {/* Legend */}
+          <div className="flex flex-wrap items-center gap-4 text-[11px] font-medium text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm border-2 border-[#0D9E75] bg-[#0D9E75]" />
+              Đã chọn
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm border-2 border-[#E8EDF2] bg-white" />
+              Trống
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm border-2 border-slate-200 bg-slate-100" />
+              Đã có slot
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm border-2 border-slate-100 bg-slate-50 opacity-40" />
+              Đã qua
             </span>
           </div>
-        </div>
-        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <div>
-            <label className="mb-1 block text-sm font-semibold" htmlFor="date">
-              Ngày
-            </label>
-            <input
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-              id="date"
-              onChange={(e) => setDate(e.target.value)}
-              type="date"
-              value={date}
-            />
+
+          {/* Time grid */}
+          <div className="slot-time-grid">
+            {ALL_SLOTS.map(({ label, h, m }) => {
+              const past = isPast(h, m);
+              const existing = existingTimesOnDate.has(label);
+              const sel = selected.has(label);
+
+              let cellClass = 'slot-cell';
+              if (past) cellClass += ' slot-cell--past';
+              else if (existing) cellClass += ' slot-cell--existing';
+              else if (sel) cellClass += ' slot-cell--selected';
+
+              const endH = m === 30 ? h + 1 : h;
+              const endM = m === 30 ? 0 : 30;
+              const endLabel = fmtTime(endH, endM);
+
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  className={cellClass}
+                  onClick={() => toggleSlot(label, h, m)}
+                  disabled={past || existing || !specialty}
+                  title={existing ? 'Đã có slot trong giờ này' : past ? 'Đã qua' : `${label} – ${endLabel}`}
+                >
+                  {sel && (
+                    <div className="slot-check">
+                      <CheckCircle2 size={10} className="text-white" />
+                    </div>
+                  )}
+                  <span className="text-[12px] font-bold">{label}</span>
+                  <span className="text-[10px] opacity-60">–{endLabel}</span>
+                  {existing && (
+                    <span className="mt-0.5 text-[9px] font-semibold opacity-70">Đã có</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold" htmlFor="start">
-              Bắt đầu
-            </label>
-            <input
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-              id="start"
-              onChange={(e) => setStartTime(e.target.value)}
-              type="time"
-              value={startTime}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold" htmlFor="end">
-              Kết thúc
-            </label>
-            <input
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-              id="end"
-              onChange={(e) => setEndTime(e.target.value)}
-              type="time"
-              value={endTime}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold" htmlFor="max">
-              Số lượt
-            </label>
-            <input
-              className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary"
-              id="max"
-              max={50}
-              min={1}
-              onChange={(e) => setMaxBookings(Number(e.target.value))}
-              type="number"
-              value={maxBookings}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold">Chuyên khoa của bác sĩ</label>
-            <div className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-sm font-semibold text-foreground">
-              {doctorPrimarySpecialty?.name ?? 'Chưa gán chuyên khoa'}
+
+          {/* Action bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EDF2] pt-4">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <Clock size={15} className="text-[#0D9E75]" />
+              {selected.size === 0
+                ? 'Bấm vào các ô giờ để chọn khung giờ rảnh'
+                : (
+                  <span>
+                    Đã chọn{' '}
+                    <span className="font-bold text-[#0D9E75]">{selected.size} slot</span>
+                    {' '}cho ngày{' '}
+                    <span className="font-semibold">{new Date(`${date}T00:00:00`).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                  </span>
+                )}
             </div>
-          </div>
-        </div>
-
-        {validationError ? (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-200">
-            {validationError}
-          </div>
-        ) : null}
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-muted-foreground">Nhập nhanh thời lượng:</span>
-          <button
-            className="rounded-lg border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/15"
-            onClick={() => applyDurationFromStart(defaultDurationMinutes)}
-            type="button"
-          >
-            Mặc định ({defaultDurationMinutes} phút)
-          </button>
-          {[15, 30, 45, 60].map((minute) => (
             <button
-              key={minute}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
-              onClick={() => applyDurationFromStart(minute)}
               type="button"
+              disabled={selected.size === 0 || createSlot.isPending || !specialty}
+              onClick={() => createSlot.mutate()}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#0D9E75] px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#0D9E75]/25 transition-all hover:bg-[#0B8A65] disabled:cursor-not-allowed disabled:opacity-50"
             >
-              +{minute} phút
+              {createSlot.isPending ? (
+                <span className="animate-spin inline-block h-4 w-4 border-2 border-white/30 border-t-white rounded-full" />
+              ) : (
+                <CheckCircle2 size={16} />
+              )}
+              {createSlot.isPending ? 'Đang tạo…' : `Tạo ${selected.size > 0 ? selected.size + ' ' : ''}slot`}
             </button>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-          <p className="text-xs text-muted-foreground">Mẹo: nên chia slot 20-30 phút để giảm trùng lịch và dễ quản lý.</p>
-          <button
-            className="rounded-lg bg-primary px-4 py-3 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={createSlot.isPending || Boolean(validationError)}
-            onClick={() => createSlot.mutate()}
-            type="button"
-          >
-            {createSlot.isPending ? 'Đang tạo…' : 'Tạo slot'}
-          </button>
+          </div>
         </div>
       </div>
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-border bg-muted px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Slot của tôi</div>
-          <div className="flex items-center gap-2 text-xs">
-            <button
-              className={`rounded-lg border px-2 py-1 font-semibold transition-colors ${
-                filter === 'upcoming'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-              type="button"
-              onClick={() => setFilter('upcoming')}
-            >
-              Sắp tới
-            </button>
-            <button
-              className={`rounded-lg border px-2 py-1 font-semibold transition-colors ${
-                filter === 'all'
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-              type="button"
-              onClick={() => setFilter('all')}
-            >
-              Tất cả
-            </button>
+      {/* ── Slot list ── */}
+      <div className="rounded-2xl border border-[#E8EDF2] bg-white shadow-sm overflow-hidden">
+        <div className="flex flex-col gap-2 border-b border-[#E8EDF2] bg-[#F7FAFB] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Slot của tôi</p>
+          <div className="doctor-tab-bar">
+            <button type="button" className={`doctor-tab${filter === 'upcoming' ? ' active' : ''}`} onClick={() => setFilter('upcoming')}>Sắp tới</button>
+            <button type="button" className={`doctor-tab${filter === 'all' ? ' active' : ''}`} onClick={() => setFilter('all')}>Tất cả</button>
           </div>
         </div>
+
         {isLoading ? (
-          <div className="p-5 text-sm text-muted-foreground">Đang tải…</div>
-        ) : grouped.length > 0 ? (
-          <div className="divide-y divide-border">
+          <div className="p-6 text-sm text-slate-400">Đang tải…</div>
+        ) : grouped.length === 0 ? (
+          <div className="p-8 text-center text-sm text-slate-400">
+            Chưa có slot nào{filter === 'upcoming' ? ' sắp tới' : ''}. Hãy tạo slot ở trên.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#E8EDF2]">
             {grouped.map(([day, rows]) => (
-              <div className="p-5" key={day}>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="text-sm font-bold text-foreground">{formatDateLabel(day)}</p>
-                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+              <div key={day} className="p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-sm font-bold text-[#1a3353]">{fmtDateLabel(day)}</p>
+                  <span className="rounded-full bg-[#E8F8F2] px-2.5 py-0.5 text-xs font-semibold text-[#0D9E75]">
                     {rows.length} slot
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {rows.map((s) => (
-                    <div
-                      className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
-                      key={s.id}
-                    >
-                      <div className="min-w-0">
-                        <p className="font-semibold text-foreground">{formatTimeRange(s.startAt, s.endAt)}</p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span className={`rounded-full px-2 py-0.5 font-semibold ${statusBadgeClass(s.status)}`}>
-                            {statusLabel(s.status)}
-                          </span>
-                          <span>
-                            {s.bookedCount}/{s.maxBookings} đã đặt
-                          </span>
-                          <span>
-                            Chuyên khoa: <b>{s.specialtyId ? specialtyMap.get(s.specialtyId) ?? `#${s.specialtyId}` : 'Mặc định'}</b>
-                          </span>
-                          {new Date(s.endAt).getTime() < Date.now() && s.status !== 'cancelled' ? (
-                            <span className="rounded-full bg-slate-500/10 px-2 py-0.5 font-semibold text-slate-700 dark:text-slate-300">
-                              đã qua
+                  {rows.map((s) => {
+                    const pct = Math.min(100, Math.round((s.bookedCount / Math.max(1, s.maxBookings)) * 100));
+                    const expired = new Date(s.endAt).getTime() < Date.now();
+                    return (
+                      <div key={s.id} className="slot-list-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-bold text-[#1a3353]">{fmtTimeRange(s.startAt, s.endAt)}</p>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadge(s.status)}`}>
+                              {statusLabel(s.status)}
                             </span>
-                          ) : null}
+                            {expired && s.status !== 'cancelled' && (
+                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">Đã qua</span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-xs text-slate-400">
+                            {s.bookedCount}/{s.maxBookings} đã đặt
+                            {s.specialtyId ? ` · ${specialtyMap.get(s.specialtyId) ?? `#${s.specialtyId}`}` : ''}
+                          </p>
+                          <div className="mt-2 h-1.5 w-full max-w-[200px] overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${pct}%`, background: pct >= 100 ? '#F59E0B' : '#0D9E75' }}
+                            />
+                          </div>
                         </div>
-                        <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${Math.min(100, Math.round((s.bookedCount / Math.max(1, s.maxBookings)) * 100))}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
                         <button
-                          className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
                           type="button"
-                          onClick={() => setDetailSlotId(s.id)}
-                        >
-                          Chi tiết
-                        </button>
-                        <button
-                          className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-foreground transition-colors hover:bg-muted"
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard?.writeText(
-                              `${day} ${formatTimeRange(s.startAt, s.endAt)}`,
-                            );
-                            toast.show({ variant: 'info', title: 'Đã sao chép', message: 'Đã sao chép thời gian slot.' });
-                          }}
-                        >
-                          Copy
-                        </button>
-                        <button
-                          className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-bold text-destructive transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                          disabled={
-                            cancelSlot.isPending || s.status !== 'available' || s.bookedCount > 0 || new Date(s.endAt).getTime() < Date.now()
-                          }
+                          disabled={cancelSlot.isPending || s.status !== 'available' || s.bookedCount > 0 || expired}
                           onClick={() => setCancelSlotId(s.id)}
-                          type="button"
+                          className="shrink-0 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Huỷ slot
                         </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
-        ) : (
-          <div className="p-5 text-sm text-muted-foreground">
-            Chưa có slot nào{filter === 'upcoming' ? ' sắp tới' : ''}. Hãy tạo slot ở phần trên.
-          </div>
         )}
       </div>
 
-      {detailSlot ? (
+      {/* Cancel confirm modal */}
+      {cancelSlotId != null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-          <button className="absolute inset-0 bg-black/40" type="button" aria-label="Đóng" onClick={() => setDetailSlotId(null)} />
-          <div className="relative w-full max-w-xl rounded-2xl border border-border bg-card p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Chi tiết slot</p>
-                <h4 className="mt-1 text-lg font-bold text-foreground">{formatDateLabel(detailSlot.slotDate)}</h4>
-                <p className="mt-1 text-sm text-muted-foreground">{formatTimeRange(detailSlot.startAt, detailSlot.endAt)}</p>
-              </div>
-              <button
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                type="button"
-                onClick={() => setDetailSlotId(null)}
-                aria-label="Đóng"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
+          <button className="absolute inset-0 bg-black/40 backdrop-blur-sm" type="button" onClick={() => setCancelSlotId(null)} />
+          <div className="relative w-full max-w-md rounded-2xl border border-[#E8EDF2] bg-white p-6 shadow-2xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 mb-4">
+              <AlertCircle size={24} className="text-red-500" />
             </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-xl border border-border bg-muted/40 p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Trạng thái</p>
-                <p className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${statusBadgeClass(detailSlot.status)}`}>
-                  {statusLabel(detailSlot.status)}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/40 p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Chuyên khoa</p>
-                <p className="mt-1 text-sm font-bold text-foreground">
-                  {detailSlot.specialtyId
-                    ? specialtyMap.get(detailSlot.specialtyId) ?? `#${detailSlot.specialtyId}`
-                    : 'Mặc định'}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/40 p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Đã đặt</p>
-                <p className="mt-1 text-sm font-bold text-foreground">
-                  {detailSlot.bookedCount}/{detailSlot.maxBookings}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border bg-muted/40 p-3">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mức lấp đầy</p>
-                <p className="mt-1 text-sm font-bold text-foreground">
-                  {Math.min(100, Math.round((detailSlot.bookedCount / Math.max(1, detailSlot.maxBookings)) * 100))}%
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${Math.min(100, Math.round((detailSlot.bookedCount / Math.max(1, detailSlot.maxBookings)) * 100))}%` }}
-              />
-            </div>
-
+            <h4 className="text-lg font-bold text-[#1a3353]">Huỷ slot này?</h4>
+            <p className="mt-1 text-sm text-slate-400">Chỉ huỷ được khi slot đang sẵn sàng và chưa có ai đặt.</p>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-                type="button"
-                onClick={() => setDetailSlotId(null)}
-              >
-                Đóng
-              </button>
-              <button
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(`${detailSlot.slotDate} ${formatTimeRange(detailSlot.startAt, detailSlot.endAt)}`);
-                  toast.show({ variant: 'info', title: 'Đã sao chép', message: 'Đã sao chép thời gian slot.' });
-                }}
-              >
-                Copy thời gian
-              </button>
-              <button
-                className="inline-flex items-center justify-center rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
-                type="button"
-                disabled={
-                  cancelSlot.isPending ||
-                  detailSlot.status !== 'available' ||
-                  detailSlot.bookedCount > 0 ||
-                  new Date(detailSlot.endAt).getTime() < Date.now()
-                }
-                onClick={() => {
-                  setDetailSlotId(null);
-                  setCancelSlotId(detailSlot.id);
-                }}
-              >
-                Huỷ slot này
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {cancelSlotId != null ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-          <button className="absolute inset-0 bg-black/40" type="button" aria-label="Đóng" onClick={() => setCancelSlotId(null)} />
-          <div className="relative w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Xác nhận</p>
-                <h4 className="mt-1 text-lg font-bold text-foreground">Huỷ slot này?</h4>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Chỉ huỷ được khi slot đang <b>available</b> và chưa có ai đặt.
-                </p>
-              </div>
-              <button
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
                 type="button"
                 onClick={() => setCancelSlotId(null)}
-                aria-label="Đóng"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted disabled:opacity-60"
-                type="button"
-                disabled={cancelSlot.isPending}
-                onClick={() => setCancelSlotId(null)}
+                className="rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
               >
                 Không huỷ
               </button>
               <button
-                className="inline-flex items-center justify-center rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
                 disabled={cancelSlot.isPending}
                 onClick={() => cancelSlot.mutate(cancelSlotId)}
+                className="rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-60 transition-all"
               >
                 {cancelSlot.isPending ? 'Đang huỷ…' : 'Xác nhận huỷ'}
               </button>
             </div>
           </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
-

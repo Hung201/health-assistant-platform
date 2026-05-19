@@ -244,6 +244,7 @@ export const doctorsApi = {
     districtCode?: string;
     search?: string;
     workplaceQuery?: string;
+    nameQuery?: string;
     page?: number;
     limit?: number;
   }) => {
@@ -253,6 +254,7 @@ export const doctorsApi = {
     if (params?.districtCode) q.set('districtCode', params.districtCode);
     if (params?.search) q.set('search', params.search);
     if (params?.workplaceQuery) q.set('workplaceQuery', params.workplaceQuery);
+    if (params?.nameQuery) q.set('nameQuery', params.nameQuery);
     if (params?.page != null) q.set('page', String(params.page));
     if (params?.limit != null) q.set('limit', String(params.limit));
     const qs = q.toString();
