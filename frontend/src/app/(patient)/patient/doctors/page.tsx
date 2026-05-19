@@ -44,7 +44,7 @@ export default function PatientFindDoctorsPage() {
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode || undefined,
         districtCode: districtCode || undefined,
-        workplaceQuery: debouncedSearchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -106,9 +106,9 @@ export default function PatientFindDoctorsPage() {
     (focusedDoctorId ? filteredDoctors.find((d) => d.userId === focusedDoctorId) : null) ?? filteredDoctors[0] ?? null;
   const mapQuery = focusedDoctor
     ? focusedDoctor.workplaceAddress ||
-      [focusedDoctor.workplaceName, focusedDoctor.districtCode, focusedDoctor.provinceCode]
-        .filter(Boolean)
-        .join(', ')
+    [focusedDoctor.workplaceName, focusedDoctor.districtCode, focusedDoctor.provinceCode]
+      .filter(Boolean)
+      .join(', ')
     : [currentDistrictOption?.label, currentProvinceOption?.label].filter(Boolean).join(', ');
   const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery || 'Việt Nam')}&output=embed`;
 
@@ -189,9 +189,8 @@ export default function PatientFindDoctorsPage() {
           <button
             type="button"
             onClick={() => setNearByMode((v) => !v)}
-            className={`shrink-0 rounded-xl border px-4 text-sm font-bold transition-colors ${
-              nearByMode ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-border bg-background text-muted-foreground'
-            }`}
+            className={`shrink-0 rounded-xl border px-4 text-sm font-bold transition-colors ${nearByMode ? 'border-teal-500 bg-teal-50 text-teal-700' : 'border-border bg-background text-muted-foreground'
+              }`}
             title={!user?.patientProfile?.provinceCode ? 'Cập nhật địa chỉ bệnh nhân để ưu tiên bác sĩ gần bạn' : 'Ưu tiên bác sĩ gần bạn'}
           >
             Gần bạn
@@ -245,11 +244,10 @@ export default function PatientFindDoctorsPage() {
                   key={doctor.userId}
                   type="button"
                   onClick={() => setFocusedDoctorId(doctor.userId)}
-                  className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${
-                    focusedDoctor?.userId === doctor.userId
+                  className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${focusedDoctor?.userId === doctor.userId
                       ? 'border-[#003f87] bg-[#003f87] text-white'
                       : 'border-border bg-background text-muted-foreground hover:bg-muted'
-                  }`}
+                    }`}
                 >
                   {doctor.fullName}
                 </button>
@@ -271,7 +269,7 @@ export default function PatientFindDoctorsPage() {
             <Stethoscope size={48} className="mx-auto mb-4 text-muted-foreground/50" />
             <h3 className="text-lg font-bold text-foreground mb-2">Không tìm thấy bác sĩ</h3>
             <p>Không có bác sĩ nào khớp với điều kiện tìm kiếm của bạn.</p>
-            <button 
+            <button
               onClick={() => {
                 setSearchTerm('');
                 setSelectedSpecialty(null);
@@ -287,34 +285,34 @@ export default function PatientFindDoctorsPage() {
           </div>
         ) : (
           filteredDoctors?.map((doctor) => (
-            <Link 
-              href={`/patient/doctors/${doctor.userId}`} 
+            <Link
+              href={`/patient/doctors/${doctor.userId}`}
               key={doctor.userId}
               className="group flex flex-col overflow-hidden rounded-2xl bg-card shadow-sm border border-border transition-all hover:shadow-xl hover:border-teal-200 hover:-translate-y-1"
             >
               <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-                <img 
-                  alt={doctor.fullName} 
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                  src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'} 
+                <img
+                  alt={doctor.fullName}
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'}
                 />
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
                   <BadgeCheck size={14} className="text-blue-500" />
                   <span className="text-xs font-bold text-slate-700">Đã xác minh</span>
                 </div>
               </div>
-              
+
               <div className="flex flex-1 flex-col p-5">
                 <div className="mb-2">
                   <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-teal-700">
                     {doctor.specialties?.[0]?.name || 'Đa khoa'}
                   </span>
                 </div>
-                
+
                 <h4 className="text-lg font-bold text-foreground mb-1 line-clamp-1 group-hover:text-teal-600 transition-colors">
                   {doctor.professionalTitle ? `${doctor.professionalTitle} ` : ''}{doctor.fullName}
                 </h4>
-                
+
                 <div className="flex items-start gap-1.5 text-sm text-muted-foreground mb-4 line-clamp-2">
                   <MapPin size={16} className="shrink-0 mt-0.5 opacity-60" />
                   <span>
@@ -323,7 +321,7 @@ export default function PatientFindDoctorsPage() {
                       'Phòng khám Clinical Precision'}
                   </span>
                 </div>
-                
+
                 <div className="mt-auto pt-4 border-t border-border flex items-center justify-between">
                   <div>
                     <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-0.5">Giá khám</p>

@@ -68,6 +68,7 @@ async function seed() {
   });
 
   await dataSource.initialize();
+  await dataSource.query('CREATE EXTENSION IF NOT EXISTS unaccent;');
 
   const roleRepo = dataSource.getRepository(Role);
   const userRepo = dataSource.getRepository(User);

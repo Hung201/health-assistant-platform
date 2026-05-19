@@ -67,7 +67,7 @@ export class DoctorsService {
     private readonly doctorSpecialtyRepo: Repository<DoctorSpecialty>,
     @InjectRepository(Specialty)
     private readonly specialtyRepo: Repository<Specialty>,
-  ) {}
+  ) { }
 
   private hasRole(user: User, code: string): boolean {
     return Boolean(user.userRoles?.some((ur) => ur.role?.code === code));
@@ -112,6 +112,76 @@ export class DoctorsService {
       .map((t) => t.trim())
       .filter((t) => t.length >= 2 && !stopWords.has(t));
     return Array.from(new Set(tokens)).slice(0, 8);
+  }
+
+  private searchNameTokens(search: string): string[] {
+    const text = this.normalizeInput(search).toLowerCase();
+    if (!text) return [];
+    const stopWords = new Set([
+      'o',
+      'ở',
+      'tai',
+      'tại',
+      'gan',
+      'gần',
+      'phong',
+      'phòng',
+      'kham',
+      'khám',
+      'benh',
+      'bệnh',
+      'vien',
+      'viện',
+      'clinic',
+      'hospital',
+      'bac',
+      'bác',
+      'si',
+      'sĩ',
+      'bs',
+      'ths',
+      'ck',
+      'chuyen',
+      'chuyên',
+      'khoa',
+    ]);
+    return Array.from(
+      new Set(
+        text
+          .split(/[\s,.-/]+/)
+          .map((t) => t.trim())
+          .filter((t) => t.length >= 2 && !stopWords.has(t)),
+      ),
+    ).slice(0, 6);
+  }
+
+  private applySearchFilter(qb: SelectQueryBuilder<DoctorProfile>, search: string): void {
+    const tokens = this.searchNameTokens(search);
+    if (tokens.length === 0) return;
+
+    const nameExpr = 'unaccent(lower(u.full_name))';
+    const titleExpr = "unaccent(lower(coalesce(d.professional_title, '')))";
+    const workplaceExpr =
+      "unaccent(lower(coalesce(d.workplace_name, '') || ' ' || coalesce(d.workplace_address, '')))";
+    const combinedNameExpr = `(${nameExpr} || ' ' || ${titleExpr})`;
+
+    tokens.forEach((token, idx) => {
+      const param = `searchToken${idx}`;
+      qb.setParameter(param, token);
+      const like = `unaccent(lower(:${param}))`;
+      qb.andWhere(
+        `(
+          ${combinedNameExpr} LIKE '%' || ${like} || '%'
+          OR ${workplaceExpr} LIKE '%' || ${like} || '%'
+          OR EXISTS (
+            SELECT 1 FROM doctor_specialties ds_search
+            INNER JOIN specialties sp_search ON sp_search.id = ds_search.specialty_id
+            WHERE ds_search.doctor_user_id = d.user_id
+              AND unaccent(lower(sp_search.name)) LIKE '%' || ${like} || '%'
+          )
+        )`,
+      );
+    });
   }
 
   private buildWorkplaceSignals(workplaceQuery?: string, locationHint?: string): WorkplaceSignals {
@@ -184,6 +254,7 @@ export class DoctorsService {
     specialtyId?: number;
     provinceCode?: string;
     districtCode?: string;
+    search?: string;
     workplaceQuery?: string;
     locationHint?: string;
     hardLocationScope?: HardLocationScope;
@@ -220,6 +291,11 @@ export class DoctorsService {
       });
     }
 
+    const searchText = this.normalizeInput(params.search);
+    if (searchText) {
+      this.applySearchFilter(qb, searchText);
+    }
+
     const signals = this.buildWorkplaceSignals(params.workplaceQuery, params.locationHint);
     const workplaceExpr =
       "unaccent(lower(coalesce(d.workplace_name, '') || ' ' || coalesce(d.workplace_address, '')))";
@@ -247,9 +323,9 @@ export class DoctorsService {
     const specIds = Array.from(new Set(links.map((l) => Number(l.specialtyId))));
     const specs = specIds.length
       ? await this.specialtyRepo.find({
-          where: specIds.map((id) => ({ id, status: 'active' })),
-          select: ['id', 'name'],
-        })
+        where: specIds.map((id) => ({ id, status: 'active' })),
+        select: ['id', 'name'],
+      })
       : [];
     const specById = new Map(specs.map((s) => [Number(s.id), s]));
 
@@ -338,18 +414,18 @@ export class DoctorsService {
     const specIds = primaryLink ? [Number(primaryLink.specialtyId)] : [];
     const specs = specIds.length
       ? await this.specialtyRepo.find({
-          where: specIds.map((id) => ({ id, status: 'active' })),
-          select: ['id', 'name'],
-        })
+        where: specIds.map((id) => ({ id, status: 'active' })),
+        select: ['id', 'name'],
+      })
       : [];
     const specById = new Map(specs.map((s) => [Number(s.id), s]));
     const specialties = primaryLink
       ? (() => {
-          const sid = Number(primaryLink.specialtyId);
-          const s = specById.get(sid);
-          if (!s) return [];
-          return [{ id: sid, name: s.name, isPrimary: true }];
-        })()
+        const sid = Number(primaryLink.specialtyId);
+        const s = specById.get(sid);
+        if (!s) return [];
+        return [{ id: sid, name: s.name, isPrimary: true }];
+      })()
       : [];
 
     return {

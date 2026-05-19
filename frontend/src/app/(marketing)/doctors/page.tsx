@@ -43,7 +43,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
         specialtyId: selectedSpecialty || undefined,
         provinceCode: provinceCode.trim() || undefined,
         districtCode: districtCode.trim() || undefined,
-        workplaceQuery: debouncedSearchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         limit: 100,
       }),
   });
@@ -82,7 +82,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
     if (priceFilter === 'under500') matchPrice = fee < 500000;
     else if (priceFilter === '500to1m') matchPrice = fee >= 500000 && fee <= 1000000;
     else if (priceFilter === 'over1m') matchPrice = fee > 1000000;
-    
+
     return matchPrice;
   });
 
@@ -179,7 +179,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
                 <Stethoscope size={48} className="mx-auto mb-4 text-slate-300" />
                 <h3 className="text-lg font-bold text-slate-700 mb-2">Không tìm thấy bác sĩ</h3>
                 <p>Không có bác sĩ nào khớp với điều kiện tìm kiếm của bạn.</p>
-                <button 
+                <button
                   onClick={() => {
                     setSearchTerm('');
                     setSelectedSpecialty(null);
@@ -194,34 +194,34 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
               </div>
             ) : (
               filteredDoctors?.map((doctor) => (
-                <Link 
-                  href={`/doctors/${doctor.userId}`} 
+                <Link
+                  href={`/doctors/${doctor.userId}`}
                   key={doctor.userId}
                   className="group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm border border-slate-200 transition-all hover:shadow-xl hover:border-teal-200 hover:-translate-y-1"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
-                    <img 
-                      alt={doctor.fullName} 
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                      src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'} 
+                    <img
+                      alt={doctor.fullName}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      src={doctor.avatarUrl || 'https://images.unsplash.com/photo-1612349317150-e410f624c427?q=80&w=2070&auto=format&fit=crop'}
                     />
                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
                       <BadgeCheck size={14} className="text-blue-500" />
                       <span className="text-xs font-bold text-slate-700">Đã xác minh</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-1 flex-col p-5">
                     <div className="mb-2">
                       <span className="inline-block rounded-full bg-teal-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-teal-700">
                         {doctor.specialties?.[0]?.name || 'Đa khoa'}
                       </span>
                     </div>
-                    
+
                     <h4 className="text-lg font-bold text-slate-900 mb-1 line-clamp-1 group-hover:text-teal-600 transition-colors">
                       {doctor.professionalTitle ? `${doctor.professionalTitle} ` : ''}{doctor.fullName}
                     </h4>
-                    
+
                     <div className="flex items-start gap-1.5 text-sm text-slate-500 mb-4 line-clamp-2">
                       <MapPin size={16} className="shrink-0 mt-0.5 text-slate-400" />
                       <span>
@@ -230,7 +230,7 @@ export default function DoctorsPage({ searchParams }: { searchParams: { specialt
                           'Phòng khám Clinical Precision'}
                       </span>
                     </div>
-                    
+
                     <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div>
                         <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-0.5">Giá khám</p>
