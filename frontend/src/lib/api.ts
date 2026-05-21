@@ -532,6 +532,20 @@ export type PublicLiveStream = {
   title: string;
   doctorName: string;
   startedAt: string | null;
+  commentCount?: number;
+};
+
+export type LiveStreamCommentRow = {
+  id: string;
+  content: string;
+  createdAt: string;
+  displayTime: string;
+  displayDate: string | null;
+  user: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
 };
 
 export type PublicLiveJoin = PublicLiveStream & {
@@ -542,6 +556,13 @@ export type PublicLiveJoin = PublicLiveStream & {
 export const livestreamsApi = {
   listLive: () => apiPublic<PublicLiveStream[]>('/livestreams'),
   join: (id: string) => apiPublic<PublicLiveJoin>(`/livestreams/${id}`),
+  listComments: (streamId: string, limit = 80) =>
+    apiPublic<LiveStreamCommentRow[]>(`/livestreams/${encodeURIComponent(streamId)}/comments?limit=${limit}`),
+  addComment: (streamId: string, content: string) =>
+    api<LiveStreamCommentRow>(`/livestreams/${encodeURIComponent(streamId)}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
 };
 
 export const doctorLivestreamsApi = {

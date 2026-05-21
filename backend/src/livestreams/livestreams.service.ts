@@ -12,17 +12,46 @@ import { randomUUID } from 'crypto';
 import { AccessToken } from 'livekit-server-sdk';
 
 import { LiveStream } from '../entities/live-stream.entity';
+import { LiveStreamComment } from '../entities/live-stream-comment.entity';
 import { User } from '../entities/user.entity';
 import { CreateLiveStreamDto } from './dto/create-live-stream.dto';
 import { userMayLivestream } from '../common/user-feature-permissions';
 
 const TOKEN_TTL = '6h';
+const MAX_COMMENT_LENGTH = 500;
+
+export type LiveStreamCommentRow = {
+  id: string;
+  content: string;
+  createdAt: string;
+  displayTime: string;
+  displayDate: string | null;
+  user: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
+};
+
+type LiveCommentDbRow = {
+  id: string;
+  content: string;
+  created_at: Date | string;
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  display_time: string;
+  display_date: string;
+  is_today: boolean | string;
+};
 
 @Injectable()
 export class LivestreamsService {
   constructor(
     @InjectRepository(LiveStream)
     private readonly liveStreamRepo: Repository<LiveStream>,
+    @InjectRepository(LiveStreamComment)
+    private readonly liveCommentRepo: Repository<LiveStreamComment>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     private readonly config: ConfigService,
@@ -170,20 +199,120 @@ export class LivestreamsService {
     return at.toJwt();
   }
 
+  private async getLiveStreamOrThrow(streamId: string): Promise<LiveStream> {
+    const stream = await this.liveStreamRepo.findOne({ where: { id: streamId } });
+    if (!stream) throw new NotFoundException('Không tìm thấy phiên livestream');
+    return stream;
+  }
+
+  private assertStreamAcceptsComments(stream: LiveStream): void {
+    if (stream.status !== 'live') {
+      throw new BadRequestException('Chỉ bình luận khi buổi phát đang diễn ra');
+    }
+  }
+
+  private mapCommentDbRow(row: LiveCommentDbRow): LiveStreamCommentRow {
+    const createdAt =
+      row.created_at instanceof Date ? row.created_at.toISOString() : new Date(row.created_at).toISOString();
+    return {
+      id: row.id,
+      content: row.content,
+      createdAt,
+      displayTime: row.display_time,
+      displayDate: row.is_today ? null : row.display_date,
+      user: {
+        id: row.user_id,
+        fullName: row.full_name ?? 'Người xem',
+        avatarUrl: row.avatar_url ?? null,
+      },
+    };
+  }
+
+  private commentSelectSql(): string {
+    return `SELECT c.id, c.content, c.created_at,
+      u.id AS user_id, u.full_name, u.avatar_url,
+      to_char(c.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'HH24:MI') AS display_time,
+      to_char(c.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh', 'DD/MM/YYYY') AS display_date,
+      ((c.created_at AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date) AS is_today`;
+  }
+
   async listPublicLive(): Promise<
-    Array<{ id: string; title: string; doctorName: string; startedAt: string | null }>
+    Array<{
+      id: string;
+      title: string;
+      doctorName: string;
+      startedAt: string | null;
+      commentCount: number;
+    }>
   > {
     const rows = await this.liveStreamRepo.find({
       where: { status: 'live' },
       relations: ['doctor'],
       order: { startedAt: 'DESC' },
     });
+    const counts =
+      rows.length > 0
+        ? await this.liveCommentRepo
+            .createQueryBuilder('c')
+            .select('c.live_stream_id', 'streamId')
+            .addSelect('COUNT(1)', 'cnt')
+            .where('c.live_stream_id IN (:...ids)', { ids: rows.map((r) => r.id) })
+            .andWhere('c.status = :status', { status: 'visible' })
+            .groupBy('c.live_stream_id')
+            .getRawMany<{ streamId: string; cnt: string }>()
+        : [];
+    const countByStream = new Map(counts.map((r) => [r.streamId, Number(r.cnt)]));
     return rows.map((s) => ({
       id: s.id,
       title: s.title,
       doctorName: s.doctor?.fullName ?? 'Bác sĩ',
       startedAt: s.startedAt ? s.startedAt.toISOString() : null,
+      commentCount: countByStream.get(s.id) ?? 0,
     }));
+  }
+
+  async listComments(streamId: string, limit = 80): Promise<LiveStreamCommentRow[]> {
+    const stream = await this.getLiveStreamOrThrow(streamId);
+    this.assertStreamAcceptsComments(stream);
+    const safeLimit = Math.min(Math.max(limit, 1), 200);
+    const rows = await this.liveCommentRepo.query(
+      `${this.commentSelectSql()}
+       FROM live_stream_comments c
+       INNER JOIN users u ON u.id = c.user_id
+       WHERE c.live_stream_id = $1 AND c.status = 'visible'
+       ORDER BY c.created_at ASC
+       LIMIT $2`,
+      [streamId, safeLimit],
+    );
+    return (rows as LiveCommentDbRow[]).map((r) => this.mapCommentDbRow(r));
+  }
+
+  async addComment(user: User, streamId: string, content: string): Promise<LiveStreamCommentRow> {
+    const stream = await this.getLiveStreamOrThrow(streamId);
+    this.assertStreamAcceptsComments(stream);
+    const text = content.trim();
+    if (!text) throw new BadRequestException('Nội dung bình luận không được rỗng');
+    if (text.length > MAX_COMMENT_LENGTH) {
+      throw new BadRequestException(`Bình luận tối đa ${MAX_COMMENT_LENGTH} ký tự`);
+    }
+
+    const rows = await this.liveCommentRepo.query(
+      `INSERT INTO live_stream_comments (live_stream_id, user_id, content, status)
+       VALUES ($1, $2, $3, 'visible')
+       RETURNING id, content, created_at`,
+      [streamId, user.id, text],
+    );
+    const inserted = rows[0] as { id: string };
+    const detail = await this.liveCommentRepo.query(
+      `${this.commentSelectSql()}
+       FROM live_stream_comments c
+       INNER JOIN users u ON u.id = c.user_id
+       WHERE c.id = $1`,
+      [inserted.id],
+    );
+    const row = detail[0] as LiveCommentDbRow | undefined;
+    if (!row) throw new NotFoundException('Không lưu được bình luận');
+    return this.mapCommentDbRow(row);
   }
 
   async getPublicJoin(streamId: string): Promise<{

@@ -356,6 +356,9 @@ export default function Home() {
                     </span>
                     <p className="font-bold text-slate-900 group-hover:text-teal-700">{s.title}</p>
                     <p className="mt-1 text-sm text-slate-600">{s.doctorName}</p>
+                    {(s.commentCount ?? 0) > 0 ? (
+                      <p className="mt-2 text-xs text-slate-500">{s.commentCount} bình luận</p>
+                    ) : null}
                     <span className="mt-4 text-sm font-semibold text-teal-600">Xem ngay →</span>
                   </Link>
                 ))}
