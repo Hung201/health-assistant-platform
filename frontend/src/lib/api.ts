@@ -479,6 +479,11 @@ export const doctorApi = {
       `/doctor/bookings/${encodeURIComponent(bookingId)}/reject`,
       { method: 'PATCH', body: JSON.stringify({ reason: reason?.trim() || undefined }) },
     ),
+  completeBooking: (bookingId: string) =>
+    api<{ ok: boolean; id: string; status: string }>(
+      `/doctor/bookings/${encodeURIComponent(bookingId)}/complete`,
+      { method: 'PATCH', body: '{}' },
+    ),
 };
 
 export type DoctorPostRow = {

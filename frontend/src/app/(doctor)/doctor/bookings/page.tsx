@@ -12,6 +12,7 @@ function statusBadgeClass(status: string) {
   if (status === 'approved') return 'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-500/15 dark:text-emerald-300';
   if (status === 'rejected') return 'border border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-500/15 dark:text-red-300';
   if (status === 'cancelled') return 'border border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300';
+  if (status === 'completed') return 'border border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/50 dark:bg-blue-500/15 dark:text-blue-300';
   return 'border border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300';
 }
 
@@ -20,6 +21,7 @@ function statusLabel(status: string) {
   if (status === 'approved') return 'Đã duyệt';
   if (status === 'rejected') return 'Đã từ chối';
   if (status === 'cancelled') return 'Đã huỷ';
+  if (status === 'completed') return 'Đã hoàn thành';
   return status;
 }
 
@@ -55,6 +57,7 @@ type BookingStats = {
   approved: number;
   rejected: number;
   cancelled: number;
+  completed: number;
 };
 
 type PaymentFilterValue = 'all' | 'paid' | 'awaiting_gateway' | 'failed' | 'pay_at_clinic' | 'unpaid_group';
@@ -63,7 +66,7 @@ export default function DoctorBookingsPage() {
   const toast = useToast();
   const qc = useQueryClient();
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'cancelled'>('all');
+  const [status, setStatus] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'completed'>('all');
   const [paymentFilter, setPaymentFilter] = useState<PaymentFilterValue>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
@@ -106,6 +109,22 @@ export default function DoctorBookingsPage() {
     },
   });
 
+  const completeMutation = useMutation({
+    mutationFn: (id: string) => doctorApi.completeBooking(id),
+    onSuccess: async () => {
+      toast.show({ variant: 'success', title: 'Đã hoàn thành', message: 'Lịch hẹn đã được đánh dấu hoàn thành.' });
+      await qc.invalidateQueries({ queryKey: ['doctor', 'bookings'] });
+      setSelectedId(null);
+    },
+    onError: (e: unknown) => {
+      toast.show({
+        variant: 'error',
+        title: 'Cập nhật thất bại',
+        message: e instanceof Error ? e.message : 'Không thể đánh dấu hoàn thành.',
+      });
+    },
+  });
+
   const [rejectReason, setRejectReason] = useState('');
 
   const selected = useMemo(() => (data ?? []).find((b) => b.id === selectedId) ?? null, [data, selectedId]);
@@ -125,9 +144,9 @@ export default function DoctorBookingsPage() {
 
   const stats = useMemo<BookingStats>(() => {
     const rows = data ?? [];
-    const by: BookingStats = { total: rows.length, pending: 0, approved: 0, rejected: 0, cancelled: 0 };
+    const by: BookingStats = { total: rows.length, pending: 0, approved: 0, rejected: 0, cancelled: 0, completed: 0 };
     for (const r of rows) {
-      if (r.status === 'pending' || r.status === 'approved' || r.status === 'rejected' || r.status === 'cancelled') {
+      if (r.status === 'pending' || r.status === 'approved' || r.status === 'rejected' || r.status === 'cancelled' || r.status === 'completed') {
         by[r.status] += 1;
       }
     }
@@ -193,6 +212,9 @@ export default function DoctorBookingsPage() {
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-500">
               Huỷ: {stats.cancelled ?? 0}
             </span>
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 font-bold text-blue-700 border border-blue-200">
+              Đã hoàn thành: {stats.completed ?? 0}
+            </span>
             <span className="rounded-full bg-[#E8F8F2] px-2.5 py-0.5 font-bold text-[#0D9E75] border border-[#0D9E75]/20">
               Đã thanh toán: {paymentStats.paid}
             </span>
@@ -235,6 +257,7 @@ export default function DoctorBookingsPage() {
             <option value="approved">Đã duyệt</option>
             <option value="rejected">Đã từ chối</option>
             <option value="cancelled">Đã huỷ</option>
+            <option value="completed">Đã hoàn thành</option>
           </select>
           <select
             className="w-full rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
@@ -471,6 +494,16 @@ export default function DoctorBookingsPage() {
                     Duyệt & gửi thanh toán
                   </button>
                 </>
+              ) : null}
+              {selected.status === 'approved' ? (
+                <button
+                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                  type="button"
+                  disabled={completeMutation.isPending}
+                  onClick={() => completeMutation.mutate(selected.id)}
+                >
+                  Đánh dấu đã hoàn thành
+                </button>
               ) : null}
             </div>
               </div>

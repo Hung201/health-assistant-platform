@@ -29,6 +29,7 @@ function statusBadgeClass(status: string) {
   if (status === 'approved') return 'bg-emerald-100 text-emerald-700 border border-emerald-200';
   if (status === 'rejected') return 'bg-red-100 text-red-700 border border-red-200';
   if (status === 'cancelled') return 'bg-slate-100 text-slate-600 border border-slate-200';
+  if (status === 'completed') return 'bg-blue-50 text-blue-700 border border-blue-200';
   return 'bg-slate-100 text-slate-600 border border-slate-200';
 }
 function statusBadgeText(status: string) {
@@ -36,6 +37,7 @@ function statusBadgeText(status: string) {
   if (status === 'approved') return 'Đã xác nhận';
   if (status === 'rejected') return 'Bị từ chối';
   if (status === 'cancelled') return 'Đã huỷ';
+  if (status === 'completed') return 'Đã khám';
   return status;
 }
 function paymentStatusText(row: { paymentStatus: string; paymentMethod: string }) {

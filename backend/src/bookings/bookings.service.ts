@@ -460,6 +460,54 @@ export class BookingsService {
     return result;
   }
 
+  async completeBookingByDoctor(currentUser: User, bookingId: string) {
+    if (!hasRole(currentUser, 'doctor')) {
+      throw new ForbiddenException('Chỉ bác sĩ mới được cập nhật lịch hẹn');
+    }
+
+    const result = await this.bookingRepo.manager.transaction(async (manager) => {
+      const bookingRepo = manager.getRepository(Booking);
+      const logRepo = manager.getRepository(BookingStatusLog);
+
+      const booking = await bookingRepo.findOne({
+        where: { id: bookingId, doctorUserId: currentUser.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!booking) throw new NotFoundException('Không tìm thấy lịch hẹn');
+      if (booking.status !== 'approved') {
+        throw new BadRequestException('Chỉ lịch đã duyệt mới có thể đánh dấu hoàn thành');
+      }
+
+      const oldStatus = booking.status;
+      booking.status = 'completed';
+      await bookingRepo.save(booking);
+
+      await logRepo.save(
+        logRepo.create({
+          bookingId: booking.id,
+          oldStatus,
+          newStatus: booking.status,
+          changedBy: currentUser.id,
+          note: 'Doctor marked booking completed',
+        }),
+      );
+
+      return { ok: true, id: booking.id, status: booking.status };
+    });
+
+    const fresh = await this.bookingRepo.findOne({ where: { id: bookingId } });
+    if (fresh) {
+      await this.notifyPatientBookingUpdate({
+        booking: fresh,
+        type: 'booking_completed',
+        title: 'Buổi khám đã hoàn thành',
+        message: `Buổi khám ${fresh.bookingCode} với ${fresh.doctorNameSnapshot} đã được đánh dấu hoàn thành.`,
+        priority: 'normal',
+      });
+    }
+    return result;
+  }
+
   async listMyBookings(currentUser: User) {
     if (!hasRole(currentUser, 'patient')) {
       throw new ForbiddenException('Chỉ bệnh nhân mới có thể xem lịch hẹn của mình');
