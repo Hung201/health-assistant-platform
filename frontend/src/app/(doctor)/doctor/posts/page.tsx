@@ -36,8 +36,8 @@ export default function DoctorPostsPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1a3353]">Bài viết của tôi</h1>
-          <p className="mt-1 text-sm text-slate-500">Quản lý và xuất bản các bài viết chuyên môn y tế.</p>
+          <h1 className="text-2xl font-extrabold text-foreground">Bài viết của tôi</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Quản lý và xuất bản các bài viết chuyên môn y tế.</p>
         </div>
         <Link
           href="/doctor/posts/create"
@@ -49,11 +49,11 @@ export default function DoctorPostsPage() {
       </div>
 
       {/* ── Table card ── */}
-      <div className="rounded-2xl border border-[#E8EDF2] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead>
-              <tr className="border-b border-[#E8EDF2] bg-[#F7FAFB]">
+              <tr className="border-b border-border bg-muted/50">
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Tiêu đề bài viết</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Phân loại</th>
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400">Trạng thái</th>
@@ -61,7 +61,7 @@ export default function DoctorPostsPage() {
                 <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-400 text-right">Hành động</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E8EDF2]">
+            <tbody className="divide-y divide-border">
               {isLoading && (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-slate-400">
@@ -87,9 +87,9 @@ export default function DoctorPostsPage() {
                 </tr>
               )}
               {rows.map((post) => (
-                <tr key={post.id} className="hover:bg-[#F7FAFB] transition-colors group">
+                <tr key={post.id} className="hover:bg-muted transition-colors group">
                   <td className="px-6 py-4">
-                    <div className="font-semibold text-[#1a3353] max-w-[300px] truncate group-hover:text-[#0D9E75] transition-colors">{post.title}</div>
+                    <div className="font-semibold text-foreground max-w-[300px] truncate group-hover:text-[#0D9E75] transition-colors">{post.title}</div>
                     <div className="text-xs text-slate-400 mt-1 max-w-[300px] truncate">{post.slug}</div>
                   </td>
                   <td className="px-6 py-4">
@@ -134,23 +134,23 @@ export default function DoctorPostsPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-[#E8EDF2] px-6 py-4 bg-[#F7FAFB]">
-            <p className="text-sm text-slate-500">
-              Trang <span className="font-bold text-[#1a3353]">{page}</span> trong{' '}
-              <span className="font-bold text-[#1a3353]">{totalPages}</span>
+          <div className="flex items-center justify-between border-t border-border px-6 py-4 bg-muted/50">
+            <p className="text-sm text-muted-foreground">
+              Trang <span className="font-bold text-foreground">{page}</span> trong{' '}
+              <span className="font-bold text-foreground">{totalPages}</span>
             </p>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-[#E8EDF2] bg-white px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:border-[#0D9E75]/30 disabled:opacity-40 transition-colors"
+                className="rounded-lg border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:bg-[#E8F8F2] dark:hover:bg-[#0D9E75]/10 hover:text-[#0D9E75] hover:border-[#0D9E75]/30 disabled:opacity-40 transition-colors"
               >
                 Trước
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded-lg border border-[#E8EDF2] bg-white px-4 py-1.5 text-sm font-medium text-slate-600 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:border-[#0D9E75]/30 disabled:opacity-40 transition-colors"
+                className="rounded-lg border border-border bg-card px-4 py-1.5 text-sm font-medium text-foreground hover:bg-[#E8F8F2] dark:hover:bg-[#0D9E75]/10 hover:text-[#0D9E75] hover:border-[#0D9E75]/30 disabled:opacity-40 transition-colors"
               >
                 Sau
               </button>

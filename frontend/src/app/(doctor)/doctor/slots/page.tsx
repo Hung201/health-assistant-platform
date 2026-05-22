@@ -158,19 +158,19 @@ export default function DoctorSlotsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-[#1a3353]">Lịch trống</h2>
-        <p className="text-sm text-slate-400 mt-0.5">Quản lý toàn bộ slot khám, theo dõi tình trạng và thao tác nhanh.</p>
+        <h2 className="text-2xl font-bold text-foreground">Lịch trống</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Quản lý toàn bộ slot khám, theo dõi tình trạng và thao tác nhanh.</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          { label: 'Tổng slot', value: summary.total, color: '#1a3353', bg: '#F7FAFB' },
-          { label: 'Sắp tới', value: summary.upcoming, color: '#0D9E75', bg: '#E8F8F2' },
-          { label: 'Đã đầy', value: summary.full, color: '#F59E0B', bg: '#FFFBEB' },
-          { label: 'Đã huỷ', value: summary.cancelled, color: '#94A3B8', bg: '#F8FAFC' },
+          { label: 'Tổng slot', value: summary.total, color: '#1a3353', bg: '#F7FAFB', darkBg: 'rgba(255,255,255,0.03)' },
+          { label: 'Sắp tới', value: summary.upcoming, color: '#0D9E75', bg: '#E8F8F2', darkBg: 'rgba(13,158,117,0.12)' },
+          { label: 'Đã đầy', value: summary.full, color: '#F59E0B', bg: '#FFFBEB', darkBg: 'rgba(245,158,11,0.12)' },
+          { label: 'Đã huỷ', value: summary.cancelled, color: '#94A3B8', bg: '#F8FAFC', darkBg: 'rgba(148,163,184,0.08)' },
         ].map((c) => (
-          <div key={c.label} className="rounded-2xl border border-[#E8EDF2] p-4 shadow-sm" style={{ background: c.bg }}>
+          <div key={c.label} className="rounded-2xl border border-border p-4 shadow-sm bg-card">
             <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: c.color, opacity: 0.7 }}>{c.label}</p>
             <p className="mt-1 text-2xl font-extrabold" style={{ color: c.color }}>{c.value}</p>
           </div>
@@ -178,15 +178,15 @@ export default function DoctorSlotsPage() {
       </div>
 
       {/* ── NEW SLOT CREATOR ── */}
-      <div className="rounded-2xl border border-[#E8EDF2] bg-white shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
         {/* Section header */}
-        <div className="flex items-center gap-3 border-b border-[#E8EDF2] bg-gradient-to-r from-[#F0FDF9] to-white px-5 py-4">
+        <div className="flex items-center gap-3 border-b border-border bg-muted/40 px-5 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0D9E75]/10">
             <Calendar size={18} className="text-[#0D9E75]" />
           </div>
           <div className="flex-1">
-            <h3 className="text-base font-bold text-[#1a3353]">Tạo lịch trống</h3>
-            <p className="text-xs text-slate-400">Chọn ngày, bấm vào các ô giờ bạn muốn mở, rồi bấm Tạo slot.</p>
+            <h3 className="text-base font-bold text-foreground">Tạo lịch trống</h3>
+            <p className="text-xs text-muted-foreground">Chọn ngày, bấm vào các ô giờ bạn muốn mở, rồi bấm Tạo slot.</p>
           </div>
           {specialty && (
             <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#0D9E75]/20 bg-[#E8F8F2] px-3 py-1 text-xs font-semibold text-[#0D9E75]">
@@ -205,7 +205,7 @@ export default function DoctorSlotsPage() {
                 value={date}
                 min={today}
                 onChange={(e) => { setDate(e.target.value); setSelected(new Set()); }}
-                className="w-full rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3353] outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
               />
             </div>
             <div className="w-36">
@@ -218,14 +218,14 @@ export default function DoctorSlotsPage() {
                 max={50}
                 value={maxBookings}
                 onChange={(e) => setMaxBookings(Number(e.target.value))}
-                className="w-full rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-medium text-[#1a3353] outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
+                className="w-full rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground outline-none focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/20 transition-all"
               />
             </div>
             {selected.size > 0 && (
               <button
                 type="button"
                 onClick={() => setSelected(new Set())}
-                className="rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition-all"
+                className="rounded-xl border border-border bg-card px-4 py-2.5 text-xs font-semibold text-muted-foreground hover:bg-muted transition-all"
               >
                 Bỏ chọn tất cả
               </button>
@@ -247,7 +247,7 @@ export default function DoctorSlotsPage() {
               Đã chọn
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block h-3 w-3 rounded-sm border-2 border-[#E8EDF2] bg-white" />
+              <span className="inline-block h-3 w-3 rounded-sm border-2 border-border bg-card" />
               Trống
             </span>
             <span className="flex items-center gap-1.5">
@@ -301,7 +301,7 @@ export default function DoctorSlotsPage() {
           </div>
 
           {/* Action bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E8EDF2] pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Clock size={15} className="text-[#0D9E75]" />
               {selected.size === 0
@@ -333,8 +333,8 @@ export default function DoctorSlotsPage() {
       </div>
 
       {/* ── Slot list ── */}
-      <div className="rounded-2xl border border-[#E8EDF2] bg-white shadow-sm overflow-hidden">
-        <div className="flex flex-col gap-2 border-b border-[#E8EDF2] bg-[#F7FAFB] px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+        <div className="flex flex-col gap-2 border-b border-border bg-muted/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Slot của tôi</p>
           <div className="doctor-tab-bar">
             <button type="button" className={`doctor-tab${filter === 'upcoming' ? ' active' : ''}`} onClick={() => setFilter('upcoming')}>Sắp tới</button>
@@ -349,11 +349,11 @@ export default function DoctorSlotsPage() {
             Chưa có slot nào{filter === 'upcoming' ? ' sắp tới' : ''}. Hãy tạo slot ở trên.
           </div>
         ) : (
-          <div className="divide-y divide-[#E8EDF2]">
+          <div className="divide-y divide-border">
             {grouped.map(([day, rows]) => (
               <div key={day} className="p-5">
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-sm font-bold text-[#1a3353]">{fmtDateLabel(day)}</p>
+                  <p className="text-sm font-bold text-foreground">{fmtDateLabel(day)}</p>
                   <span className="rounded-full bg-[#E8F8F2] px-2.5 py-0.5 text-xs font-semibold text-[#0D9E75]">
                     {rows.length} slot
                   </span>
@@ -366,7 +366,7 @@ export default function DoctorSlotsPage() {
                       <div key={s.id} className="slot-list-card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="font-bold text-[#1a3353]">{fmtTimeRange(s.startAt, s.endAt)}</p>
+                            <p className="font-bold text-foreground">{fmtTimeRange(s.startAt, s.endAt)}</p>
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadge(s.status)}`}>
                               {statusLabel(s.status)}
                             </span>
@@ -389,7 +389,7 @@ export default function DoctorSlotsPage() {
                           type="button"
                           disabled={cancelSlot.isPending || s.status !== 'available' || s.bookedCount > 0 || expired}
                           onClick={() => setCancelSlotId(s.id)}
-                          className="shrink-0 rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:border-red-200 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="shrink-0 rounded-xl border border-border bg-card px-3 py-2 text-xs font-semibold text-red-500 transition-colors hover:border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           Huỷ slot
                         </button>
@@ -407,17 +407,17 @@ export default function DoctorSlotsPage() {
       {cancelSlotId != null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
           <button className="absolute inset-0 bg-black/40 backdrop-blur-sm" type="button" onClick={() => setCancelSlotId(null)} />
-          <div className="relative w-full max-w-md rounded-2xl border border-[#E8EDF2] bg-white p-6 shadow-2xl">
+          <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 mb-4">
               <AlertCircle size={24} className="text-red-500" />
             </div>
-            <h4 className="text-lg font-bold text-[#1a3353]">Huỷ slot này?</h4>
-            <p className="mt-1 text-sm text-slate-400">Chỉ huỷ được khi slot đang sẵn sàng và chưa có ai đặt.</p>
+            <h4 className="text-lg font-bold text-foreground">Huỷ slot này?</h4>
+            <p className="mt-1 text-sm text-muted-foreground">Chỉ huỷ được khi slot đang sẵn sàng và chưa có ai đặt.</p>
             <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
                 onClick={() => setCancelSlotId(null)}
-                className="rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-all"
+                className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-all"
               >
                 Không huỷ
               </button>
