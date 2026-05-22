@@ -9,6 +9,7 @@ import {
   useParticipants,
 } from '@livekit/components-react';
 
+import { LiveCommentPanel } from '@/components/live/live-comment-panel';
 import { useToast } from '@/components/ui/toast';
 
 type DoctorLiveStudioProps = {
@@ -104,7 +105,8 @@ function LiveShareSidebar({ streamId, streamTitle }: { streamId: string; streamT
         <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs text-muted-foreground">
           <li>Thanh công cụ dưới khung video: tắt/bật mic và camera.</li>
           <li>Chia sẻ màn hình khi cần trình chiếu tài liệu.</li>
-          <li>Biểu tượng chat: trao đổi ngắn với người xem trong phòng.</li>
+          <li>Bình luận bên phải: tin nhắn từ trang xem công khai (/live/…).</li>
+          <li>Chat trên thanh LiveKit: trao đổi nhanh trong phòng video.</li>
           <li>Âm thanh trình duyệt: nếu không nghe được, bấm &quot;Bật âm thanh&quot; khi trình duyệt hỏi.</li>
         </ul>
       </div>
@@ -215,7 +217,12 @@ export function DoctorLiveStudio({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <LiveSessionMain streamTitle={streamTitle} />
         </div>
-        <LiveShareSidebar streamId={streamId} streamTitle={streamTitle} />
+        <aside className="flex w-full min-h-0 shrink-0 flex-col gap-4 xl:w-[340px]">
+          <LiveShareSidebar streamId={streamId} streamTitle={streamTitle} />
+          <div className="flex min-h-[420px] min-w-0 flex-1 flex-col xl:min-h-0">
+            <LiveCommentPanel streamId={streamId} />
+          </div>
+        </aside>
       </div>
     </LiveKitRoom>
   );
