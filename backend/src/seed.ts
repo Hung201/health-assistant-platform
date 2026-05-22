@@ -213,569 +213,23 @@ async function seed() {
     });
     await ensureUserRole(adminUser.id, 'admin');
 
-    // ---- demo doctor (pending verification)
-    const doctorUser = await ensureUser({
-      email: 'doctor1@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS Nguyễn Văn A',
-      phone: '0900 000 002',
-    });
-    await ensureUserRole(doctorUser.id, 'doctor');
-    const existingDoctorProfile = await txDoctorRepo.findOne({ where: { userId: doctorUser.id } });
-    if (!existingDoctorProfile) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: doctorUser.id,
-          professionalTitle: 'Bác sĩ',
-          licenseNumber: '123456/CCHN',
-          workplaceName: 'Clinical Precision Center',
-          workplaceAddress: '15 Pho Hue, Phuong Ngo Thi Nham, Quan Hai Ba Trung, Ha Noi',
-          provinceCode: '01',
-          districtCode: '008',
-          yearsOfExperience: 6,
-          bio: 'Bác sĩ tư vấn sức khỏe tổng quát và tim mạch.',
-          isVerified: false,
-          verificationStatus: 'pending',
-          consultationFee: '200000',
-        }),
-      );
-    } else {
-      existingDoctorProfile.workplaceAddress =
-        existingDoctorProfile.workplaceAddress ?? '15 Pho Hue, Phuong Ngo Thi Nham, Quan Hai Ba Trung, Ha Noi';
-      existingDoctorProfile.provinceCode = existingDoctorProfile.provinceCode ?? '01';
-      existingDoctorProfile.districtCode = existingDoctorProfile.districtCode ?? '008';
-      await txDoctorRepo.save(existingDoctorProfile);
-    }
     const primarySpec = allSpecs[0] ?? (await txSpecialtyRepo.findOne({ where: { slug: 'noi-tong-quat' } }));
-    if (primarySpec) {
-      const specId = asNumberId(primarySpec.id);
-      const existingLink = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId: doctorUser.id, specialtyId: specId },
-      });
-      if (!existingLink) {
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId: doctorUser.id,
-            specialtyId: specId,
-            isPrimary: true,
-          }),
-        );
-      }
+    const doctorRole = roleByCode.get('doctor');
+    if (!doctorRole) throw new Error('Role doctor not found');
+    const doctorRoleId = doctorRole.id;
+
+    // Bác sĩ có ảnh: npm run seed:crawl-doctors (không seed doctor_demo / pending / doctor1 tại đây)
+    async function pickDoctorWithAvatar(): Promise<User | null> {
+      return txUserRepo
+        .createQueryBuilder('u')
+        .innerJoin(UserRole, 'ur', 'ur.user_id = u.id AND ur.role_id = :roleId', { roleId: doctorRoleId })
+        .where('u.avatar_url IS NOT NULL')
+        .andWhere("TRIM(u.avatar_url) <> ''")
+        .orderBy('u.created_at', 'ASC')
+        .getOne();
     }
 
-    // ---- fake Vietnam workplaces for map/location recommendation seed
-    const cityLocations: Array<{
-      city: string;
-      provinceCode: string;
-      districtCode: string;
-      workplaceName: string;
-      workplaceAddress: string;
-    }> = [
-      {
-        city: 'Ha Noi',
-        provinceCode: '01',
-        districtCode: '005',
-        workplaceName: 'Phong kham Da khoa Cau Giay',
-        workplaceAddress: '98 Duong Cau Giay, Phuong Quan Hoa, Quan Cau Giay, Ha Noi',
-      },
-      {
-        city: 'TP HCM',
-        provinceCode: '79',
-        districtCode: '760',
-        workplaceName: 'Phong kham Da khoa Ben Thanh',
-        workplaceAddress: '210 Le Lai, Phuong Ben Thanh, Quan 1, TP Ho Chi Minh',
-      },
-      {
-        city: 'Da Nang',
-        provinceCode: '48',
-        districtCode: '490',
-        workplaceName: 'Phong kham Da khoa Hai Chau',
-        workplaceAddress: '55 Nguyen Van Linh, Phuong Nam Duong, Quan Hai Chau, Da Nang',
-      },
-    ];
-    const getCityLocation = (seedIndex: number) => cityLocations[(seedIndex - 1) % cityLocations.length];
-
-    // ---- more pending doctors for admin review (idempotent)
-    const pendingDoctorCount = 8;
-    for (let i = 1; i <= pendingDoctorCount; i++) {
-      const n = String(i).padStart(2, '0');
-      const cityLocation = getCityLocation(i);
-      // eslint-disable-next-line no-await-in-loop
-      const u = await ensureUser({
-        email: `doctor_pending_${n}@precision.vn`,
-        password: 'Doctor@123',
-        fullName: `BS Chờ duyệt ${n}`,
-        phone: `0900 002 ${n}`,
-      });
-      // eslint-disable-next-line no-await-in-loop
-      await ensureUserRole(u.id, 'doctor');
-      // eslint-disable-next-line no-await-in-loop
-      const p = await txDoctorRepo.findOne({ where: { userId: u.id } });
-      if (!p) {
-        // eslint-disable-next-line no-await-in-loop
-        await txDoctorRepo.save(
-          txDoctorRepo.create({
-            userId: u.id,
-            professionalTitle: 'Bác sĩ',
-            licenseNumber: `PENDING-${n}/CCHN`,
-            workplaceName: `${cityLocation.workplaceName} (Pending ${cityLocation.city})`,
-            workplaceAddress: cityLocation.workplaceAddress,
-            provinceCode: cityLocation.provinceCode,
-            districtCode: cityLocation.districtCode,
-            yearsOfExperience: 1 + (i % 8),
-            bio: 'Hồ sơ demo (pending) để test luồng duyệt bác sĩ trên admin.',
-            isVerified: false,
-            verificationStatus: 'pending',
-            consultationFee: String(180000 + (i % 4) * 20000),
-          }),
-        );
-      } else {
-        // keep seed idempotent but enforce "pending" for this demo set
-        p.verificationStatus = 'pending';
-        p.isVerified = false;
-        p.workplaceName = `${cityLocation.workplaceName} (Pending ${cityLocation.city})`;
-        p.workplaceAddress = p.workplaceAddress ?? cityLocation.workplaceAddress;
-        p.provinceCode = p.provinceCode ?? cityLocation.provinceCode;
-        p.districtCode = p.districtCode ?? cityLocation.districtCode;
-        // eslint-disable-next-line no-await-in-loop
-        await txDoctorRepo.save(p);
-      }
-    }
-
-    // ---- demo doctor (approved) for patient discovery
-    const approvedDoctorUser = await ensureUser({
-      email: 'doctor2@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS Trần Thị C',
-      phone: '0900 000 005',
-    });
-    await ensureUserRole(approvedDoctorUser.id, 'doctor');
-    const approvedProfile = await txDoctorRepo.findOne({ where: { userId: approvedDoctorUser.id } });
-    if (!approvedProfile) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: approvedDoctorUser.id,
-          professionalTitle: 'Bác sĩ Chuyên khoa',
-          licenseNumber: '789101/CCHN',
-          workplaceName: 'Precision Care Clinic',
-          workplaceAddress: '12 Nguyen Hue, Phuong Ben Nghe, Quan 1, TP Ho Chi Minh',
-          provinceCode: '79',
-          districtCode: '760',
-          yearsOfExperience: 10,
-          bio: 'Bác sĩ đã được duyệt (demo) để bệnh nhân có thể tìm và đặt lịch.',
-          isVerified: true,
-          verificationStatus: 'approved',
-          consultationFee: '250000',
-        }),
-      );
-    } else {
-      approvedProfile.workplaceAddress =
-        approvedProfile.workplaceAddress ?? '12 Nguyen Hue, Phuong Ben Nghe, Quan 1, TP Ho Chi Minh';
-      approvedProfile.provinceCode = approvedProfile.provinceCode ?? '79';
-      approvedProfile.districtCode = approvedProfile.districtCode ?? '760';
-      await txDoctorRepo.save(approvedProfile);
-    }
-    if (primarySpec) {
-      const specId = asNumberId(primarySpec.id);
-      const existingLink2 = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId: approvedDoctorUser.id, specialtyId: specId },
-      });
-      if (!existingLink2) {
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId: approvedDoctorUser.id,
-            specialtyId: specId,
-            isPrimary: true,
-          }),
-        );
-      }
-    }
-
-    // ---- dental doctor (approved) for dentistry recommendation and booking demo
-    const dentalDoctorUser = await ensureUser({
-      email: 'doctor_dental_01@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS Nha khoa Cau Giay',
-      phone: '0900 003 001',
-    });
-    await ensureUserRole(dentalDoctorUser.id, 'doctor');
-
-    const dentalProfile = await txDoctorRepo.findOne({ where: { userId: dentalDoctorUser.id } });
-    if (!dentalProfile) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: dentalDoctorUser.id,
-          professionalTitle: 'Bac si Chuyen khoa Rang ham mat',
-          licenseNumber: 'DENTAL-01/CCHN',
-          workplaceName: 'Nha khoa Cau Giay Smile',
-          workplaceAddress: '123 Tran Thai Tong, Cau Giay, Ha Noi',
-          provinceCode: '01',
-          districtCode: '005',
-          yearsOfExperience: 9,
-          bio: 'Bac si rang ham mat, chuyen dieu tri dau rang va viem nha chu.',
-          isVerified: true,
-          verificationStatus: 'approved',
-          consultationFee: '300000',
-          priorityScore: 80,
-          isAvailableForBooking: true,
-        }),
-      );
-    } else {
-      dentalProfile.isVerified = true;
-      dentalProfile.verificationStatus = 'approved';
-      dentalProfile.workplaceName = dentalProfile.workplaceName ?? 'Nha khoa Cau Giay Smile';
-      dentalProfile.workplaceAddress = dentalProfile.workplaceAddress ?? '123 Tran Thai Tong, Cau Giay, Ha Noi';
-      dentalProfile.provinceCode = dentalProfile.provinceCode ?? '01';
-      dentalProfile.districtCode = dentalProfile.districtCode ?? '005';
-      dentalProfile.isAvailableForBooking = true;
-      await txDoctorRepo.save(dentalProfile);
-    }
-
-    if (dentalSpecialty) {
-      const dentalSpecId = asNumberId(dentalSpecialty.id);
-      const existingDentalLinks = await txDoctorSpecialtyRepo.find({
-        where: { doctorUserId: dentalDoctorUser.id },
-      });
-      for (const link of existingDentalLinks) {
-        if (!link.isPrimary) continue;
-        link.isPrimary = false;
-        await txDoctorSpecialtyRepo.save(link);
-      }
-
-      const dentalPrimary = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId: dentalDoctorUser.id, specialtyId: dentalSpecId },
-      });
-      if (!dentalPrimary) {
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId: dentalDoctorUser.id,
-            specialtyId: dentalSpecId,
-            isPrimary: true,
-          }),
-        );
-      } else if (!dentalPrimary.isPrimary) {
-        dentalPrimary.isPrimary = true;
-        await txDoctorSpecialtyRepo.save(dentalPrimary);
-      }
-    }
-
-    // ---- ENT doctor in Ha Noi (Nam Tu Liem) for location-priority recommendation
-    const entDoctorUser = await ensureUser({
-      email: 'doctor_ent_hanoi_01@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS TMH Nam Tu Liem',
-      phone: '0900 003 201',
-    });
-    await ensureUserRole(entDoctorUser.id, 'doctor');
-    const entProfile = await txDoctorRepo.findOne({ where: { userId: entDoctorUser.id } });
-    if (!entProfile) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: entDoctorUser.id,
-          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
-          licenseNumber: 'ENT-HN-01/CCHN',
-          workplaceName: 'Phong kham Tai Mui Hong Nam Tu Liem',
-          workplaceAddress: '88 Ho Tung Mau, Phuong My Dinh 2, Quan Nam Tu Liem, Ha Noi',
-          provinceCode: '01',
-          districtCode: '019',
-          yearsOfExperience: 11,
-          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem tai giua, viem hong, viem mui xoang.',
-          isVerified: true,
-          verificationStatus: 'approved',
-          consultationFee: '320000',
-          priorityScore: 92,
-          isAvailableForBooking: true,
-        }),
-      );
-    } else {
-      entProfile.isVerified = true;
-      entProfile.verificationStatus = 'approved';
-      entProfile.workplaceName = entProfile.workplaceName ?? 'Phong kham Tai Mui Hong Nam Tu Liem';
-      entProfile.workplaceAddress =
-        entProfile.workplaceAddress ?? '88 Ho Tung Mau, Phuong My Dinh 2, Quan Nam Tu Liem, Ha Noi';
-      entProfile.provinceCode = entProfile.provinceCode ?? '01';
-      entProfile.districtCode = entProfile.districtCode ?? '019';
-      entProfile.isAvailableForBooking = true;
-      await txDoctorRepo.save(entProfile);
-    }
-    const entSpecialty =
-      allSpecs.find((s) => s.slug === 'tai-mui-hong') ??
-      (await txSpecialtyRepo.findOne({ where: { slug: 'tai-mui-hong', status: 'active' } }));
-    if (entSpecialty) {
-      const entSpecId = asNumberId(entSpecialty.id);
-      const existingEntLinks = await txDoctorSpecialtyRepo.find({
-        where: { doctorUserId: entDoctorUser.id },
-      });
-      for (const link of existingEntLinks) {
-        if (asNumberId(link.specialtyId) === entSpecId) continue;
-        if (!link.isPrimary) continue;
-        link.isPrimary = false;
-        await txDoctorSpecialtyRepo.save(link);
-      }
-      const entPrimary = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId: entDoctorUser.id, specialtyId: entSpecId },
-      });
-      if (!entPrimary) {
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId: entDoctorUser.id,
-            specialtyId: entSpecId,
-            isPrimary: true,
-          }),
-        );
-      } else if (!entPrimary.isPrimary) {
-        entPrimary.isPrimary = true;
-        await txDoctorSpecialtyRepo.save(entPrimary);
-      }
-    }
-
-    // ---- add 2 more ENT doctors in Ha Noi for locality-first AI recommendation
-    const ensurePrimaryEntSpecialty = async (doctorUserId: string) => {
-      if (!entSpecialty) return;
-      const entSpecId = asNumberId(entSpecialty.id);
-      const links = await txDoctorSpecialtyRepo.find({ where: { doctorUserId } });
-      for (const link of links) {
-        if (asNumberId(link.specialtyId) === entSpecId) continue;
-        if (!link.isPrimary) continue;
-        link.isPrimary = false;
-        await txDoctorSpecialtyRepo.save(link);
-      }
-      const entLink = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId, specialtyId: entSpecId },
-      });
-      if (!entLink) {
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId,
-            specialtyId: entSpecId,
-            isPrimary: true,
-          }),
-        );
-      } else if (!entLink.isPrimary) {
-        entLink.isPrimary = true;
-        await txDoctorSpecialtyRepo.save(entLink);
-      }
-    };
-
-    const entDoctorCauGiayUser = await ensureUser({
-      email: 'doctor_ent_hanoi_02@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS TMH Cau Giay',
-      phone: '0900 003 202',
-    });
-    await ensureUserRole(entDoctorCauGiayUser.id, 'doctor');
-    const entProfileCauGiay = await txDoctorRepo.findOne({ where: { userId: entDoctorCauGiayUser.id } });
-    if (!entProfileCauGiay) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: entDoctorCauGiayUser.id,
-          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
-          licenseNumber: 'ENT-HN-02/CCHN',
-          workplaceName: 'Phong kham Tai Mui Hong Cau Giay',
-          workplaceAddress: '123 Tran Thai Tong, Phuong Dich Vong Hau, Quan Cau Giay, Ha Noi',
-          provinceCode: '01',
-          districtCode: '005',
-          yearsOfExperience: 9,
-          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem mui xoang, viem hong man tinh.',
-          isVerified: true,
-          verificationStatus: 'approved',
-          consultationFee: '300000',
-          priorityScore: 88,
-          isAvailableForBooking: true,
-        }),
-      );
-    } else {
-      entProfileCauGiay.isVerified = true;
-      entProfileCauGiay.verificationStatus = 'approved';
-      entProfileCauGiay.workplaceName = entProfileCauGiay.workplaceName ?? 'Phong kham Tai Mui Hong Cau Giay';
-      entProfileCauGiay.workplaceAddress =
-        entProfileCauGiay.workplaceAddress ?? '123 Tran Thai Tong, Phuong Dich Vong Hau, Quan Cau Giay, Ha Noi';
-      entProfileCauGiay.provinceCode = entProfileCauGiay.provinceCode ?? '01';
-      entProfileCauGiay.districtCode = entProfileCauGiay.districtCode ?? '005';
-      entProfileCauGiay.isAvailableForBooking = true;
-      await txDoctorRepo.save(entProfileCauGiay);
-    }
-    await ensurePrimaryEntSpecialty(entDoctorCauGiayUser.id);
-
-    const entDoctorThanhXuanUser = await ensureUser({
-      email: 'doctor_ent_hanoi_03@precision.vn',
-      password: 'Doctor@123',
-      fullName: 'BS TMH Thanh Xuan',
-      phone: '0900 003 203',
-    });
-    await ensureUserRole(entDoctorThanhXuanUser.id, 'doctor');
-    const entProfileThanhXuan = await txDoctorRepo.findOne({ where: { userId: entDoctorThanhXuanUser.id } });
-    if (!entProfileThanhXuan) {
-      await txDoctorRepo.save(
-        txDoctorRepo.create({
-          userId: entDoctorThanhXuanUser.id,
-          professionalTitle: 'Bac si Chuyen khoa Tai Mui Hong',
-          licenseNumber: 'ENT-HN-03/CCHN',
-          workplaceName: 'Phong kham Tai Mui Hong Thanh Xuan',
-          workplaceAddress: '45 Nguyen Trai, Phuong Thuong Dinh, Quan Thanh Xuan, Ha Noi',
-          provinceCode: '01',
-          districtCode: '007',
-          yearsOfExperience: 10,
-          bio: 'Bac si Tai Mui Hong, kinh nghiem dieu tri viem tai ngoai, viem amidan, roi loan gioi noi.',
-          isVerified: true,
-          verificationStatus: 'approved',
-          consultationFee: '310000',
-          priorityScore: 90,
-          isAvailableForBooking: true,
-        }),
-      );
-    } else {
-      entProfileThanhXuan.isVerified = true;
-      entProfileThanhXuan.verificationStatus = 'approved';
-      entProfileThanhXuan.workplaceName = entProfileThanhXuan.workplaceName ?? 'Phong kham Tai Mui Hong Thanh Xuan';
-      entProfileThanhXuan.workplaceAddress =
-        entProfileThanhXuan.workplaceAddress ?? '45 Nguyen Trai, Phuong Thuong Dinh, Quan Thanh Xuan, Ha Noi';
-      entProfileThanhXuan.provinceCode = entProfileThanhXuan.provinceCode ?? '01';
-      entProfileThanhXuan.districtCode = entProfileThanhXuan.districtCode ?? '007';
-      entProfileThanhXuan.isAvailableForBooking = true;
-      await txDoctorRepo.save(entProfileThanhXuan);
-    }
-    await ensurePrimaryEntSpecialty(entDoctorThanhXuanUser.id);
-
-    // ---- bulk approved doctors for richer demo data (idempotent)
-    const demoDoctorCount = 20;
-    const safeSpecs = allSpecs.length > 0 ? allSpecs : primarySpec ? [primarySpec] : [];
     const day = 24 * 60 * 60 * 1000;
-    const now = new Date();
-    const approvedDoctorIds: string[] = [approvedDoctorUser.id, dentalDoctorUser.id, entDoctorUser.id];
-
-    const ensureApprovedDoctor = async (idx: number) => {
-      const n = String(idx).padStart(2, '0');
-      const cityLocation = getCityLocation(idx);
-      const email = `doctor_demo_${n}@precision.vn`;
-      const u = await ensureUser({
-        email,
-        password: 'Doctor@123',
-        fullName: `BS Demo ${n}`,
-        phone: `0900 001 ${n}`,
-      });
-      await ensureUserRole(u.id, 'doctor');
-      approvedDoctorIds.push(u.id);
-
-      const profile = await txDoctorRepo.findOne({ where: { userId: u.id } });
-      if (!profile) {
-        await txDoctorRepo.save(
-          txDoctorRepo.create({
-            userId: u.id,
-            professionalTitle: 'Bác sĩ',
-            licenseNumber: `DEMO-${n}/CCHN`,
-            workplaceName: `${cityLocation.workplaceName} (Demo ${cityLocation.city})`,
-            workplaceAddress: cityLocation.workplaceAddress,
-            provinceCode: cityLocation.provinceCode,
-            districtCode: cityLocation.districtCode,
-            yearsOfExperience: 3 + (idx % 12),
-            bio: 'Hồ sơ demo (seed) để test tìm bác sĩ/đặt lịch.',
-            isVerified: true,
-            verificationStatus: 'approved',
-            consultationFee: String(150000 + (idx % 6) * 50000),
-          }),
-        );
-      } else {
-        profile.workplaceName = `${cityLocation.workplaceName} (Demo ${cityLocation.city})`;
-        profile.workplaceAddress = profile.workplaceAddress ?? cityLocation.workplaceAddress;
-        profile.provinceCode = profile.provinceCode ?? cityLocation.provinceCode;
-        profile.districtCode = profile.districtCode ?? cityLocation.districtCode;
-        await txDoctorRepo.save(profile);
-      }
-
-      const spec = safeSpecs.length > 0 ? safeSpecs[idx % safeSpecs.length] : null;
-      if (spec) {
-        const specId = asNumberId(spec.id);
-        const link = await txDoctorSpecialtyRepo.findOne({ where: { doctorUserId: u.id, specialtyId: specId } });
-        if (!link) {
-          await txDoctorSpecialtyRepo.save(
-            txDoctorSpecialtyRepo.create({
-              doctorUserId: u.id,
-              specialtyId: specId,
-              isPrimary: true,
-            }),
-          );
-        }
-      }
-
-      const slotCount = await txSlotRepo.count({ where: { doctorUserId: u.id } });
-      if (slotCount === 0 && spec) {
-        const makeSlot = async (offsetDays: number, hour: number) => {
-          const start = new Date(now.getTime() + offsetDays * day);
-          start.setHours(hour, 0, 0, 0);
-          const end = new Date(start.getTime() + 30 * 60 * 1000);
-          await txSlotRepo.save(
-            txSlotRepo.create({
-              doctorUserId: u.id,
-              specialtyId: asNumberId(spec.id),
-              slotDate: new Date(start.toISOString().slice(0, 10)),
-              startAt: start,
-              endAt: end,
-              maxBookings: 3,
-              bookedCount: 0,
-              status: 'available',
-              source: 'seed',
-            }),
-          );
-        };
-        await makeSlot(1 + (idx % 3), 9);
-        await makeSlot(1 + (idx % 3), 10);
-      }
-    };
-
-    for (let i = 1; i <= demoDoctorCount; i++) {
-      // eslint-disable-next-line no-await-in-loop
-      await ensureApprovedDoctor(i);
-    }
-
-    // ---- ensure specialty coverage for AI recommend (idempotent)
-    // Keep at least one approved doctor as primary for each specialty that was previously empty.
-    const remapPlan: Array<{ email: string; slug: string }> = [
-      { email: 'doctor_demo_13@precision.vn', slug: 'tieu-hoa' },
-      { email: 'doctor_demo_18@precision.vn', slug: 'ho-hap' },
-      { email: 'doctor_demo_03@precision.vn', slug: 'tai-mui-hong' },
-      { email: 'doctor_demo_01@precision.vn', slug: 'co-xuong-khop' },
-      { email: 'doctor_demo_06@precision.vn', slug: 'than-kinh' },
-      { email: 'doctor_demo_04@precision.vn', slug: 'san-phu-khoa' },
-      { email: 'doctor_demo_11@precision.vn', slug: 'nhan-khoa' },
-    ];
-    for (const plan of remapPlan) {
-      // eslint-disable-next-line no-await-in-loop
-      const doctorUser = await txUserRepo.findOne({ where: { email: plan.email } });
-      if (!doctorUser) continue;
-      // eslint-disable-next-line no-await-in-loop
-      const spec = await txSpecialtyRepo.findOne({ where: { slug: plan.slug, status: 'active' } });
-      if (!spec) continue;
-      const specId = asNumberId(spec.id);
-
-      // eslint-disable-next-line no-await-in-loop
-      const links = await txDoctorSpecialtyRepo.find({ where: { doctorUserId: doctorUser.id } });
-      for (const link of links) {
-        if (!link.isPrimary) continue;
-        link.isPrimary = false;
-        // eslint-disable-next-line no-await-in-loop
-        await txDoctorSpecialtyRepo.save(link);
-      }
-
-      // eslint-disable-next-line no-await-in-loop
-      const existingLink = await txDoctorSpecialtyRepo.findOne({
-        where: { doctorUserId: doctorUser.id, specialtyId: specId },
-      });
-      if (!existingLink) {
-        // eslint-disable-next-line no-await-in-loop
-        await txDoctorSpecialtyRepo.save(
-          txDoctorSpecialtyRepo.create({
-            doctorUserId: doctorUser.id,
-            specialtyId: specId,
-            isPrimary: true,
-          }),
-        );
-      } else if (!existingLink.isPrimary) {
-        existingLink.isPrimary = true;
-        // eslint-disable-next-line no-await-in-loop
-        await txDoctorSpecialtyRepo.save(existingLink);
-      }
-    }
 
     // ---- normalize primary specialty: exactly one primary per doctor
     await manager.query(`
@@ -904,70 +358,21 @@ async function seed() {
       }
     }
 
-    // ---- available slots for doctor (idempotent: create only if none)
-    const existingSlots = await txSlotRepo.count({ where: { doctorUserId: doctorUser.id } });
-    let slot: DoctorAvailableSlot | null = null;
-    if (existingSlots === 0 && primarySpec) {
-      const now = new Date();
-      const start = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      start.setMinutes(0, 0, 0);
-      const end = new Date(start.getTime() + 30 * 60 * 1000);
-      slot = await txSlotRepo.save(
-        txSlotRepo.create({
-          doctorUserId: doctorUser.id,
-          specialtyId: asNumberId(primarySpec.id),
-          slotDate: new Date(start.toISOString().slice(0, 10)),
-          startAt: start,
-          endAt: end,
-          maxBookings: 5,
-          bookedCount: 0,
-          status: 'available',
-          source: 'seed',
-        }),
-      );
-    }
-
-    // ---- available slots for approved doctor (idempotent)
-    const existingSlots2 = await txSlotRepo.count({ where: { doctorUserId: approvedDoctorUser.id } });
-    if (existingSlots2 === 0 && primarySpec) {
-      const now = new Date();
-      const makeSlot = async (offsetDays: number, hour: number) => {
-        const start = new Date(now.getTime() + offsetDays * day);
-        start.setHours(hour, 0, 0, 0);
-        const end = new Date(start.getTime() + 30 * 60 * 1000);
-        await txSlotRepo.save(
-          txSlotRepo.create({
-            doctorUserId: approvedDoctorUser.id,
-            specialtyId: asNumberId(primarySpec.id),
-            slotDate: new Date(start.toISOString().slice(0, 10)),
-            startAt: start,
-            endAt: end,
-            maxBookings: 3,
-            bookedCount: 0,
-            status: 'available',
-            source: 'seed',
-          }),
-        );
-      };
-      await makeSlot(1, 9);
-      await makeSlot(1, 10);
-      await makeSlot(2, 14);
-    }
-
-    // ---- one pending booking (idempotent by bookingCode)
+    // ---- one pending booking (idempotent by bookingCode; cần bác sĩ có avatar từ crawl seed)
     const bookingCode = 'BK-DEMO-0001';
     const existingBooking = await txBookingRepo.findOne({ where: { bookingCode } });
-    if (!existingBooking && primarySpec) {
-      const startAt = slot?.startAt ?? new Date(Date.now() + 48 * 60 * 60 * 1000);
-      const endAt = slot?.endAt ?? new Date(startAt.getTime() + 30 * 60 * 1000);
+    const demoDoctorForBooking = await pickDoctorWithAvatar();
+    if (!existingBooking && primarySpec && demoDoctorForBooking) {
+      const startAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+      const endAt = new Date(startAt.getTime() + 30 * 60 * 1000);
       const apptDate = new Date(startAt.toISOString().slice(0, 10));
       const b = await txBookingRepo.save(
         txBookingRepo.create({
           bookingCode,
           patientUserId: patientUser.id,
-          doctorUserId: doctorUser.id,
+          doctorUserId: demoDoctorForBooking.id,
           specialtyId: asNumberId(primarySpec.id),
-          availableSlotId: slot ? asNumberId(slot.id) : null,
+          availableSlotId: null,
           patientNote: 'Mình muốn tư vấn tổng quát.',
           status: 'pending',
           paymentMethod: 'momo',
@@ -975,7 +380,7 @@ async function seed() {
           appointmentDate: apptDate,
           appointmentStartAt: startAt,
           appointmentEndAt: endAt,
-          doctorNameSnapshot: doctorUser.fullName,
+          doctorNameSnapshot: demoDoctorForBooking.fullName,
           specialtyNameSnapshot: primarySpec.name,
           consultationFee: '200000',
           platformFee: '0',
@@ -1176,11 +581,13 @@ async function seed() {
       // eslint-disable-next-line no-await-in-loop
       const exists = await txPostRepo.findOne({ where: { slug } });
       if (exists) continue;
-      const authorUserId = approvedDoctorIds[i % approvedDoctorIds.length] ?? doctorUser.id;
+      // eslint-disable-next-line no-await-in-loop
+      const postAuthor = await pickDoctorWithAvatar();
+      if (!postAuthor) continue;
       // eslint-disable-next-line no-await-in-loop
       await txPostRepo.save(
         txPostRepo.create({
-          authorUserId,
+          authorUserId: postAuthor.id,
           title: seed.title,
           slug,
           excerpt: seed.excerpt,
@@ -1234,19 +641,21 @@ async function seed() {
       }
     ];
 
+    const publishedPostAuthor = await pickDoctorWithAvatar();
     for (const s of publishedPostSeeds) {
       let post = await txPostRepo.findOne({ where: { slug: s.slug } });
-      if (!post) {
+      if (!post && publishedPostAuthor) {
         post = await txPostRepo.save(txPostRepo.create({
           ...s,
-          authorUserId: approvedDoctorUser.id,
+          authorUserId: publishedPostAuthor.id,
           viewCount: String(Math.floor(Math.random() * 500)),
         }));
       }
+      if (!post) continue;
 
       // Add a comment for each published post
       const commentExists = await txCommentRepo.findOne({ where: { postId: post.id, userId: patientUser.id } });
-      if (!commentExists) {
+      if (!commentExists && publishedPostAuthor) {
         const rootComment = await txCommentRepo.save(txCommentRepo.create({
           postId: post.id,
           userId: patientUser.id,
@@ -1257,7 +666,7 @@ async function seed() {
         // Add a reply from doctor
         await txCommentRepo.save(txCommentRepo.create({
           postId: post.id,
-          userId: approvedDoctorUser.id,
+          userId: publishedPostAuthor.id,
           parentCommentId: rootComment.id,
           content: 'Rất vui vì thông tin này giúp ích cho bạn. Hãy chia sẻ cho người thân nhé!',
           status: 'visible',
