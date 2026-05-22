@@ -7,6 +7,9 @@
 .doctor-sidebar {
   background: linear-gradient(175deg, #ffffff 0%, #f0faf7 100%);
 }
+.dark .doctor-sidebar {
+  background: linear-gradient(175deg, hsl(222 20% 14%) 0%, hsl(222 20% 12%) 100%);
+}
 
 /* ── Stat Card ── */
 .doctor-stat-card {
@@ -21,9 +24,17 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   will-change: transform;
 }
+.dark .doctor-stat-card {
+  border-color: rgba(255,255,255,0.08);
+  background: hsl(222 20% 16%);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.20);
+}
 .doctor-stat-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(13,158,117,0.10);
+}
+.dark .doctor-stat-card:hover {
+  box-shadow: 0 8px 24px rgba(13,158,117,0.18);
 }
 
 /* ── Nav Active Accent ── */
@@ -81,9 +92,19 @@
   user-select: none;
   min-height: 56px;
 }
+.dark .slot-cell {
+  border-color: rgba(255,255,255,0.08);
+  background: hsl(222 20% 16%);
+  color: hsl(215 20% 75%);
+}
 .slot-cell:hover:not(.slot-cell--selected):not(.slot-cell--past) {
   border-color: #0D9E75;
   background: #E8F8F2;
+  color: #0D9E75;
+}
+.dark .slot-cell:hover:not(.slot-cell--selected):not(.slot-cell--past) {
+  border-color: #0D9E75;
+  background: rgba(13,158,117,0.12);
   color: #0D9E75;
 }
 .slot-cell--selected {
@@ -97,16 +118,29 @@
   cursor: not-allowed;
   background: #F8FAFC;
 }
+.dark .slot-cell--past {
+  background: hsl(222 20% 12%);
+}
 .slot-cell--existing {
   border-color: #94A3B8;
   background: #F1F5F9;
   color: #94A3B8;
   cursor: default;
 }
+.dark .slot-cell--existing {
+  border-color: rgba(255,255,255,0.12);
+  background: hsl(222 20% 18%);
+  color: hsl(215 20% 60%);
+}
 .slot-cell--existing:hover {
   border-color: #94A3B8 !important;
   background: #F1F5F9 !important;
   color: #94A3B8 !important;
+}
+.dark .slot-cell--existing:hover {
+  border-color: rgba(255,255,255,0.12) !important;
+  background: hsl(222 20% 18%) !important;
+  color: hsl(215 20% 60%) !important;
 }
 .slot-check {
   position: absolute;
@@ -130,10 +164,17 @@
   overflow: hidden;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
+.dark .slot-list-card {
+  border-color: rgba(255,255,255,0.08);
+  background: hsl(222 20% 16%);
+}
 .slot-list-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(13,158,117,0.09);
   border-color: rgba(13,158,117,0.2);
+}
+.dark .slot-list-card:hover {
+  box-shadow: 0 8px 24px rgba(13,158,117,0.18);
 }
 
 /* ── Breadcrumb accent ── */
@@ -161,10 +202,17 @@
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   will-change: transform;
 }
+.dark .doctor-quick-card {
+  border-color: rgba(255,255,255,0.08);
+  background: hsl(222 20% 16%);
+}
 .doctor-quick-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 28px rgba(13,158,117,0.13);
   border-color: #0D9E75;
+}
+.dark .doctor-quick-card:hover {
+  box-shadow: 0 12px 28px rgba(13,158,117,0.22);
 }
 
 /* ── Pill Tab ── */
@@ -175,6 +223,9 @@
   padding: 0.25rem;
   border-radius: 0.75rem;
   width: fit-content;
+}
+.dark .doctor-tab-bar {
+  background: hsl(222 20% 18%);
 }
 .doctor-tab {
   padding: 0.375rem 1rem;
@@ -188,6 +239,9 @@
   cursor: pointer;
   white-space: nowrap;
 }
+.dark .doctor-tab {
+  color: hsl(215 20% 65%);
+}
 .doctor-tab.active {
   background: #0D9E75;
   color: #fff;
@@ -195,6 +249,10 @@
 }
 .doctor-tab:not(.active):hover {
   background: rgba(13,158,117,0.08);
+  color: #0D9E75;
+}
+.dark .doctor-tab:not(.active):hover {
+  background: rgba(13,158,117,0.12);
   color: #0D9E75;
 }
 

@@ -38,12 +38,12 @@ export default function DoctorQaInboxPage() {
   return (
     <div className="space-y-6 doctor-page-enter">
       {/* ── Header card ── */}
-      <div className="rounded-2xl border border-[#E8EDF2] bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-1">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8F8F2]">
             <MessageCircleQuestion className="h-5 w-5 text-[#0D9E75]" />
           </div>
-          <h1 className="text-2xl font-extrabold text-[#1a3353]">Hỏi bác sĩ miễn phí</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Hỏi bác sĩ miễn phí</h1>
         </div>
         <p className="mt-1 text-sm text-slate-500 pl-[52px]">
           Trả lời câu hỏi cộng đồng để hỗ trợ bệnh nhân và tăng độ tin cậy hồ sơ bác sĩ.
@@ -60,7 +60,7 @@ export default function DoctorQaInboxPage() {
             className={`rounded-xl px-4 py-2 text-sm font-semibold border transition-all ${
               status === key
                 ? 'border-[#0D9E75] bg-[#0D9E75] text-white shadow-sm shadow-[#0D9E75]/20'
-                : 'border-[#E8EDF2] bg-white text-slate-600 hover:bg-[#E8F8F2] hover:border-[#0D9E75]/30 hover:text-[#0D9E75]'
+                : 'border-border bg-card text-foreground hover:bg-[#E8F8F2] dark:hover:bg-[#0D9E75]/10 hover:border-[#0D9E75]/30 hover:text-[#0D9E75]'
             }`}
           >
             {label}
@@ -70,19 +70,19 @@ export default function DoctorQaInboxPage() {
 
       {/* ── Content ── */}
       {isLoading ? (
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-10 text-center">
+        <div className="rounded-2xl border border-border bg-card p-10 text-center">
           <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-[3px] border-solid border-[#0D9E75] border-r-transparent" />
           <p className="text-sm text-slate-400">Đang tải câu hỏi…</p>
         </div>
       ) : rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-[#E8EDF2] bg-white p-12 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center">
           <MessageCircleQuestion size={40} className="mx-auto mb-3 text-[#0D9E75]/30" />
           <p className="text-sm font-medium text-slate-400">Không có câu hỏi phù hợp bộ lọc hiện tại.</p>
         </div>
       ) : (
         <div className="space-y-4">
           {rows.map((q) => (
-            <article key={q.id} className="rounded-2xl border border-[#E8EDF2] bg-white p-6 shadow-sm hover:shadow-md hover:border-[#0D9E75]/20 transition-all">
+            <article key={q.id} className="rounded-2xl border border-border bg-card p-6 shadow-sm hover:shadow-md hover:border-[#0D9E75]/20 transition-all">
               {/* Meta */}
               <div className="mb-3 flex items-center gap-2 flex-wrap">
                 {q.status === 'answered' ? (
@@ -100,8 +100,8 @@ export default function DoctorQaInboxPage() {
               </div>
 
               {/* Question */}
-              <h3 className="text-base font-extrabold text-[#1a3353] mb-2">{q.title}</h3>
-              <p className="whitespace-pre-wrap text-sm text-slate-600 leading-relaxed">{q.content}</p>
+              <h3 className="text-base font-extrabold text-foreground mb-2">{q.title}</h3>
+              <p className="whitespace-pre-wrap text-sm text-muted-foreground leading-relaxed">{q.content}</p>
 
               {/* Answer section */}
               {q.answerContent ? (
@@ -110,13 +110,13 @@ export default function DoctorQaInboxPage() {
                   <p className="text-sm text-[#065F46] leading-relaxed">{q.answerContent}</p>
                 </div>
               ) : (
-                <div className="mt-4 rounded-xl border border-[#E8EDF2] bg-[#F7FAFB] p-4">
+                <div className="mt-4 rounded-xl border border-border bg-muted/50 p-4">
                   <textarea
                     rows={4}
                     placeholder="Nhập nội dung tư vấn cho bệnh nhân..."
                     value={draftAnswerById[q.id] ?? ''}
                     onChange={(e) => setDraftAnswerById((s) => ({ ...s, [q.id]: e.target.value }))}
-                    className="w-full rounded-xl border border-[#E8EDF2] bg-white px-4 py-3 text-sm text-slate-700 outline-none transition-all placeholder:text-slate-400 focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15 resize-none"
+                    className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15 resize-none"
                   />
                   <div className="mt-3 flex justify-end">
                     <button

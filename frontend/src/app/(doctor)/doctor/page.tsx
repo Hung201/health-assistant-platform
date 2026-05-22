@@ -39,8 +39,8 @@ function StatCard({
         <Icon size={20} style={{ color: accent }} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-        <p className="mt-0.5 text-[22px] font-bold text-[#1a3353] leading-tight">{value}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-0.5 text-[22px] font-bold text-foreground leading-tight">{value}</p>
         {sub && (
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
             {trend === 'up' && <TrendingUp size={10} className="text-emerald-500" />}
@@ -200,11 +200,11 @@ export default function DoctorDashboardPage() {
       </div>
 
       {/* ── Revenue Trend Chart ── */}
-      <div className="rounded-2xl border border-[#E8EDF2] bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <div className="flex items-center justify-between gap-2 mb-4">
           <div>
-            <h3 className="text-base font-bold text-[#1a3353]">Xu hướng doanh thu</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Doanh thu và lịch đã thanh toán theo ngày</p>
+            <h3 className="text-base font-bold text-foreground">Xu hướng doanh thu</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Doanh thu và lịch đã thanh toán theo ngày</p>
           </div>
         </div>
         <div className="h-64">
@@ -228,8 +228,8 @@ export default function DoctorDashboardPage() {
 
       {/* ── Method Charts ── */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-5 shadow-sm">
-          <h3 className="text-base font-bold text-[#1a3353] mb-4">Thanh toán theo phương thức</h3>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="text-base font-bold text-foreground mb-4">Thanh toán theo phương thức</h3>
           <div className="h-56">
             {methodData.length === 0 ? (
               <div className="flex h-full items-center justify-center">
@@ -253,8 +253,8 @@ export default function DoctorDashboardPage() {
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-[#E8EDF2] bg-white p-5 shadow-sm">
-          <h3 className="text-base font-bold text-[#1a3353] mb-4">Số lịch theo phương thức</h3>
+        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+          <h3 className="text-base font-bold text-foreground mb-4">Số lịch theo phương thức</h3>
           <div className="h-56">
             {methodData.length === 0 ? (
               <div className="flex h-full items-center justify-center">
@@ -277,7 +277,7 @@ export default function DoctorDashboardPage() {
 
       {/* ── Quick access shortcuts ── */}
       <div>
-        <h3 className="text-base font-bold text-[#1a3353] mb-3">Truy cập nhanh</h3>
+        <h3 className="text-base font-bold text-foreground mb-3">Truy cập nhanh</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {SHORTCUTS.map((c) => {
             const Icon = c.Icon;
@@ -289,8 +289,8 @@ export default function DoctorDashboardPage() {
                 >
                   <Icon size={20} style={{ color: c.color }} />
                 </div>
-                <p className="font-bold text-[#1a3353]">{c.title}</p>
-                <p className="mt-1 text-sm text-slate-400">{c.desc}</p>
+                <p className="font-bold text-foreground">{c.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{c.desc}</p>
                 <div
                   className="mt-3 flex items-center gap-1 text-xs font-semibold transition-colors"
                   style={{ color: c.color }}

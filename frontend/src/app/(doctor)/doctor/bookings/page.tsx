@@ -196,7 +196,7 @@ export default function DoctorBookingsPage() {
     <div className="space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1a3353]">Lịch hẹn</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Lịch hẹn</h1>
           <p className="text-sm text-slate-500">Danh sách lịch hẹn bệnh nhân đã đặt.</p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-600">Tổng: {stats.total}</span>
@@ -230,7 +230,7 @@ export default function DoctorBookingsPage() {
               search
             </span>
             <input
-              className="w-full rounded-xl border border-[#E8EDF2] bg-white py-2 pl-10 pr-10 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+              className="w-full rounded-xl border border-border bg-card py-2 pl-10 pr-10 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
               placeholder="Tìm theo mã / chuyên khoa / BN…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -248,7 +248,7 @@ export default function DoctorBookingsPage() {
           </div>
 
           <select
-            className="w-full rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
             value={status}
             onChange={(e) => setStatus(e.target.value as typeof status)}
           >
@@ -260,7 +260,7 @@ export default function DoctorBookingsPage() {
             <option value="completed">Đã hoàn thành</option>
           </select>
           <select
-            className="w-full rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value as PaymentFilterValue)}
           >
@@ -280,8 +280,8 @@ export default function DoctorBookingsPage() {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-[#E8EDF2] bg-white shadow-sm">
-        <div className="grid grid-cols-12 border-b border-[#E8EDF2] bg-[#F7FAFB] px-5 py-3 text-xs font-bold uppercase tracking-wide text-slate-400">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+        <div className="grid grid-cols-12 border-b border-border bg-muted/50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
           <div className="col-span-3">Mã</div>
           <div className="col-span-3">Chuyên khoa</div>
           <div className="col-span-3">Thời gian</div>
@@ -292,16 +292,16 @@ export default function DoctorBookingsPage() {
         {isLoading ? (
           <div className="p-5 text-sm text-muted-foreground">Đang tải…</div>
         ) : filtered.length > 0 ? (
-          <div className="divide-y divide-[#E8EDF2]">
+          <div className="divide-y divide-border">
             {filtered.map((b) => (
               <button
-                className="grid w-full grid-cols-12 gap-2 px-5 py-4 text-left text-sm transition-colors hover:bg-[#F7FAFB] group"
+                className="grid w-full grid-cols-12 gap-2 px-5 py-4 text-left text-sm transition-colors hover:bg-muted group"
                 key={b.id}
                 type="button"
                 onClick={() => setSelectedId(b.id)}
               >
                 <div className="col-span-3">
-                  <p className="font-bold text-[#1a3353] group-hover:text-[#0D9E75] transition-colors">{b.bookingCode}</p>
+                  <p className="font-bold text-foreground group-hover:text-[#0D9E75] transition-colors">{b.bookingCode}</p>
                   {(() => {
                     const p = patientDisplay(b);
                     return (
@@ -356,11 +356,11 @@ export default function DoctorBookingsPage() {
                 aria-label="Đóng"
                 onClick={() => setSelectedId(null)}
               />
-              <div className="absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#E8EDF2] bg-white p-6 shadow-2xl">
+              <div className="absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Chi tiết lịch hẹn</p>
-                <h3 className="mt-1 text-lg font-extrabold text-[#1a3353]">{selected.bookingCode}</h3>
+                <h3 className="mt-1 text-lg font-extrabold text-foreground">{selected.bookingCode}</h3>
               </div>
               <button
                 className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -372,7 +372,7 @@ export default function DoctorBookingsPage() {
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-[#E8EDF2] bg-[#F7FAFB] p-4 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/50 p-4 sm:grid-cols-2">
               <div>
                 <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bệnh nhân</div>
                 {(() => {
@@ -445,7 +445,7 @@ export default function DoctorBookingsPage() {
                   Lý do từ chối (tuỳ chọn)
                 </label>
                 <textarea
-                  className="w-full rounded-xl border border-[#E8EDF2] bg-white px-3 py-2 text-sm outline-none transition-all placeholder:text-slate-400 focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
                   rows={2}
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
@@ -456,7 +456,7 @@ export default function DoctorBookingsPage() {
 
             <div className="mt-5 flex flex-col-reverse flex-wrap gap-2 sm:flex-row sm:justify-end">
               <button
-                className="inline-flex items-center justify-center rounded-xl border border-[#E8EDF2] bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-[#F7FAFB] transition-colors"
+                className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
                 type="button"
                 onClick={() => {
                   setRejectReason('');
