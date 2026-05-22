@@ -71,10 +71,10 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
 
   const renderSidebar = () => (
     <div
-      className="doctor-sidebar flex h-full w-[260px] flex-col border-r border-[#E8EDF2] shadow-sm"
+      className="doctor-sidebar flex h-full w-[260px] flex-col border-r border-border shadow-sm"
     >
       {/* Logo */}
-      <div className="flex h-[72px] shrink-0 items-center gap-[10px] px-5 border-b border-[#E8EDF2]">
+      <div className="flex h-[72px] shrink-0 items-center gap-[10px] px-5 border-b border-border">
         <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
           <span className="material-symbols-outlined text-[20px]">clinical_notes</span>
         </div>
@@ -82,7 +82,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
           <Link
             href="/"
             onClick={closeMobile}
-            className="block text-[16px] font-bold leading-tight text-[#1a3353] truncate"
+            className="block text-[16px] font-bold leading-tight text-foreground truncate"
           >
             Clinical Precision
           </Link>
@@ -92,7 +92,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
         </div>
         <button
           type="button"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 lg:hidden"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden"
           onClick={closeMobile}
           aria-label="Đóng menu"
         >
@@ -102,7 +102,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 hide-scrollbar">
-        <p className="px-5 pt-4 pb-1.5 text-[10px] font-semibold tracking-[.08em] uppercase text-[#94A3B8]">
+        <p className="px-5 pt-4 pb-1.5 text-[10px] font-semibold tracking-[.08em] uppercase text-muted-foreground">
           MENU CHÍNH
         </p>
         {NAV.map((item) => {
@@ -117,12 +117,12 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
                 'mx-2 my-0.5 flex h-11 items-center gap-[10px] rounded-[10px] px-3 text-[14px] font-medium transition-all duration-150',
                 active
                   ? 'doctor-nav-active text-white'
-                  : 'text-[#475569] hover:bg-[#E8F8F2]/60 hover:text-[#0D9E75]',
+                  : 'text-foreground/70 hover:bg-[#E8F8F2]/60 dark:hover:bg-[#0D9E75]/10 hover:text-[#0D9E75]',
               ].join(' ')}
             >
               <Icon
                 size={18}
-                className={active ? 'text-white' : 'text-[#94A3B8]'}
+                className={active ? 'text-white' : 'text-muted-foreground'}
               />
               <span className="flex-1">{item.label}</span>
               {active && <span className="h-1.5 w-1.5 rounded-full bg-white/60" />}
@@ -132,7 +132,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Bottom user card */}
-      <div className="shrink-0 border-t border-[#E8EDF2] p-4 bg-white/60">
+      <div className="shrink-0 border-t border-border p-4 bg-card/60">
         <div className="mb-3 h-[2px] w-8 rounded-full bg-gradient-to-r from-[#0D9E75] to-[#1BAF7C]" />
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-[#0D9E75]/10 flex items-center justify-center text-[#0D9E75] text-sm font-bold">
@@ -141,19 +141,20 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
               : userInitials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold text-[#1a3353] truncate">
+            <p className="text-[13px] font-semibold text-foreground truncate">
               {user?.fullName ? `BS ${user.fullName}` : 'Bác sĩ'}
             </p>
-            <p className="text-[11px] text-slate-400 truncate">{user?.email ?? ''}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user?.email ?? ''}</p>
           </div>
           <button
             type="button"
-            aria-label="Đăng xuất"
+            aria-label="Rời đi"
             onClick={() => { logout(); router.replace('/login'); }}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-            title="Đăng xuất"
+            className="flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[12px] font-semibold text-muted-foreground hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
+            title="Rời đi"
           >
-            <LogOut size={16} />
+            <LogOut size={14} />
+            <span>Rời đi</span>
           </button>
         </div>
       </div>
@@ -161,7 +162,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#F7FAFB] text-slate-900 font-sans">
+    <div className="flex min-h-screen bg-background text-foreground font-sans">
       {/* Mobile overlay */}
       {mobileOpen && (
         <button
@@ -186,11 +187,11 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div className="ml-0 flex min-h-screen flex-1 flex-col lg:ml-[260px]">
         {/* Sticky header */}
-        <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8EDF2]/80 bg-white/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all lg:hidden"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-foreground ring-1 ring-border hover:bg-[#E8F8F2] dark:hover:bg-[#0D9E75]/10 hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all lg:hidden"
               onClick={() => setMobileOpen(true)}
               aria-label="Mở menu"
             >
@@ -198,7 +199,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
             </button>
             <div className="flex min-w-0 items-center gap-0">
               <span className="doctor-breadcrumb-accent hidden sm:inline-block" aria-hidden />
-              <h1 className="text-[18px] sm:text-[20px] font-bold text-[#1a3353] truncate">{pageTitle}</h1>
+              <h1 className="text-[18px] sm:text-[20px] font-bold text-foreground truncate">{pageTitle}</h1>
             </div>
           </div>
 
@@ -206,7 +207,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
           <div className="flex shrink-0 items-center gap-3">
             {/* Specialty badge */}
             {user?.doctorSpecialty && (
-              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#0D9E75]/20 bg-[#E8F8F2] px-3 py-1 text-xs font-semibold text-[#0D9E75]">
+              <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#0D9E75]/20 bg-[#E8F8F2] dark:bg-[#0D9E75]/10 px-3 py-1 text-xs font-semibold text-[#0D9E75]">
                 <Stethoscope size={12} />
                 {user.doctorSpecialty.name}
               </span>

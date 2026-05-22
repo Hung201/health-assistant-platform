@@ -370,7 +370,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
                       onClick={() => { logout(); router.replace('/login'); }}
                     >
                       <LogOut size={16} />
-                      Đăng xuất
+                      Rời đi
                     </Menu.Item>
                   </Menu.Popup>
                 </Menu.Positioner>

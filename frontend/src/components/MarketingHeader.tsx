@@ -62,7 +62,7 @@ export function MarketingHeader() {
                 onClick={() => logoutMutation.mutate()}
                 type="button"
               >
-                {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
+                {logoutMutation.isPending ? 'Đang rời đi…' : 'Rời đi'}
               </button>
             </>
           ) : (

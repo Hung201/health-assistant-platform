@@ -179,10 +179,6 @@ export default function Home() {
     queryFn: () => publicPostsApi.list(1, 3),
   });
 
-  const { data: qaData } = useQuery({
-    queryKey: ['public-qa-home'],
-    queryFn: () => qaApi.listPublic(1, 4),
-  });
 
   const { data: liveStreams } = useQuery({
     queryKey: ['public-livestreams-home'],
@@ -372,9 +368,9 @@ export default function Home() {
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="mb-8" data-reveal>
               <h3 className="text-sm font-bold uppercase tracking-widest text-teal-600">Bác sĩ hỏi đáp</h3>
-              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">Hỏi bác sĩ miễn phí &amp; Cẩm nang hỏi đáp</h2>
+              <h2 className="mt-2 text-3xl font-extrabold text-slate-900">Bác sĩ hỏi đáp</h2>
               <p className="mt-3 max-w-3xl text-slate-600">
-                Đặt câu hỏi trực tuyến để bác sĩ giải đáp, đồng thời tra cứu kho bài viết chăm sóc sức khỏe phù hợp từng vấn đề.
+                Đặt câu hỏi trực tuyến để bác sĩ giải đáp và tra cứu cẩm nang sức khỏe từ đội ngũ chuyên gia.
               </p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
@@ -402,22 +398,7 @@ export default function Home() {
               </Link>
             </div>
 
-            {qaData?.items?.length ? (
-              <div data-reveal className="mt-8 rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <h4 className="text-lg font-extrabold text-slate-900">Câu hỏi mới trong cộng đồng</h4>
-                  <Link href="/hoi-bac-si-mien-phi" className="text-sm font-bold text-teal-600 hover:text-teal-700">Xem tất cả →</Link>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {qaData.items.slice(0, 4).map((q) => (
-                    <Link key={q.id} href={`/hoi-bac-si-mien-phi/${q.id}`} className="rounded-xl border border-slate-200 bg-[#fafafb] p-4 hover:border-teal-300">
-                      <p className="line-clamp-2 text-sm font-bold text-slate-900">{q.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{q.status === 'answered' ? 'Đã có bác sĩ trả lời' : 'Đã duyệt, đang chờ bác sĩ phản hồi'}</p>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
+
           </div>
         </section>
 

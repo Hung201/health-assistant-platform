@@ -115,7 +115,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           type="button"
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
-          {logoutMutation.isPending ? 'Đang đăng xuất…' : 'Đăng xuất'}
+          {logoutMutation.isPending ? 'Đang rời đi…' : 'Rời đi'}
         </button>
       </div>
     </div>
