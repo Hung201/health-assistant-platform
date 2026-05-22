@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { LiveKitRoom } from '@livekit/components-react';
 import '@livekit/components-styles';
 
+import { LiveCommentPanel } from '@/components/live/live-comment-panel';
 import { LiveViewerStage } from '@/components/live/live-viewer-stage';
 import { livestreamsApi } from '@/lib/api';
 
@@ -22,7 +23,7 @@ export default function PublicLiveViewerPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafb] px-4 py-8 text-slate-900">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between gap-4">
           <Link href="/" className="text-sm font-semibold text-teal-700 hover:underline">
             ← Về trang chủ
@@ -41,25 +42,35 @@ export default function PublicLiveViewerPage() {
         {data ? (
           <>
             <div className="mb-4">
+              <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-0.5 text-xs font-bold text-red-600">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+                LIVE
+              </span>
               <h1 className="text-xl font-bold text-slate-900">{data.title}</h1>
               <p className="text-sm text-slate-600">Bác sĩ: {data.doctorName}</p>
             </div>
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-lg">
-              <LiveKitRoom
-                key={data.token}
-                serverUrl={data.serverUrl}
-                token={data.token}
-                connect
-                audio={false}
-                video={false}
-                className="flex h-[min(78vh,680px)] min-h-[440px] w-full flex-col bg-black"
-                onError={(e) => {
-                  console.error('[live viewer]', e);
-                }}
-              >
-                <LiveViewerStage />
-              </LiveKitRoom>
+
+            <div className="grid gap-4 lg:grid-cols-[1fr_340px] lg:items-stretch">
+              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 shadow-lg">
+                <LiveKitRoom
+                  key={data.token}
+                  serverUrl={data.serverUrl}
+                  token={data.token}
+                  connect
+                  audio={false}
+                  video={false}
+                  className="flex h-[min(78vh,680px)] min-h-[440px] w-full flex-col bg-black"
+                  onError={(e) => {
+                    console.error('[live viewer]', e);
+                  }}
+                >
+                  <LiveViewerStage />
+                </LiveKitRoom>
+              </div>
+
+              <LiveCommentPanel streamId={streamId} />
             </div>
+
             <p className="mt-4 text-center text-xs text-slate-500">
               Nếu vẫn đen: thử tải lại trang, đợi bác sĩ đã bật camera, hoặc bấm «Bật âm thanh». Nội dung mang tính thông tin,
               không thay thế khám trực tiếp tại cơ sở y tế.

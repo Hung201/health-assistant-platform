@@ -68,5 +68,10 @@ export class DoctorPortalController {
   ) {
     return this.bookingsService.rejectBookingByDoctor(user, bookingId, dto.reason);
   }
+
+  @Patch('bookings/:bookingId/complete')
+  completeBooking(@CurrentUser() user: User, @Param('bookingId', new ParseUUIDPipe()) bookingId: string) {
+    return this.bookingsService.completeBookingByDoctor(user, bookingId);
+  }
 }
 

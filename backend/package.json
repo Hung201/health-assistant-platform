@@ -9,6 +9,8 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "seed": "ts-node src/seed.ts",
+    "seed:crawl-doctors": "ts-node src/seed-crawl-doctors.ts",
+    "cleanup:doctors-no-avatar": "ts-node src/cleanup-doctors-no-avatar.ts",
     "start": "nest start",
     "dev": "nest start --watch",
     "start:dev": "nest start --watch",

@@ -13,4 +13,7 @@ export const getDatabaseConfig = (): TypeOrmModuleOptions => ({
   logging: process.env.DB_LOGGING === 'true',
   retryAttempts: 2,
   retryDelay: 2000,
+  extra: {
+    options: '-c timezone=Asia/Ho_Chi_Minh',
+  },
 });

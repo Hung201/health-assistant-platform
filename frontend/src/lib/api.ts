@@ -242,6 +242,7 @@ export const doctorsApi = {
     specialtyId?: number;
     provinceCode?: string;
     districtCode?: string;
+    search?: string;
     workplaceQuery?: string;
     nameQuery?: string;
     page?: number;
@@ -251,6 +252,7 @@ export const doctorsApi = {
     if (params?.specialtyId != null) q.set('specialtyId', String(params.specialtyId));
     if (params?.provinceCode) q.set('provinceCode', params.provinceCode);
     if (params?.districtCode) q.set('districtCode', params.districtCode);
+    if (params?.search) q.set('search', params.search);
     if (params?.workplaceQuery) q.set('workplaceQuery', params.workplaceQuery);
     if (params?.nameQuery) q.set('nameQuery', params.nameQuery);
     if (params?.page != null) q.set('page', String(params.page));
@@ -477,6 +479,11 @@ export const doctorApi = {
       `/doctor/bookings/${encodeURIComponent(bookingId)}/reject`,
       { method: 'PATCH', body: JSON.stringify({ reason: reason?.trim() || undefined }) },
     ),
+  completeBooking: (bookingId: string) =>
+    api<{ ok: boolean; id: string; status: string }>(
+      `/doctor/bookings/${encodeURIComponent(bookingId)}/complete`,
+      { method: 'PATCH', body: '{}' },
+    ),
 };
 
 export type DoctorPostRow = {
@@ -530,6 +537,20 @@ export type PublicLiveStream = {
   title: string;
   doctorName: string;
   startedAt: string | null;
+  commentCount?: number;
+};
+
+export type LiveStreamCommentRow = {
+  id: string;
+  content: string;
+  createdAt: string;
+  displayTime: string;
+  displayDate: string | null;
+  user: {
+    id: string;
+    fullName: string;
+    avatarUrl: string | null;
+  };
 };
 
 export type PublicLiveJoin = PublicLiveStream & {
@@ -540,6 +561,13 @@ export type PublicLiveJoin = PublicLiveStream & {
 export const livestreamsApi = {
   listLive: () => apiPublic<PublicLiveStream[]>('/livestreams'),
   join: (id: string) => apiPublic<PublicLiveJoin>(`/livestreams/${id}`),
+  listComments: (streamId: string, limit = 80) =>
+    apiPublic<LiveStreamCommentRow[]>(`/livestreams/${encodeURIComponent(streamId)}/comments?limit=${limit}`),
+  addComment: (streamId: string, content: string) =>
+    api<LiveStreamCommentRow>(`/livestreams/${encodeURIComponent(streamId)}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
 };
 
 export const doctorLivestreamsApi = {
