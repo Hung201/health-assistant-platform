@@ -11,6 +11,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Request, Depends
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,6 +37,12 @@ QUY TRÌNH HỘI THOẠI:
 3. Sau khi đưa ra chẩn đoán, nếu bạn CHƯA BIẾT địa điểm của người dùng, hãy hỏi: "Bạn có muốn tôi gợi ý các phòng khám chuyên khoa gần bạn không? Nếu có, hãy cho tôi biết khu vực/địa chỉ của bạn nhé."
 4. Nếu bạn ĐÃ BIẾT địa điểm (thông qua tin nhắn hệ thống LƯU Ý), hãy chủ động thông báo bạn sẽ tìm kiếm quanh khu vực đó.
 
+QUAN TRỌNG - VỀ GỢI Ý BÁC SĨ:
+- TUYỆT ĐỐI KHÔNG tự liệt kê hoặc bịa ra tên bác sĩ, địa chỉ phòng khám, số điện thoại cụ thể.
+- Khi người dùng yêu cầu gợi ý bác sĩ, hãy trả lời ngắn gọn kiểu: "Tôi đã tìm thấy một số bác sĩ chuyên khoa phù hợp với tình trạng của bạn. Bạn có thể xem thông tin chi tiết và đặt lịch ở thanh bên phải nhé!"
+- Hệ thống sẽ TỰ ĐỘNG tra cứu bác sĩ từ cơ sở dữ liệu và hiển thị ở sidebar cho người dùng.
+- Bạn chỉ cần xác nhận chuyên khoa phù hợp, KHÔNG cần cung cấp danh sách bác sĩ.
+
 PHONG CÁCH:
 - Ngắn gọn, thân thiện, đồng cảm.
 - Sử dụng Tiếng Việt tự nhiên.
@@ -55,11 +62,18 @@ async def _extract_location_from_text(text: str) -> Optional[str]:
         return None
 
     try:
-        llm = ChatGoogleGenerativeAI(
-            model=settings.LLM_MODEL,
-            google_api_key=settings.GEMINI_API_KEY,
-            temperature=0,
-        )
+        if settings.LLM_PROVIDER == "openai":
+            llm = ChatOpenAI(
+                model=settings.LLM_MODEL,
+                api_key=settings.OPENAI_API_KEY,
+                temperature=0,
+            )
+        else:
+            llm = ChatGoogleGenerativeAI(
+                model=settings.LLM_MODEL,
+                google_api_key=settings.GEMINI_API_KEY,
+                temperature=0,
+            )
         prompt = (
             f"Hãy trích xuất tên địa danh (Quận, Thành phố, hoặc địa chỉ cụ thể) từ câu sau: '{text}'. "
             "Nếu không có địa danh nào, trả về 'None'. Nếu có, hãy trả về CHỈ tên địa danh đó, không thêm giải thích."
@@ -189,11 +203,18 @@ async def chat(
 
     try:
         # 4. Gọi LLM
-        chat_llm = ChatGoogleGenerativeAI(
-            model=settings.LLM_MODEL,
-            google_api_key=settings.GEMINI_API_KEY,
-            temperature=0.3,
-        )
+        if settings.LLM_PROVIDER == "openai":
+            chat_llm = ChatOpenAI(
+                model=settings.LLM_MODEL,
+                api_key=settings.OPENAI_API_KEY,
+                temperature=0.3,
+            )
+        else:
+            chat_llm = ChatGoogleGenerativeAI(
+                model=settings.LLM_MODEL,
+                google_api_key=settings.GEMINI_API_KEY,
+                temperature=0.3,
+            )
         
         response = chat_llm.invoke(messages)
         reply_text: str = response.content
@@ -242,7 +263,8 @@ async def chat(
         intent_keywords = ["bệnh viện", "phòng khám", "ở đâu", "gợi ý", "địa chỉ", "khám tại", "cơ sở y tế"]
         has_location_intent = any(k in body.message.lower() for k in intent_keywords)
 
-        if is_ready or has_location_intent or extracted_loc:
+        # ── Phase A: Chẩn đoán — chỉ chạy khi AI đã thu thập đủ triệu chứng ──
+        if is_ready:
             # Ghép toàn bộ tin nhắn user trong session này để phân tích
             combined_symptoms = " ".join([m.content for m in history_msgs if m.role == "user"])
             if body.message not in combined_symptoms:
@@ -255,17 +277,30 @@ async def chat(
             logger.info(f"[Chat] Ready to diagnose. Session: {session.id}")
             final_result = diagnostic_agent.analyze(combined_symptoms)
 
-            # Adaptive Hospital Suggestion
-            threshold = settings.HOSPITAL_SUGGESTION_CONFIDENCE_THRESHOLD
-            top_score = max((d.match_score for d in final_result.top_diseases), default=0.0)
-            top_specialty = final_result.top_diseases[0].suggested_specialty if final_result.top_diseases else None
+        # ── Phase B: Hospital Search — chạy độc lập khi có location intent ──
+        # Dùng kết quả chẩn đoán mới (nếu có) hoặc chẩn đoán trước đó từ session metadata
+        effective_result = final_result
+        if not effective_result and (has_location_intent or extracted_loc):
+            # Lấy kết quả chẩn đoán gần nhất từ session metadata (do NestJS lưu)
+            last_result_meta = (session.metadata_json or {}).get("last_final_result")
+            if last_result_meta:
+                from src.schemas.diagnostic_schema import DiagnosticResult
+                try:
+                    effective_result = DiagnosticResult(**last_result_meta)
+                except Exception:
+                    effective_result = None
 
-            if top_score >= threshold and final_location:
+        if effective_result:
+            threshold = settings.HOSPITAL_SUGGESTION_CONFIDENCE_THRESHOLD
+            top_score = max((d.match_score for d in effective_result.top_diseases), default=0.0)
+            top_specialty = effective_result.top_diseases[0].suggested_specialty if effective_result.top_diseases else None
+
+            if (has_location_intent or extracted_loc) and top_score >= threshold and final_location:
                 hospital_tool = HospitalSearchTool()
                 summary = hospital_tool.search(location=final_location, specialty_hint=top_specialty)
                 if summary.found:
                     hospital_suggestion = _build_hospital_suggestion(summary, top_specialty or "")
-            elif top_score >= threshold and not final_location:
+            elif top_score >= threshold and not final_location and is_ready:
                 asked_once = bool((session.metadata_json or {}).get("location_prompted_once"))
                 if not asked_once:
                     clean_reply += "\n\n💡 *Bạn có thể cho tôi biết khu vực của bạn để tôi gợi ý các phòng khám gần đó nhé!*"

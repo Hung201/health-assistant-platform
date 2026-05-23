@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ChatMessage, RecommendationOption, useChatStore } from '@/stores/chat.store';
-import { Paperclip, Send, AlertTriangle, History, FileText, ChevronRight, Bot, User as UserIcon, PlusCircle } from 'lucide-react';
+import { Paperclip, Send, AlertTriangle, History, FileText, ChevronRight, Bot, User as UserIcon, PlusCircle, MapPin, Phone, Building2, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
 
 const FALLBACK_RECOMMENDATION_OPTIONS: RecommendationOption[] = [
   {
@@ -64,24 +65,9 @@ export default function AIAssistantPage() {
       timestamp: new Date().toISOString(),
     },
   ];
-
-  const hasRecommendationOptionsInMessages = displayMessages.some(
-    (msg) => msg.role === 'assistant' && Boolean(msg.recommendationOptions?.length),
-  );
-  const hasSelectedRecommendationIntent = displayMessages.some((msg) => {
-    if (msg.role !== 'user') return false;
-    const lower = msg.content.toLowerCase();
-    return (
-      lower.includes('bác sĩ uy tín') ||
-      lower.includes('goi y bac si') ||
-      lower.includes('bệnh viện') ||
-      lower.includes('benh vien') ||
-      lower.includes('phòng khám') ||
-      lower.includes('phong kham')
-    );
-  });
-  const shouldShowFallbackRecommendationPrompt =
-    Boolean(finalResult) && !isLoading && !hasRecommendationOptionsInMessages && !hasSelectedRecommendationIntent;
+  // Fallback buttons đã được backend quản lý thời điểm hiện (chỉ sau khi có location)
+  // Frontend chỉ hiện khi backend gửi recommendation_options trong message
+  const shouldShowFallbackRecommendationPrompt = false;
 
   const formatRating = (value?: number) => {
     const rating = Number(value ?? 0);
@@ -172,6 +158,53 @@ export default function AIAssistantPage() {
             </div>
           )}
 
+          {/* ── Hospital Suggestion Inline trong Chat ── */}
+          {hospitalSuggestion && hospitalSuggestion.hospitals?.length > 0 && !isLoading && (
+            <div className="flex gap-4">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#0D9E75] text-white">
+                <Building2 size={16} />
+              </div>
+              <div className="rounded-2xl px-5 py-4 text-sm max-w-[85%] shadow-sm bg-gradient-to-br from-[#E8F8F2] to-white border border-[#0D9E75]/20 rounded-tl-none">
+                <div className="flex items-center gap-2 mb-3">
+                  <MapPin size={14} className="text-[#0D9E75]" />
+                  <p className="font-bold text-[#1a3353] text-sm">Cơ sở y tế gần {hospitalSuggestion.location_used}</p>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">Bán kính tìm kiếm: {hospitalSuggestion.search_radius_km}km • {hospitalSuggestion.hospitals.length} kết quả</p>
+                <div className="space-y-2.5">
+                  {hospitalSuggestion.hospitals.slice(0, 5).map((hospital, idx) => (
+                    <div key={idx} className="rounded-xl border border-[#E8EDF2] bg-white p-3 transition-all hover:shadow-md hover:border-[#0D9E75]/30">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-[#1a3353] leading-tight">{hospital.name}</p>
+                          {hospital.address && (
+                            <p className="text-xs text-slate-500 mt-1 flex items-start gap-1">
+                              <MapPin size={11} className="shrink-0 mt-0.5 text-slate-400" />
+                              {hospital.address}
+                            </p>
+                          )}
+                          {hospital.phone && (
+                            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                              <Phone size={11} className="shrink-0 text-slate-400" />
+                              {hospital.phone}
+                            </p>
+                          )}
+                        </div>
+                        {hospital.amenity_type && (
+                          <span className="shrink-0 rounded-full bg-[#0D9E75]/10 px-2 py-0.5 text-[10px] font-semibold text-[#0D9E75] uppercase">
+                            {hospital.amenity_type === 'hospital' ? 'Bệnh viện' : hospital.amenity_type === 'clinic' ? 'Phòng khám' : hospital.amenity_type === 'dentist' ? 'Nha khoa' : hospital.amenity_type}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {hospitalSuggestion.hospitals.length > 5 && (
+                  <p className="text-xs text-slate-400 mt-3 text-center italic">... và {hospitalSuggestion.hospitals.length - 5} cơ sở khác</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {isLoading && (
             <div className="flex gap-4">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#0D9E75] text-white">
@@ -248,34 +281,24 @@ export default function AIAssistantPage() {
                 <h4 className="text-sm font-bold text-[#1a3353] mb-3">Bác sĩ chuyên khoa gợi ý:</h4>
                 <div className="space-y-3">
                   {doctorRecommendations.map((doc: any, idx: number) => (
-                    <div key={idx} className="flex items-center justify-between rounded-xl border border-[#E8EDF2] p-3 bg-[#F7FAFB] hover:border-[#0D9E75]/20 transition-colors">
-                      <div>
-                        <p className="text-sm font-bold text-[#1a3353]">{doc.fullName}</p>
+                    <Link
+                      key={idx}
+                      href={`/patient/doctors/${doc.userId}`}
+                      className="group flex items-center justify-between rounded-xl border border-[#E8EDF2] p-3 bg-[#F7FAFB] hover:border-[#0D9E75]/30 hover:bg-[#E8F8F2]/50 hover:shadow-md transition-all cursor-pointer"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-[#1a3353] group-hover:text-[#0D9E75] transition-colors">{doc.fullName}</p>
                         <p className="text-xs text-slate-600 mt-0.5">{doc.professionalTitle || doc.specialties?.[0]?.name || 'Bác sĩ'}</p>
-                        {doc.workplaceName && <p className="text-xs text-slate-500 mt-1">{doc.workplaceName}</p>}
+                        {doc.workplaceName && <p className="text-xs text-slate-500 mt-1 truncate">{doc.workplaceName}</p>}
                         <p className="text-xs text-amber-600 mt-1">★ {formatRating(doc.ratingAverage)} ({doc.ratingCount ?? 0} đánh giá)</p>
                       </div>
-                      <a
-                        href={`/patient/doctors/${doc.userId}`}
-                        className="rounded-lg bg-[#0D9E75] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0B8A65] transition-colors"
-                      >
-                        Đặt lịch
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {hospitalSuggestion && hospitalSuggestion.hospitals?.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-bold text-[#1a3353] mb-3">Cơ sở y tế gần bạn:</h4>
-                <div className="space-y-3">
-                  {hospitalSuggestion.hospitals.slice(0, 5).map((hospital, idx: number) => (
-                    <div key={idx} className="rounded-xl border border-[#E8EDF2] p-3 bg-[#F7FAFB]">
-                      <p className="text-sm font-bold text-[#1a3353]">{hospital.name}</p>
-                      <p className="text-xs text-slate-600 mt-1">{hospital.address}</p>
-                      {hospital.phone && <p className="text-xs text-slate-500 mt-1">SDT: {hospital.phone}</p>}
-                    </div>
+                      <div className="shrink-0 flex items-center gap-1.5 ml-2">
+                        <span className="rounded-lg bg-[#0D9E75] px-3 py-1.5 text-xs font-bold text-white group-hover:bg-[#0B8A65] transition-colors">
+                          Đặt lịch
+                        </span>
+                        <ArrowRight size={14} className="text-slate-400 group-hover:text-[#0D9E75] group-hover:translate-x-0.5 transition-all" />
+                      </div>
+                    </Link>
                   ))}
                 </div>
               </div>

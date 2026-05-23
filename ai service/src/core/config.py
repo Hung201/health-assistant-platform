@@ -1,4 +1,5 @@
 import os
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -12,9 +13,11 @@ class Settings(BaseSettings):
     # Path to processed Data
     PROCESSED_DATA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "processed")
 
-    # LLM Config (Google Gemini)
+    # LLM Config
+    LLM_PROVIDER: str = "gemini"            # "gemini" hoặc "openai"
     GEMINI_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-2.0-flash"
+    OPENAI_API_KEY: str = ""
+    LLM_MODEL: str = ""                     # Tự động gán nếu để trống dựa vào LLM_PROVIDER
     
     # Database Config
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/health_assistant"
@@ -35,4 +38,25 @@ class Settings(BaseSettings):
         env_file = ".env"
         extra = "ignore"
 
+    @model_validator(mode="after")
+    def resolve_llm_model(self) -> "Settings":
+        # Clean fields from comments and whitespace
+        if self.LLM_PROVIDER:
+            if "#" in self.LLM_PROVIDER:
+                self.LLM_PROVIDER = self.LLM_PROVIDER.split("#")[0]
+            self.LLM_PROVIDER = self.LLM_PROVIDER.strip()
+
+        if self.LLM_MODEL:
+            if "#" in self.LLM_MODEL:
+                self.LLM_MODEL = self.LLM_MODEL.split("#")[0]
+            self.LLM_MODEL = self.LLM_MODEL.strip()
+
+        if not self.LLM_MODEL:
+            if self.LLM_PROVIDER == "openai":
+                self.LLM_MODEL = "gpt-4o-mini"
+            else:
+                self.LLM_MODEL = "gemini-2.5-flash-lite"
+        return self
+
 settings = Settings()
+

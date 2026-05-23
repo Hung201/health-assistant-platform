@@ -99,7 +99,7 @@ export const useChatStore = create<ChatState>()(
           messages: [...currentMessages, userMsg],
           isLoading: true,
           hospitalSuggestion: null, // Clear old suggestions
-          finalResult: null,
+          // GIỮ finalResult — không reset để chẩn đoán gần nhất vẫn hiển thị
           doctorRecommendations: null,
         });
 
@@ -138,7 +138,7 @@ export const useChatStore = create<ChatState>()(
             messages: [...get().messages, aiMsg],
             sessionId: data.session_id,
             hospitalSuggestion: data.hospital_suggestion,
-            finalResult: data.final_result,
+            finalResult: data.final_result ?? get().finalResult, // Giữ chẩn đoán gần nhất nếu backend không trả mới
             doctorRecommendations: data.doctor_recommendations,
             isLoading: false
           });

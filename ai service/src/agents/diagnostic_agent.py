@@ -18,8 +18,10 @@ from typing import Optional
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 from src.core.config import settings
 from src.ml.vector_store import VectorStoreManager
 from src.prompts.diagnostic_prompt import DIAGNOSTIC_PROMPT, DIAGNOSTIC_PROMPT_WITH_WEB
@@ -72,12 +74,21 @@ class DiagnosticAgent:
         self.vs_manager = VectorStoreManager(collection_name="symptom_checker_db")
         self.retriever = self.vs_manager.get_retriever(k=k)
 
-        logger.info("[DiagnosticAgent] Khởi tạo LLM (Gemini)...")
-        self.llm = ChatGoogleGenerativeAI(
-            model=settings.LLM_MODEL,
-            google_api_key=settings.GEMINI_API_KEY,
-            temperature=0.2,
-        )
+        if settings.LLM_PROVIDER == "openai":
+            logger.info(f"[DiagnosticAgent] Khởi tạo LLM (OpenAI: {settings.LLM_MODEL})...")
+            self.llm = ChatOpenAI(
+                model=settings.LLM_MODEL,
+                api_key=settings.OPENAI_API_KEY,
+                temperature=0.2,
+            )
+        else:
+            logger.info(f"[DiagnosticAgent] Khởi tạo LLM (Gemini: {settings.LLM_MODEL})...")
+            self.llm = ChatGoogleGenerativeAI(
+                model=settings.LLM_MODEL,
+                google_api_key=settings.GEMINI_API_KEY,
+                temperature=0.2,
+            )
+
 
         logger.info("[DiagnosticAgent] Khởi tạo Tavily Web Search Tool...")
         self.web_search = TavilySearchTool(

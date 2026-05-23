@@ -1,6 +1,6 @@
 # Current Project State
 
-Cập nhật: `2026-05-02` (Asia/Saigon)
+Cập nhật: `2026-05-22` (Asia/Saigon)
 
 ## 1) Tổng quan kiến trúc
 
@@ -33,12 +33,14 @@ DB chạy qua Docker:
 - Chẩn đoán dự kiến từ AI + disclaimer.
 - Gợi ý bác sĩ chuyên khoa từ backend.
 - Tạo booking theo slot còn chỗ, xem lịch hẹn, hủy lịch pending.
+- **Hệ thống đánh giá (Review)**: Viết đánh giá, chấm điểm bác sĩ sau khi hoàn tất khám.
 - Quản lý profile và security.
 
 ### Doctor
 
 - Quản lý slot.
 - Xử lý booking (approve/reject).
+- **Hệ thống đánh giá**: Nhận đánh giá từ bệnh nhân, theo dõi điểm số và ranking.
 - Quản lý bài viết.
 - Quản lý livestream.
 - Trả lời câu hỏi Q&A.
@@ -54,21 +56,23 @@ DB chạy qua Docker:
 ### Content/Community
 
 - Blog public + comments + reactions.
-- Livestream public.
+- Livestream public + realtime comments.
 - Q&A public.
 - Notifications in-app + SSE.
 
 ## 3) Các thay đổi kỹ thuật quan trọng gần đây
 
-### AI recommendation flow
+### AI recommendation flow (Cải tiến mới)
 
 - Frontend AI chat gọi backend `/ai/chat` (không gọi thẳng AI service).
 - Backend truyền `user_id` + `patient_context` sang AI service.
-- `chat_sessions.user_id` đã được lưu.
-- Sau khi có chẩn đoán, backend trả thêm `recommendation_options` (2 lựa chọn):
-  - Gợi ý bác sĩ uy tín
-  - Bệnh viện/phòng khám gần tôi
-- Frontend có fallback UI để vẫn hiển thị 2 lựa chọn nếu message chưa kèm options.
+- **Tách biệt luồng:** Python API tách riêng logic chẩn đoán (chỉ chạy khi thu thập đủ triệu chứng) và tìm bệnh viện (chạy độc lập), giúp tiết kiệm tài nguyên.
+- **Giữ chẩn đoán:** NestJS backend tự động lưu và trả lại `last_final_result` từ session metadata nếu AI không trả về chẩn đoán mới (giúp frontend giữ nguyên hiển thị sidebar khi user chuyển sang hỏi địa chỉ).
+- **Chống ảo giác (Anti-hallucination):** Python System Prompt cấm LLM tự bịa tên bác sĩ. NestJS backend thay thế câu trả lời của LLM khi tìm thấy bác sĩ thực tế từ DB, hướng người dùng sang thanh bên.
+- Nút gợi ý (`recommendation_options`): Chỉ được backend trả về **sau khi** người dùng đã cung cấp vị trí/địa chỉ. Frontend phụ thuộc hoàn toàn vào backend để hiển thị các lựa chọn này.
+- **Hiển thị kết quả:**
+  - Gợi ý bệnh viện/phòng khám (từ Nominatim) hiển thị **inline** trong luồng chat.
+  - Gợi ý bác sĩ (từ DB) hiển thị ở **sidebar** dưới dạng các thẻ (cards) có thể click trực tiếp để chuyển hướng sang Đặt lịch.
 
 ### Gợi ý bác sĩ theo khu vực
 
@@ -78,6 +82,18 @@ DB chạy qua Docker:
   3. liên tỉnh (fallback khi thiếu kết quả)
 - Ranking text location dùng `unaccent` + `pg_trgm`.
 - Có index tìm kiếm workplace: `idx_doctor_profiles_workplace_search`.
+
+### Hệ thống đánh giá bác sĩ (Doctor Review System)
+
+- Backend support thu thập đánh giá (rating 1-5, comment, các tiêu chí phụ như bedside manner).
+- Tính điểm ranking tự động dựa trên công thức Bayesian (cân bằng giữa số lượng và chất lượng đánh giá).
+- Tích hợp hiển thị rating trên Frontend (trang chủ, thẻ bác sĩ gợi ý từ AI, trang chi tiết bác sĩ).
+
+### Cải thiện UI/UX Frontend
+
+- Nâng cấp giao diện trang chủ (Marketing) và Dashboard Bệnh nhân.
+- Thêm hiệu ứng Scroll Reveal (chuyển động khi cuộn trang) và các Stat Counter sinh động.
+- Nâng cấp thẩm mỹ thẻ "Bác sĩ nổi bật" và giao diện danh sách lịch hẹn (bookings).
 
 ### Chuẩn hóa chuyên khoa chính
 
@@ -89,15 +105,16 @@ DB chạy qua Docker:
 
 Số bản ghi tại thời điểm cập nhật:
 
-- `users`: 34
-- `doctor_profiles`: 31
-- `specialties`: 13
-- `doctor_specialties`: 63
-- `doctor_available_slots`: 616
-- `bookings`: 1
-- `chat_sessions`: 14
-- `chat_messages`: 100
-- `posts`: 14
+- `users`: ~34
+- `doctor_profiles`: ~31
+- `specialties`: ~13
+- `doctor_specialties`: ~63
+- `doctor_available_slots`: ~616
+- `bookings`: ~1
+- `doctor_reviews`: Mới thêm
+- `chat_sessions`: ~14
+- `chat_messages`: ~100
+- `posts`: ~14
 - `doctor_questions`: 0
 - `notifications`: 0
 
@@ -171,3 +188,4 @@ Kiểm tra chất lượng dữ liệu:
 - Migrations mới đáng chú ý:
   - `20260426_add_workplace_search_extensions_and_index.sql`
   - `20260427_normalize_doctor_specialties_primary.sql`
+  - `20260502_add_doctor_reviews.sql`

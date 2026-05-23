@@ -111,6 +111,12 @@ export class AiService {
     );
     data.session_id = session.id;
 
+    // Nếu Python không trả final_result nhưng session có lưu, inject vào response
+    // để frontend luôn giữ chẩn đoán gần nhất trên sidebar
+    if (!data.final_result && session.metadata?.last_final_result) {
+      data.final_result = session.metadata.last_final_result;
+    }
+
     await this.saveMessage(session.id, 'assistant', data?.reply ?? 'Xin loi, toi dang gap truc trac ky thuat.');
     await this.updateSessionStats(
       session,
@@ -344,6 +350,13 @@ export class AiService {
         }
 
         data.doctor_recommendations = recommendedDoctors;
+
+        // Khi đã tìm được bác sĩ từ DB và user có ý định hỏi bác sĩ,
+        // thay reply của LLM để tránh hiển thị danh sách bác sĩ bịa/web search
+        if (hasDoctorIntent && recommendedDoctors && recommendedDoctors.length > 0) {
+          const specName = spec.name || suggestedSpecialty || 'phù hợp';
+          data.reply = `Dựa trên kết quả phân tích, tôi đã tìm thấy ${recommendedDoctors.length} bác sĩ chuyên khoa **${specName}** phù hợp với tình trạng của bạn. Bạn có thể xem thông tin chi tiết và đặt lịch khám ở **thanh bên phải** nhé! 👉`;
+        }
       } else if (hasDoctorIntent && locationHint) {
         const localFallback = await this.doctorsService.listPublicDoctors({
           page: 1,
@@ -352,16 +365,25 @@ export class AiService {
           locationHint,
         });
         data.doctor_recommendations = localFallback.items;
+
+        // Tương tự: thay reply khi tìm được bác sĩ từ DB
+        if (localFallback.items && localFallback.items.length > 0) {
+          data.reply = `Tôi đã tìm thấy ${localFallback.items.length} bác sĩ gần khu vực của bạn. Bạn có thể xem thông tin chi tiết và đặt lịch khám ở **thanh bên phải** nhé! 👉`;
+        }
       }
     }
 
     if (data?.final_result && !this.hasRecommendationSelectionIntent(message)) {
-      const recommendationPrompt =
-        'Ban muon toi goi y Bac si uy tin (kem thong tin bac si va dia chi kham) hay cac benh vien, phong kham gan ban?';
-      if (typeof data.reply === 'string' && !this.normalizeText(data.reply).includes('goi y bac si uy tin')) {
-        data.reply = `${data.reply}\n\n${recommendationPrompt}`;
+      if (userLocation) {
+        // Đã có địa chỉ → hiện buttons gợi ý bác sĩ / phòng khám
+        const recommendationPrompt =
+          'Bạn muốn tôi gợi ý Bác sĩ uy tín (kèm thông tin bác sĩ và đặt lịch khám) hay các bệnh viện, phòng khám gần bạn?';
+        if (typeof data.reply === 'string' && !this.normalizeText(data.reply).includes('goi y bac si uy tin')) {
+          data.reply = `${data.reply}\n\n${recommendationPrompt}`;
+        }
+        data.recommendation_options = this.buildRecommendationOptions();
       }
-      data.recommendation_options = this.buildRecommendationOptions();
+      // Nếu chưa có location → không hiện buttons, để AI/system prompt tự hỏi vị trí trước
     }
 
     return data;

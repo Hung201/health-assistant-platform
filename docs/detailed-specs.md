@@ -1,6 +1,6 @@
 # Đặc tả hệ thống chi tiết (đối chiếu code + DB thực tế)
 
-Cập nhật: `2026-05-02` (Asia/Saigon)
+Cập nhật: `2026-05-22` (Asia/Saigon)
 
 ## 1) Kiến trúc và runtime
 
@@ -49,6 +49,9 @@ Cập nhật: `2026-05-02` (Asia/Saigon)
 - `GET /doctors`
 - `GET /doctors/:doctorUserId`
 - `GET /doctors/:doctorUserId/slots`
+- `GET /doctors/:doctorUserId/reviews`
+- `GET /doctors/:doctorUserId/rating-summary`
+- `POST /doctors/:doctorUserId/reviews`
 
 `GET /doctors` hiện hỗ trợ:
 
@@ -77,6 +80,7 @@ Cập nhật: `2026-05-02` (Asia/Saigon)
 - `GET /doctor/dashboard/payment-summary`
 - `PATCH /doctor/bookings/:bookingId/approve`
 - `PATCH /doctor/bookings/:bookingId/reject`
+- `PATCH /doctor/bookings/:bookingId/complete`
 
 ### Doctor posts (`/doctor/posts`)
 
@@ -98,6 +102,8 @@ Cập nhật: `2026-05-02` (Asia/Saigon)
 
 - `GET /livestreams`
 - `GET /livestreams/:id`
+- `GET /livestreams/:id/comments`
+- `POST /livestreams/:id/comments`
 
 ## 2.8 AI (`/ai`)
 
@@ -164,20 +170,24 @@ Cập nhật: `2026-05-02` (Asia/Saigon)
    - `users` (DOB/gender)
    - `medical_profiles` (height/weight)
    - `patient_chronic_conditions` + `chronic_conditions`
-3. Gọi AI service `/api/v1/chat/` với `user_id` + `patient_context`.
-4. Dựa vào `suggested_specialty`, map specialty trong DB và gọi recommendDoctors.
-5. Trả về:
-   - `final_result`
+3. Gọi AI service `/api/v1/chat/` với `user_id` + `patient_context`. 
+   *Note: AI service đã tách biệt luồng chẩn đoán và tìm kiếm bệnh viện để tối ưu token/thời gian xử lý.*
+4. Nhận kết quả từ AI, nếu Python không trả `final_result` (do đang ở luồng hỏi vị trí), tự động inject `last_final_result` từ metadata.
+5. Dựa vào `suggested_specialty` hoặc ý định hỏi bác sĩ, map specialty trong DB và gọi `recommendDoctors`.
+6. Nếu tìm thấy bác sĩ từ DB, **thay thế (override) câu trả lời của LLM** bằng câu hướng dẫn click vào sidebar (phòng trường hợp LLM tự hallucinate danh sách bác sĩ).
+7. Trả về:
+   - `final_result` (luôn được duy trì hiển thị)
    - `doctor_recommendations`
    - `hospital_suggestion` (nếu có)
-   - `recommendation_options` (2 lựa chọn click trên UI)
+   - `recommendation_options` (chỉ hiển thị **sau khi** người dùng cung cấp vị trí)
 
-## 3.2 Recommendation options UI
+## 3.2 Recommendation options UI & Hiển thị kết quả
 
-Frontend patient AI page:
+Frontend patient AI page (`page.tsx`):
 
-- Render options từ `message.recommendationOptions`.
-- Có fallback hiển thị 2 lựa chọn nếu đã có `final_result` nhưng message chưa có options.
+- **Nút gợi ý**: Render options từ `message.recommendationOptions`. Tắt hoàn toàn fallback cứng ở frontend; để backend quyết định khi nào cần hiển thị.
+- **Bệnh viện/Phòng khám**: Kết quả gợi ý (từ Nominatim) được hiển thị **inline** trong khung chat dưới dạng các thẻ nhỏ kèm MapPin/Phone.
+- **Bác sĩ**: Hiển thị ở cột phải (**sidebar**). Các thẻ bác sĩ có thể click trực tiếp để điều hướng nhanh đến luồng Đặt lịch.
 
 ## 3.3 Logic gợi ý bác sĩ theo khu vực
 
@@ -206,7 +216,7 @@ Tìm kiếm dùng `unaccent + lower`, có index trigram.
 
 ## 4) Database schema chính (theo `backend/database/schema.sql`)
 
-Tổng số bảng nghiệp vụ chính: 24
+Tổng số bảng nghiệp vụ chính: 26
 
 1. `users`
 2. `user_identities`
@@ -229,9 +239,11 @@ Tổng số bảng nghiệp vụ chính: 24
 19. `chat_sessions`
 20. `chat_messages`
 21. `live_streams`
-22. `notifications`
-23. `doctor_questions`
-24. `comment_reactions` (entity có dùng trong code; dữ liệu lưu reaction comment)
+22. `live_stream_comments`
+23. `notifications`
+24. `doctor_questions`
+25. `comment_reactions` (entity có dùng trong code; dữ liệu lưu reaction comment)
+26. `doctor_reviews`
 
 ## 4.1 Extension và index quan trọng
 
@@ -255,20 +267,22 @@ Trong `backend/database/migrations`:
 - `20260423_add_users_password_reset.sql`
 - `20260426_add_workplace_search_extensions_and_index.sql`
 - `20260427_normalize_doctor_specialties_primary.sql`
+- `20260502_add_doctor_reviews.sql`
 
 ## 5) Trạng thái dữ liệu thực tế (DB Docker)
 
 Số lượng bản ghi hiện tại:
 
-- `users`: 34
-- `doctor_profiles`: 31
-- `specialties`: 13
-- `doctor_specialties`: 63
-- `doctor_available_slots`: 616
-- `bookings`: 1
-- `chat_sessions`: 14
-- `chat_messages`: 100
-- `posts`: 14
+- `users`: ~34
+- `doctor_profiles`: ~31
+- `specialties`: ~13
+- `doctor_specialties`: ~63
+- `doctor_available_slots`: ~616
+- `bookings`: ~1
+- `doctor_reviews`: Mới thêm
+- `chat_sessions`: ~14
+- `chat_messages`: ~100
+- `posts`: ~14
 - `doctor_questions`: 0
 - `notifications`: 0
 
@@ -347,8 +361,13 @@ Chất lượng dữ liệu:
 - lịch khám tương lai theo khung giờ seed
 - normalize lại `doctor_specialties` để còn đúng 1 primary mỗi bác sĩ
 
-## 8) Rủi ro/khoảng trống còn lại
+## 8) Hệ thống đánh giá bác sĩ (Review & Rating)
+
+- Hỗ trợ bệnh nhân đánh giá sao (1-5), các chỉ số chi tiết (bedside manner, clarity, wait time) sau khi hoàn tất khám.
+- Hệ thống áp dụng công thức tính xếp hạng (Bayesian Ranking) kết hợp số lượng đánh giá và điểm trung bình để tránh lệch kết quả cho bác sĩ mới.
+- Kết quả được tích hợp hiển thị tự động lên giao diện bệnh nhân, thẻ gợi ý AI và trang chi tiết bác sĩ.
+
+## 9) Rủi ro/khoảng trống còn lại
 
 1. `next build` trên môi trường local có thể bị EPERM/timeout do lock file `.next` (không phải lỗi nghiệp vụ).
 2. AI service vẫn phụ thuộc external APIs (Gemini, geocoding/overpass) nên cần retry/observability tốt ở production.
-3. Một số chỉ số UI marketing/doctor detail vẫn có phần mock (rating, social proof) nếu không có nguồn dữ liệu chuẩn hóa.
