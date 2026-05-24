@@ -129,6 +129,7 @@ export class PaymentsService {
       const booking = await this.bookingRepo.findOne({ where: { id: payment.bookingId } });
       if (booking) {
         booking.paymentStatus = 'paid';
+        booking.paidAt = new Date();
         await this.bookingRepo.save(booking);
         await this.logRepo.save(
           this.logRepo.create({

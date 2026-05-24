@@ -217,6 +217,7 @@ CREATE TABLE bookings (
 
     approved_at TIMESTAMPTZ,
     approved_by UUID REFERENCES users(id),
+    paid_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT bookings_patient_or_guest CHECK (

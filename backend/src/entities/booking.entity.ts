@@ -96,6 +96,9 @@ export class Booking {
   @Column({ name: 'approved_by', type: 'uuid', nullable: true })
   approvedBy: string | null;
 
+  @Column({ name: 'paid_at', type: 'timestamptz', nullable: true })
+  paidAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

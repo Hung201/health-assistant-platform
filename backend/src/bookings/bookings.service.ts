@@ -22,6 +22,13 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { CreateGuestBookingDto } from './dto/create-guest-booking.dto';
+import {
+  bookingPeriodBetweenPrevious,
+  bookingPeriodSince,
+  bookingStatsAt,
+  bookingStatsDayKey,
+  fillRevenueTrendDays,
+} from './booking-stats.util';
 
 function hasRole(user: User, code: string): boolean {
   return Boolean(user.userRoles?.some((ur) => ur.role?.code === code));
@@ -703,13 +710,8 @@ export class BookingsService {
       throw new ForbiddenException('Chỉ bác sĩ mới có thể xem thống kê');
     }
 
-    const now = new Date();
     const allowedRanges = new Set([7, 30, 90]);
     const periodDays = days && allowedRanges.has(days) ? days : 30;
-    const periodStart = new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000);
-    const previousPeriodStart = new Date(periodStart.getTime() - periodDays * 24 * 60 * 60 * 1000);
-    const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0));
-    const tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
     const [
       totalBookings,
@@ -728,29 +730,25 @@ export class BookingsService {
         .createQueryBuilder('b')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .getCount(),
       this.bookingRepo
         .createQueryBuilder('b')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'unpaid' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .getCount(),
       this.bookingRepo
         .createQueryBuilder('b')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'awaiting_gateway' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .getCount(),
       this.bookingRepo
         .createQueryBuilder('b')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'pay_at_clinic' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .getCount(),
       this.bookingRepo.count({ where: { doctorUserId: currentUser.id, status: 'pending' } }),
       this.bookingRepo
@@ -758,16 +756,14 @@ export class BookingsService {
         .select('COALESCE(SUM(b.total_fee), 0)', 'value')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .getRawOne<{ value: string }>(),
       this.bookingRepo
         .createQueryBuilder('b')
         .select('COALESCE(SUM(b.total_fee), 0)', 'value')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :previousPeriodStart', { previousPeriodStart: previousPeriodStart.toISOString() })
-        .andWhere('b.created_at < :periodStart', { periodStart: periodStart.toISOString() })
+        .andWhere(bookingPeriodBetweenPrevious('b'), { periodDays })
         .getRawOne<{ value: string }>(),
       this.bookingRepo
         .createQueryBuilder('b')
@@ -776,22 +772,20 @@ export class BookingsService {
         .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(bookingPeriodSince('b'), { periodDays })
         .groupBy('b.payment_method')
         .orderBy('COALESCE(SUM(b.total_fee), 0)', 'DESC')
         .getRawMany<{ paymentMethod: string; paidBookings: string; revenue: string }>(),
       this.bookingRepo
         .createQueryBuilder('b')
-        .select(`TO_CHAR(DATE_TRUNC('day', b.created_at), 'YYYY-MM-DD')`, 'date')
+        .select(bookingStatsDayKey('b'), 'date')
         .addSelect('COUNT(*)', 'paidBookings')
         .addSelect('COALESCE(SUM(b.total_fee), 0)', 'revenue')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :periodStart', { periodStart: periodStart.toISOString() })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
-        .groupBy(`DATE_TRUNC('day', b.created_at)`)
-        .orderBy(`DATE_TRUNC('day', b.created_at)`, 'ASC')
+        .andWhere(bookingPeriodSince('b'), { periodDays })
+        .groupBy(`DATE_TRUNC('day', ${bookingStatsAt('b')})`)
+        .orderBy(`DATE_TRUNC('day', ${bookingStatsAt('b')})`, 'ASC')
         .getRawMany<{ date: string; paidBookings: string; revenue: string }>(),
     ]);
 
@@ -814,16 +808,7 @@ export class BookingsService {
         },
       ]),
     );
-    const revenueTrend = Array.from({ length: periodDays }, (_, i) => {
-      const d = new Date(periodStart.getTime() + i * 24 * 60 * 60 * 1000);
-      const key = d.toISOString().slice(0, 10);
-      const found = trendByDate.get(key);
-      return {
-        date: key,
-        paidBookings: found?.paidBookings ?? 0,
-        revenue: found?.revenue ?? 0,
-      };
-    });
+    const revenueTrend = fillRevenueTrendDays(periodDays, trendByDate);
 
     const [todayPaidRevenueRaw, monthPaidRevenueRaw] = await Promise.all([
       this.bookingRepo
@@ -831,18 +816,14 @@ export class BookingsService {
         .select('COALESCE(SUM(b.total_fee), 0)', 'value')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :todayStart', { todayStart: todayStart.toISOString() })
-        .andWhere('b.created_at < :tomorrowStart', { tomorrowStart: tomorrowStart.toISOString() })
+        .andWhere(`DATE(${bookingStatsAt('b')}) = CURRENT_DATE`)
         .getRawOne<{ value: string }>(),
       this.bookingRepo
         .createQueryBuilder('b')
         .select('COALESCE(SUM(b.total_fee), 0)', 'value')
         .where('b.doctor_user_id = :doctorUserId', { doctorUserId: currentUser.id })
         .andWhere('b.payment_status = :status', { status: 'paid' })
-        .andWhere('b.created_at >= :periodStart', {
-          periodStart: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString(),
-        })
-        .andWhere('b.created_at < :now', { now: now.toISOString() })
+        .andWhere(`DATE_TRUNC('month', ${bookingStatsAt('b')}) = DATE_TRUNC('month', CURRENT_DATE::timestamp)`)
         .getRawOne<{ value: string }>(),
     ]);
 
