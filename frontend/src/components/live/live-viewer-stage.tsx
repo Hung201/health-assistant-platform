@@ -36,14 +36,14 @@ export function LiveViewerStage() {
 
   const remoteTracks = tracks.filter((ref) => !ref.participant.isLocal);
   const primary =
-    remoteTracks.find((t) => t.source === Track.Source.ScreenShare) ??
-    remoteTracks.find((t) => t.source === Track.Source.Camera);
+    remoteTracks.find((t) => t.source === Track.Source.ScreenShare && t.publication) ??
+    remoteTracks.find((t) => t.source === Track.Source.Camera && t.publication);
 
   const waiting = conn === ConnectionState.Connected && !primary;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col bg-black">
-      {primary ? (
+      {primary?.publication ? (
         <VideoTrack
           trackRef={primary}
           className="h-full min-h-[440px] w-full object-contain"
