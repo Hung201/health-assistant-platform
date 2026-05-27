@@ -117,7 +117,11 @@ export default function DoctorSlotsPage() {
     mutationFn: (id: number) => doctorApi.cancelSlot(id),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['doctor', 'slots'] });
-      toast.show({ variant: 'success', title: 'Đã huỷ slot' });
+      toast.show({
+        variant: 'success',
+        title: 'Đã huỷ slot',
+        message: 'Slot đã được huỷ thành công.',
+      });
       setCancelSlotId(null);
     },
     onError: (e: unknown) => {
