@@ -24,17 +24,25 @@ export class PaymentsService {
     private readonly mail: MailService,
   ) {}
 
-  async sendPaymentEmailsAfterDoctorApproval(booking: Booking, recipientEmail: string): Promise<void> {
+  async sendPaymentEmailsAfterDoctorApproval(
+    booking: Booking,
+    recipientEmail: string,
+  ): Promise<{ emailSent: boolean }> {
     if (booking.paymentMethod === 'pay_at_clinic') {
-      await this.mail.sendBookingApprovedPayAtClinic({
-        to: recipientEmail,
-        bookingCode: booking.bookingCode,
-        doctorName: booking.doctorNameSnapshot,
-        appointmentStartAt: booking.appointmentStartAt,
-        appointmentEndAt: booking.appointmentEndAt,
-        totalFee: booking.totalFee,
-      });
-      return;
+      try {
+        await this.mail.sendBookingApprovedPayAtClinic({
+          to: recipientEmail,
+          bookingCode: booking.bookingCode,
+          doctorName: booking.doctorNameSnapshot,
+          appointmentStartAt: booking.appointmentStartAt,
+          appointmentEndAt: booking.appointmentEndAt,
+          totalFee: booking.totalFee,
+        });
+        return { emailSent: true };
+      } catch (e) {
+        this.logger.error(`Email pay_at_clinic failed: ${(e as Error).message}`);
+        return { emailSent: false };
+      }
     }
 
     const amount = Math.round(Number(booking.totalFee));
@@ -80,17 +88,24 @@ export class PaymentsService {
     booking.paymentStatus = 'awaiting_gateway';
     await this.bookingRepo.save(booking);
 
-    await this.mail.sendBookingApprovedWithMomoQr({
-      to: recipientEmail,
-      bookingCode: booking.bookingCode,
-      doctorName: booking.doctorNameSnapshot,
-      appointmentStartAt: booking.appointmentStartAt,
-      appointmentEndAt: booking.appointmentEndAt,
-      totalFee: booking.totalFee,
-      payUrl,
-    });
+    let emailSent = false;
+    try {
+      await this.mail.sendBookingApprovedWithMomoQr({
+        to: recipientEmail,
+        bookingCode: booking.bookingCode,
+        doctorName: booking.doctorNameSnapshot,
+        appointmentStartAt: booking.appointmentStartAt,
+        appointmentEndAt: booking.appointmentEndAt,
+        totalFee: booking.totalFee,
+        payUrl,
+      });
+      emailSent = true;
+    } catch (e) {
+      this.logger.error(`Email MoMo QR failed: ${(e as Error).message}`);
+    }
 
     this.logger.log(`Payment row ${payment.id} created for booking ${booking.id}`);
+    return { emailSent };
   }
 
   async handleMomoIpn(

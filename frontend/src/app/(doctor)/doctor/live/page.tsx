@@ -72,13 +72,6 @@ export default function DoctorLivePage() {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl space-y-2">
           <h2 className="text-2xl font-bold text-foreground">Phát trực tiếp</h2>
-          <p className="text-sm text-muted-foreground">
-            Tạo phiên, chia sẻ liên kết cho bệnh nhân, phát qua LiveKit. Trên server cần cấu hình{' '}
-            <code className="rounded bg-muted px-1 text-xs">LIVEKIT_URL</code>,{' '}
-            <code className="rounded bg-muted px-1 text-xs">LIVEKIT_API_KEY</code>,{' '}
-            <code className="rounded bg-muted px-1 text-xs">LIVEKIT_API_SECRET</code> — xem{' '}
-            <code className="rounded bg-muted px-1 text-xs">backend/.env.example</code>.
-          </p>
         </div>
         <Link className="shrink-0 text-sm font-medium text-primary hover:underline" href="/doctor">
           ← Tổng quan
@@ -93,13 +86,12 @@ export default function DoctorLivePage() {
         ].map((s, i) => (
           <li key={s.n} className="flex items-center gap-2 text-sm">
             <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
-                s.done
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${s.done
                   ? 'border-primary bg-primary text-primary-foreground'
                   : s.active
                     ? 'border-primary text-primary'
                     : 'border-border text-muted-foreground'
-              }`}
+                }`}
             >
               {s.done ? '✓' : s.n}
             </span>

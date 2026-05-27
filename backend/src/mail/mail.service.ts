@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { lookup as dnsLookup } from 'node:dns';
 import * as nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import QRCode from 'qrcode';
 
 @Injectable()
@@ -14,12 +16,23 @@ export class MailService {
     const user = this.config.get<string>('MAIL_USER');
     const pass = this.config.get<string>('MAIL_PASS');
     if (host && user && pass) {
-      this.transporter = nodemailer.createTransport({
+      const portNum = port ? parseInt(port, 10) : 587;
+      const smtpOptions: SMTPTransport.Options & {
+        lookup?: (
+          hostname: string,
+          _options: object,
+          callback: (err: NodeJS.ErrnoException | null, address: string, family?: number) => void,
+        ) => void;
+      } = {
         host,
-        port: port ? parseInt(port, 10) : 587,
-        secure: port === '465',
+        port: portNum,
+        secure: portNum === 465,
         auth: { user, pass },
-      });
+        lookup: (hostname, _options, callback) => {
+          dnsLookup(hostname, { family: 4 }, callback);
+        },
+      };
+      this.transporter = nodemailer.createTransport(smtpOptions);
     } else {
       this.logger.warn('MAIL_* chưa cấu hình — email sẽ chỉ được log ra console.');
     }

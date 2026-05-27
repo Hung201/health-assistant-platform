@@ -372,17 +372,15 @@ export class BookingsService {
     if (!fresh) throw new NotFoundException('Không tìm thấy lịch hẹn');
 
     const email = await this.resolveRecipientEmail(fresh);
+    let emailSent = false;
     try {
-      await this.paymentsService.sendPaymentEmailsAfterDoctorApproval(fresh, email);
-      await this.notifyPatientBookingUpdate({
-        booking: fresh,
-        type: 'booking_approved',
-        title: 'Lịch hẹn đã được xác nhận',
-        message: `${fresh.doctorNameSnapshot} đã xác nhận lịch ${fresh.bookingCode}.`,
-        priority: 'high',
-      });
+      const followUp = await this.paymentsService.sendPaymentEmailsAfterDoctorApproval(fresh, email);
+      emailSent = followUp.emailSent;
+      if (!emailSent) {
+        this.logger.warn(`Booking ${fresh.bookingCode} approved but email not sent to ${email}`);
+      }
     } catch (err) {
-      this.logger.error(`approve follow-up failed: ${(err as Error).message}`);
+      this.logger.error(`approve payment setup failed: ${(err as Error).message}`);
       fresh.status = 'pending';
       fresh.approvedAt = null;
       fresh.approvedBy = null;
@@ -394,15 +392,32 @@ export class BookingsService {
           oldStatus: 'approved',
           newStatus: 'pending',
           changedBy: currentUser.id,
-          note: `Reverted approve: payment/email error — ${(err as Error).message}`,
+          note: `Reverted approve: payment error — ${(err as Error).message}`,
         }),
       );
       throw new BadRequestException(
-        'Không khởi tạo được thanh toán / gửi email. Lịch đã được trả về trạng thái chờ. Vui lòng thử lại.',
+        'Không khởi tạo được thanh toán. Lịch đã được trả về trạng thái chờ. Vui lòng thử lại.',
       );
     }
 
-    return { ok: true, id: fresh.id, status: fresh.status, paymentStatus: fresh.paymentStatus };
+    const updated = await this.bookingRepo.findOne({ where: { id: bookingId } });
+    if (updated) {
+      await this.notifyPatientBookingUpdate({
+        booking: updated,
+        type: 'booking_approved',
+        title: 'Lịch hẹn đã được xác nhận',
+        message: `${updated.doctorNameSnapshot} đã xác nhận lịch ${updated.bookingCode}.`,
+        priority: 'high',
+      });
+    }
+
+    return {
+      ok: true,
+      id: fresh.id,
+      status: updated?.status ?? fresh.status,
+      paymentStatus: updated?.paymentStatus ?? fresh.paymentStatus,
+      emailSent,
+    };
   }
 
   async rejectBookingByDoctor(currentUser: User, bookingId: string, reason?: string | null) {

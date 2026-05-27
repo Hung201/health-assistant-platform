@@ -79,8 +79,20 @@ export default function DoctorBookingsPage() {
 
   const approveMutation = useMutation({
     mutationFn: (id: string) => doctorApi.approveBooking(id),
-    onSuccess: async () => {
-      toast.show({ variant: 'success', title: 'Đã duyệt', message: 'Đã gửi email thanh toán / xác nhận cho bệnh nhân.' });
+    onSuccess: async (result) => {
+      if (result.emailSent === false) {
+        toast.show({
+          variant: 'info',
+          title: 'Đã duyệt lịch',
+          message: 'Lịch đã duyệt nhưng chưa gửi được email. Bệnh nhân vẫn có thể thanh toán trong app.',
+        });
+      } else {
+        toast.show({
+          variant: 'success',
+          title: 'Đã duyệt',
+          message: 'Đã gửi email thanh toán / xác nhận cho bệnh nhân.',
+        });
+      }
       await qc.invalidateQueries({ queryKey: ['doctor', 'bookings'] });
       setSelectedId(null);
     },

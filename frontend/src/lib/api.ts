@@ -470,7 +470,7 @@ export const doctorApi = {
   myBookings: () => api<DoctorBookingRow[]>('/doctor/bookings'),
   dashboardPaymentSummary: (days = 30) => api<DoctorPaymentSummary>(`/doctor/dashboard/payment-summary?days=${days}`),
   approveBooking: (bookingId: string) =>
-    api<{ ok: boolean; id: string; status: string; paymentStatus: string }>(
+    api<{ ok: boolean; id: string; status: string; paymentStatus: string; emailSent?: boolean }>(
       `/doctor/bookings/${encodeURIComponent(bookingId)}/approve`,
       { method: 'PATCH', body: '{}' },
     ),
