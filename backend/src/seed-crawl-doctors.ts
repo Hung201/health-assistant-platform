@@ -19,6 +19,7 @@ import { DoctorProfile } from './entities/doctor-profile.entity';
 import { Specialty } from './entities/specialty.entity';
 import { DoctorSpecialty } from './entities/doctor-specialty.entity';
 import { DoctorAvailableSlot } from './entities/doctor-available-slot.entity';
+import { getPostgresSslOption } from './config/postgres-ssl';
 
 loadEnv();
 
@@ -274,6 +275,7 @@ async function seedCrawlDoctors() {
     console.warn('[seed-crawl-doctors] SEED_SKIP_CLOUDINARY=1 — bỏ qua upload Cloudinary');
   }
 
+  const ssl = getPostgresSslOption();
   const dataSource = new DataSource({
     type: 'postgres',
     host: requireEnv('DB_HOST', 'localhost'),
@@ -281,6 +283,7 @@ async function seedCrawlDoctors() {
     username: requireEnv('DB_USERNAME', 'postgres'),
     password: requireEnv('DB_PASSWORD', 'postgres'),
     database: requireEnv('DB_DATABASE', 'health_assistant'),
+    ...(ssl && { ssl }),
     entities: [User, Role, UserRole, PatientProfile, DoctorProfile, Specialty, DoctorSpecialty, DoctorAvailableSlot],
     synchronize: false,
     logging: false,

@@ -22,7 +22,9 @@ import { AppService } from './app.service';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot(getDatabaseConfig()),
+    TypeOrmModule.forRootAsync({
+      useFactory: () => getDatabaseConfig(),
+    }),
     MailModule,
     AuthModule,
     UsersModule,

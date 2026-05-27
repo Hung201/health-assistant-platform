@@ -20,6 +20,7 @@ import { Comment } from './entities/comment.entity';
 import { CommentReaction } from './entities/comment-reaction.entity';
 import { DoctorReview } from './entities/doctor-review.entity';
 import { POST_STATUS_PENDING_REVIEW } from './admin/admin.service';
+import { getPostgresSslOption } from './config/postgres-ssl';
 
 loadEnv();
 
@@ -40,6 +41,7 @@ function asNumberId(id: unknown): number {
 }
 
 async function seed() {
+  const ssl = getPostgresSslOption();
   const dataSource = new DataSource({
     type: 'postgres',
     host: requireEnv('DB_HOST', 'localhost'),
@@ -47,6 +49,7 @@ async function seed() {
     username: requireEnv('DB_USERNAME', 'postgres'),
     password: requireEnv('DB_PASSWORD', 'postgres'),
     database: requireEnv('DB_DATABASE', 'health_assistant'),
+    ...(ssl && { ssl }),
     entities: [
       User,
       Role,
