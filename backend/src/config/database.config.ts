@@ -1,10 +1,9 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { join } from 'path';
-import { getPostgresSslOption, shouldUsePostgresSsl } from './postgres-ssl';
+import { getPostgresSslOption } from './postgres-ssl';
 
 export const getDatabaseConfig = (): TypeOrmModuleOptions => {
   const ssl = getPostgresSslOption();
-  const useSsl = shouldUsePostgresSsl();
 
   return {
     type: 'postgres',
