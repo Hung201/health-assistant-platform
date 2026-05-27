@@ -9,8 +9,15 @@ import QRCode from 'qrcode';
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: nodemailer.Transporter | null = null;
+  private readonly brevoApiKey: string | undefined;
 
   constructor(private readonly config: ConfigService) {
+    this.brevoApiKey = this.config.get<string>('BREVO_API_KEY')?.trim() || undefined;
+    if (this.brevoApiKey) {
+      this.logger.log('Email: Brevo HTTP API (dùng trên Render free — không cần SMTP port 587).');
+      return;
+    }
+
     const host = this.config.get<string>('MAIL_HOST');
     const port = this.config.get<string>('MAIL_PORT');
     const user = this.config.get<string>('MAIL_USER');
@@ -136,6 +143,10 @@ export class MailService {
 
   private async sendRaw(params: { to: string; subject: string; html: string }): Promise<void> {
     const from = this.config.get<string>('MAIL_FROM') || 'noreply@localhost';
+    if (this.brevoApiKey) {
+      await this.sendViaBrevoApi({ from, ...params });
+      return;
+    }
     if (!this.transporter) {
       this.logger.log(`[email skipped — no transporter] to=${params.to} subject=${params.subject}`);
       return;
@@ -152,5 +163,42 @@ export class MailService {
       this.logger.error(`sendMail failed: ${(e as Error).message}`);
       throw e;
     }
+  }
+
+  /** HTTPS :443 — hoạt động trên Render free (SMTP 587/465 bị chặn). */
+  private async sendViaBrevoApi(params: {
+    from: string;
+    to: string;
+    subject: string;
+    html: string;
+  }): Promise<void> {
+    const senderName = this.config.get<string>('BREVO_SENDER_NAME') || 'Clinical Precision';
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': this.brevoApiKey!,
+      },
+      body: JSON.stringify({
+        sender: { email: params.from, name: senderName },
+        to: [{ email: params.to }],
+        subject: params.subject,
+        htmlContent: params.html,
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      let detail = body;
+      try {
+        const j = JSON.parse(body) as { message?: string };
+        if (j.message) detail = j.message;
+      } catch {
+        /* keep raw body */
+      }
+      this.logger.error(`Brevo API failed (${res.status}): ${detail}`);
+      throw new Error(detail);
+    }
+    this.logger.log(`Email sent to ${params.to}: ${params.subject}`);
   }
 }
