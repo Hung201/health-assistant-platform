@@ -6,13 +6,14 @@ import { useEffect, useState } from 'react';
 import {
   AlignJustify, X, LayoutDashboard, Calendar, CalendarCheck,
   Video, MessageSquare, FileText, Stethoscope, BookOpen,
-  Lock, Settings, LogOut, User as UserIcon, ChevronRight,
+  Lock, Settings, LogOut, User as UserIcon, ChevronRight, Home,
 } from 'lucide-react';
 
 import { useAuthStore } from '@/stores/auth.store';
 import './doctor.css';
 
 const NAV = [
+  { href: '/',                 Icon: Home,            label: 'Về trang chủ' },
   { href: '/doctor',           Icon: LayoutDashboard, label: 'Tổng quan' },
   { href: '/doctor/slots',     Icon: Calendar,        label: 'Lịch trống' },
   { href: '/doctor/bookings',  Icon: CalendarCheck,   label: 'Lịch hẹn' },
@@ -204,7 +205,15 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right side */}
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2.5 sm:gap-3">
+            {/* Quick Home link on mobile */}
+            <Link
+              href="/"
+              className="lg:hidden flex h-10 px-3 items-center gap-1.5 rounded-xl border border-border bg-background text-xs font-semibold text-[#0D9E75] hover:bg-[#E8F8F2] transition-colors"
+            >
+              <Home size={14} />
+              <span>Trang chủ</span>
+            </Link>
             {/* Specialty badge */}
             {user?.doctorSpecialty && (
               <span className="hidden sm:inline-flex items-center gap-1.5 rounded-full border border-[#0D9E75]/20 bg-[#E8F8F2] dark:bg-[#0D9E75]/10 px-3 py-1 text-xs font-semibold text-[#0D9E75]">

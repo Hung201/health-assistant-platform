@@ -55,7 +55,7 @@ export function MarketingHeader() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
-              <Link className="rounded-[10px] px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100" href={appHref}>Vào ứng dụng</Link>
+              <Link className="rounded-[10px] px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100" href={appHref}>Trang quản trị</Link>
               <button
                 className="btn-primary !py-2 !px-5 text-sm"
                 disabled={logoutMutation.isPending}
