@@ -51,13 +51,23 @@ export default function DoctorLivePage() {
     },
   });
 
-  const activeId = liveKit?.streamId ?? draft?.id;
-  const streamTitle = (draft?.title?.trim() || title.trim() || 'Buổi trực tiếp').trim();
-
   const liveSessionElsewhere = useMemo(
     () => mine?.items.find((s) => s.status === 'live') ?? null,
     [mine],
   );
+
+  const activeId = liveKit?.streamId ?? draft?.id;
+  const streamTitle = (
+    draft?.title?.trim() ||
+    liveSessionElsewhere?.title?.trim() ||
+    title.trim() ||
+    'Buổi trực tiếp'
+  ).trim();
+
+  const rejoinLive = (session: LiveStreamRow) => {
+    if (liveKit?.streamId === session.id) return;
+    goLiveMutation.mutate(session.id);
+  };
 
   const step = useMemo(() => {
     if (liveKit) return 3 as const;
@@ -166,18 +176,32 @@ export default function DoctorLivePage() {
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100">
           <p className="font-semibold">Đang có phiên live trên hệ thống</p>
           <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">
-            Phiên &quot;{liveSessionElsewhere.title}&quot; vẫn ở trạng thái live (ví dụ sau khi tải lại trang hoặc đóng tab). Bấm kết thúc để đóng phiên cho bệnh nhân; hoặc bấm &quot;Bắt đầu phát&quot; lại nếu bạn vừa tạo phiên mới và muốn vào phòng.
+            Phiên &quot;{liveSessionElsewhere.title}&quot; vẫn đang phát (ví dụ sau khi tải lại trang). Bấm{' '}
+            <strong>Vào lại phòng live</strong> để xem video, QR và bình luận; hoặc <strong>Kết thúc</strong> để đóng
+            với bệnh nhân.
           </p>
-          <button
-            type="button"
-            className="mt-3 rounded-lg border border-destructive/50 bg-destructive/15 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-50"
-            disabled={endMutation.isPending}
-            onClick={() => endMutation.mutate(liveSessionElsewhere.id)}
-          >
-            {endMutation.isPending && endMutation.variables === liveSessionElsewhere.id
-              ? 'Đang kết thúc…'
-              : 'Kết thúc phiên live này'}
-          </button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              disabled={goLiveMutation.isPending}
+              onClick={() => rejoinLive(liveSessionElsewhere)}
+            >
+              {goLiveMutation.isPending && goLiveMutation.variables === liveSessionElsewhere.id
+                ? 'Đang kết nối…'
+                : 'Vào lại phòng live'}
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-destructive/50 bg-destructive/15 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-50"
+              disabled={endMutation.isPending}
+              onClick={() => endMutation.mutate(liveSessionElsewhere.id)}
+            >
+              {endMutation.isPending && endMutation.variables === liveSessionElsewhere.id
+                ? 'Đang kết thúc…'
+                : 'Kết thúc phiên live này'}
+            </button>
+          </div>
         </div>
       ) : null}
 
@@ -196,7 +220,8 @@ export default function DoctorLivePage() {
         <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
           <p className="text-sm font-medium text-foreground">Chưa vào phòng live</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sau khi bấm &quot;Bắt đầu phát&quot;, khung video, điều khiển mic/camera và liên kết cho bệnh nhân sẽ hiển thị tại đây. Khi đang phát, nút &quot;Kết thúc phát&quot; nằm phía trên; nếu mất trang, dùng ô cảnh báo màu vàng hoặc nút trong &quot;Phiên gần đây&quot; để kết thúc.
+            Sau khi bấm &quot;Bắt đầu phát&quot; hoặc &quot;Vào lại phòng live&quot;, khung video và bình luận hiển thị tại
+            đây.
           </p>
         </div>
       )}
@@ -207,16 +232,35 @@ export default function DoctorLivePage() {
           <ul className="divide-y divide-border/80 text-sm">
             {mine.items.map((s) => (
               <li className="flex flex-wrap items-center justify-between gap-3 py-3 first:pt-0" key={s.id}>
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  disabled={s.status !== 'live' || Boolean(liveKit) || goLiveMutation.isPending}
+                  onClick={() => s.status === 'live' && rejoinLive(s)}
+                  className={`min-w-0 flex-1 text-left ${s.status === 'live' && !liveKit ? 'rounded-lg transition-colors hover:bg-muted/60 disabled:opacity-50' : 'cursor-default'}`}
+                >
                   <p className="truncate font-medium text-foreground">{s.title}</p>
-                  <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{s.id}</p>
-                </div>
+                  {s.status === 'live' && !liveKit ? (
+                    <p className="mt-0.5 text-xs font-medium text-primary">Bấm để vào phòng live →</p>
+                  ) : (
+                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{s.id}</p>
+                  )}
+                </button>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
                   <span
                     className={`rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${statusBadgeClass(s.status)}`}
                   >
                     {s.status}
                   </span>
+                  {s.status === 'live' && !liveKit ? (
+                    <button
+                      type="button"
+                      className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                      disabled={goLiveMutation.isPending}
+                      onClick={() => rejoinLive(s)}
+                    >
+                      {goLiveMutation.isPending && goLiveMutation.variables === s.id ? 'Đang vào…' : 'Vào phòng'}
+                    </button>
+                  ) : null}
                   {s.status === 'live' ? (
                     <button
                       type="button"

@@ -9,6 +9,9 @@ import {
   useParticipants,
 } from '@livekit/components-react';
 
+import { QrCode } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+
 import { LiveCommentPanel } from '@/components/live/live-comment-panel';
 import { useToast } from '@/components/ui/toast';
 
@@ -67,53 +70,70 @@ function usePublicLiveUrl(streamId: string) {
   return url;
 }
 
-function LiveShareSidebar({ streamId, streamTitle }: { streamId: string; streamTitle: string }) {
+function LiveStreamSidebar({ streamId, streamTitle }: { streamId: string; streamTitle: string }) {
   const { show } = useToast();
   const publicUrl = usePublicLiveUrl(streamId);
+  const [qrOpen, setQrOpen] = useState(false);
 
-  const copy = () => {
+  const copyLink = () => {
     if (!publicUrl) return;
     void navigator.clipboard.writeText(publicUrl).then(
-      () => show({ message: 'Đã sao chép liên kết cho bệnh nhân.', variant: 'success' }),
-      () => show({ message: 'Không thể sao chép tự động. Hãy chọn và copy tay.', variant: 'error' }),
+      () => show({ message: 'Đã sao chép liên kết.', variant: 'success' }),
+      () => show({ message: 'Không thể sao chép tự động.', variant: 'error' }),
     );
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-4 xl:w-[300px]">
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Liên kết xem (bệnh nhân)</p>
-        <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground" title={streamTitle}>
-          {streamTitle}
-        </p>
-        <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{publicUrl || '…'}</p>
-        <button
-          type="button"
-          onClick={copy}
-          disabled={!publicUrl}
-          className="mt-3 w-full rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-        >
-          Sao chép liên kết
-        </button>
-        <p className="mt-2 text-xs text-muted-foreground">
-          Gửi liên kết này cho bệnh nhân; họ mở trên trình duyệt, không cần đăng nhập bác sĩ.
-        </p>
-      </div>
+    <aside className="flex w-full min-h-0 shrink-0 flex-col gap-3 xl:w-[340px]">
+      <button
+        type="button"
+        onClick={() => setQrOpen(true)}
+        disabled={!publicUrl}
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        <QrCode className="h-4 w-4" aria-hidden />
+        Mã QR cho bệnh nhân
+      </button>
 
-      <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Điều khiển nhanh</p>
-        <ul className="mt-2 list-inside list-disc space-y-1.5 text-xs text-muted-foreground">
-          <li>Thanh công cụ dưới khung video: tắt/bật mic và camera.</li>
-          <li>Chia sẻ màn hình khi cần trình chiếu tài liệu.</li>
-          <li>Bình luận bên phải: tin nhắn từ trang xem công khai (/live/…).</li>
-          <li>Chat trên thanh LiveKit: trao đổi nhanh trong phòng video.</li>
-          <li>Âm thanh trình duyệt: nếu không nghe được, bấm &quot;Bật âm thanh&quot; khi trình duyệt hỏi.</li>
-        </ul>
-      </div>
+      {qrOpen && publicUrl ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setQrOpen(false)}
+            aria-label="Đóng"
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-lg">
+            <h3 className="text-lg font-bold text-foreground">Quét để xem live</h3>
+            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground" title={streamTitle}>
+              {streamTitle}
+            </p>
+            <div className="mt-4 flex justify-center rounded-lg bg-white p-4">
+              <QRCodeSVG value={publicUrl} size={220} level="M" includeMargin />
+            </div>
+            <p className="mt-3 break-all text-center font-mono text-xs text-muted-foreground">{publicUrl}</p>
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={copyLink}
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-semibold"
+              >
+                Sao chép link
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrOpen(false)}
+                className="flex-1 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
-      <div className="rounded-xl border border-dashed border-border bg-muted/30 p-4 text-xs text-muted-foreground">
-        <span className="font-mono text-[10px] text-foreground/80">{streamId}</span>
-        <p className="mt-2">Mã phiên trên hệ thống (hỗ trợ khi cần kiểm tra log).</p>
+      <div className="flex min-h-[420px] min-w-0 flex-1 flex-col xl:min-h-0">
+        <LiveCommentPanel streamId={streamId} />
       </div>
     </aside>
   );
@@ -217,12 +237,7 @@ export function DoctorLiveStudio({
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <LiveSessionMain streamTitle={streamTitle} />
         </div>
-        <aside className="flex w-full min-h-0 shrink-0 flex-col gap-4 xl:w-[340px]">
-          <LiveShareSidebar streamId={streamId} streamTitle={streamTitle} />
-          <div className="flex min-h-[420px] min-w-0 flex-1 flex-col xl:min-h-0">
-            <LiveCommentPanel streamId={streamId} />
-          </div>
-        </aside>
+        <LiveStreamSidebar streamId={streamId} streamTitle={streamTitle} />
       </div>
     </LiveKitRoom>
   );
