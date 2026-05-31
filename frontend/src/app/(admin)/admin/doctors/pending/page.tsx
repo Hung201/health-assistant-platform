@@ -56,8 +56,7 @@ export default function AdminPendingDoctorsPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Bác sĩ chờ duyệt</h2>
           <p className="text-sm text-muted-foreground">
-            <code className="rounded bg-muted px-1 text-xs">GET /admin/doctors/pending</code> —{' '}
-            <code className="rounded bg-muted px-1 text-xs">PATCH …/approve|reject</code>
+            Xét duyệt hồ sơ hành nghề — duyệt hoặc từ chối từng bác sĩ đang chờ xác minh.
           </p>
         </div>
         <Link className="text-sm font-medium text-primary hover:underline" href="/admin">
@@ -142,7 +141,7 @@ export default function AdminPendingDoctorsPage() {
                 <p>
                   <span className="font-semibold text-foreground">Xác thực:</span>{' '}
                   {selected?.doctorProfile
-                    ? `${selected.doctorProfile.verificationStatus} (${selected.doctorProfile.isVerified ? 'verified' : 'not verified'})`
+                    ? `${selected.doctorProfile.verificationStatus === 'verified' ? 'Đã xác minh' : selected.doctorProfile.verificationStatus === 'pending' ? 'Đang chờ' : selected.doctorProfile.verificationStatus} (${selected.doctorProfile.isVerified ? 'Hợp lệ' : 'Chưa xác minh'})`
                     : '—'}
                 </p>
                 {selected?.doctorProfile?.bio ? (

@@ -29,23 +29,25 @@ const baseSummaryCards: Array<{
   >;
   label: string;
   sub: string;
+  icon: string;
+  color: string;
 }> = [
-  { key: 'totalUsers', label: 'Tổng users', sub: 'bảng users' },
-  { key: 'totalPatients', label: 'Bệnh nhân', sub: 'patient_profiles' },
-  { key: 'totalDoctors', label: 'Bác sĩ (hồ sơ)', sub: 'doctor_profiles' },
-  { key: 'pendingDoctors', label: 'BS chờ duyệt', sub: 'verification pending' },
-  { key: 'pendingPosts', label: 'Bài chờ duyệt', sub: 'status pending_review' },
-  { key: 'pendingBookings', label: 'Lịch chờ', sub: 'bookings pending' },
-  { key: 'totalSpecialties', label: 'Chuyên khoa', sub: 'specialties' },
+  { key: 'totalUsers', label: 'Tổng người dùng', sub: 'Tài khoản đã đăng ký', icon: 'group', color: 'text-blue-600' },
+  { key: 'totalPatients', label: 'Bệnh nhân', sub: 'Hồ sơ bệnh nhân', icon: 'personal_injury', color: 'text-emerald-600' },
+  { key: 'totalDoctors', label: 'Bác sĩ (hồ sơ)', sub: 'Hồ sơ hành nghề', icon: 'stethoscope', color: 'text-indigo-600' },
+  { key: 'pendingDoctors', label: 'BS chờ duyệt', sub: 'Đang xét duyệt hồ sơ', icon: 'pending_actions', color: 'text-amber-600' },
+  { key: 'pendingPosts', label: 'Bài chờ duyệt', sub: 'Bài viết cần kiểm duyệt', icon: 'article', color: 'text-orange-600' },
+  { key: 'pendingBookings', label: 'Lịch chờ xác nhận', sub: 'Lịch hẹn chưa xử lý', icon: 'calendar_clock', color: 'text-rose-600' },
+  { key: 'totalSpecialties', label: 'Chuyên khoa', sub: 'Chuyên khoa đang hoạt động', icon: 'category', color: 'text-teal-600' },
 ];
 
 const quickLinks = [
-  { href: '/admin/users', label: 'Danh sách người dùng', desc: 'GET /admin/users', icon: 'group' },
-  { href: '/admin/doctors/pending', label: 'Bác sĩ chờ duyệt', desc: 'GET /admin/doctors/pending', icon: 'stethoscope' },
-  { href: '/admin/posts/pending', label: 'Bài viết chờ duyệt', desc: 'GET /admin/posts/pending', icon: 'article' },
-  { href: '/admin/questions/pending', label: 'Câu hỏi chờ duyệt', desc: 'GET /admin/questions/pending', icon: 'forum' },
-  { href: '/admin/specialties', label: 'Chuyên khoa (read-only)', desc: 'GET /admin/specialties', icon: 'category' },
-  { href: '/admin/settings', label: 'Cài đặt', desc: 'Chưa có API', icon: 'settings' },
+  { href: '/admin/users', label: 'Danh sách người dùng', desc: 'Quản lý tài khoản, cấp quyền', icon: 'group' },
+  { href: '/admin/doctors/pending', label: 'Bác sĩ chờ duyệt', desc: 'Xét duyệt hồ sơ hành nghề', icon: 'stethoscope' },
+  { href: '/admin/posts/pending', label: 'Bài viết chờ duyệt', desc: 'Kiểm duyệt nội dung y khoa', icon: 'article' },
+  { href: '/admin/questions/pending', label: 'Câu hỏi chờ duyệt', desc: 'Duyệt câu hỏi từ bệnh nhân', icon: 'forum' },
+  { href: '/admin/specialties', label: 'Quản lý chuyên khoa', desc: 'Thêm, sửa, ẩn chuyên khoa', icon: 'category' },
+  { href: '/admin/settings', label: 'Cài đặt hệ thống', desc: 'Cấu hình nền tảng', icon: 'settings' },
 ];
 
 export default function AdminDashboardPage() {
@@ -79,19 +81,21 @@ export default function AdminDashboardPage() {
 
   return (
     <>
+      {/* Header */}
       <header className="mb-8 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Bảng điều khiển</h2>
-          <p className="text-sm text-muted-foreground">
-            Số liệu từ <code className="rounded bg-muted px-1 text-xs">GET /admin/dashboard/summary?days=7|30|90</code>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Tổng quan hoạt động hệ thống trong{' '}
+            <span className="font-semibold text-foreground">{periodDays} ngày</span> gần nhất.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {[7, 30, 90].map((d) => (
+          {([7, 30, 90] as const).map((d) => (
             <button
               key={d}
               type="button"
-              onClick={() => setPeriodDays(d as 7 | 30 | 90)}
+              onClick={() => setPeriodDays(d)}
               className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 periodDays === d
                   ? 'border-primary bg-primary/10 text-primary'
@@ -105,26 +109,37 @@ export default function AdminDashboardPage() {
       </header>
 
       {isError ? (
-        <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           {(error as Error).message}
         </div>
       ) : null}
 
+      {/* Stat cards */}
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {baseSummaryCards.map((card) => (
           <div
-            className="rounded-xl border border-border bg-card p-5 shadow-sm"
+            className="rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
             key={card.key}
           >
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.label}</p>
-            <p className="mt-1 text-2xl font-bold text-foreground">
-              {isLoading ? '…' : data ? String(data[card.key] ?? '—') : '—'}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{card.label}</p>
+              <span className={`material-symbols-outlined text-[20px] ${card.color}`}>{card.icon}</span>
+            </div>
+            <p className="mt-2 text-3xl font-bold text-foreground">
+              {isLoading ? (
+                <span className="inline-block h-8 w-12 animate-pulse rounded-md bg-muted" />
+              ) : data ? (
+                String(data[card.key] ?? '—')
+              ) : (
+                '—'
+              )}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
           </div>
         ))}
       </div>
 
+      {/* Payment stats */}
       <div className="mb-8">
         <h3 className="mb-3 text-lg font-bold text-foreground">Thống kê thanh toán</h3>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -132,33 +147,47 @@ export default function AdminDashboardPage() {
             {
               label: 'Doanh thu đã thu',
               value: payment ? fmtCurrency(payment.periodRevenue) : '—',
-              sub: `payment_status = paid (${periodDays} ngày)`,
+              sub: `Đã thanh toán thành công (${periodDays} ngày)`,
+              icon: 'payments',
+              color: 'text-emerald-600',
             },
             {
               label: 'Doanh thu chờ xử lý',
               value: payment ? fmtCurrency(payment.pendingRevenue) : '—',
-              sub: `awaiting_gateway + unpaid (${periodDays} ngày)`,
+              sub: `Đang chờ cổng thanh toán & chưa thu (${periodDays} ngày)`,
+              icon: 'hourglass_empty',
+              color: 'text-amber-600',
             },
             {
-              label: 'Tỷ lệ thanh toán thành công',
+              label: 'Tỷ lệ thanh toán',
               value: payment ? `${payment.paidRatePct}%` : '—',
-              sub: `paid / tracked payments (${periodDays} ngày)`,
+              sub: `Tỷ lệ lịch hẹn đã thanh toán (${periodDays} ngày)`,
+              icon: 'percent',
+              color: 'text-blue-600',
             },
             {
               label: `Tăng trưởng ${periodDays} ngày`,
               value: payment ? `${payment.revenueGrowthPct}%` : '—',
-              sub: payment ? `${fmtCurrency(payment.previousPeriodRevenue)} kỳ trước` : '—',
+              sub: payment ? `So với ${fmtCurrency(payment.previousPeriodRevenue)} kỳ trước` : '—',
+              icon: 'trending_up',
+              color: 'text-indigo-600',
             },
           ].map((card) => (
-            <div className="rounded-xl border border-border bg-card p-5 shadow-sm" key={card.label}>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.label}</p>
-              <p className="mt-1 text-2xl font-bold text-foreground">{isLoading ? '…' : card.value}</p>
+            <div className="rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md" key={card.label}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{card.label}</p>
+                <span className={`material-symbols-outlined text-[20px] ${card.color}`}>{card.icon}</span>
+              </div>
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                {isLoading ? <span className="inline-block h-8 w-20 animate-pulse rounded-md bg-muted" /> : card.value}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">{card.sub}</p>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Charts row */}
       <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
           <h3 className="text-base font-bold text-foreground">Xu hướng doanh thu theo ngày</h3>
@@ -213,7 +242,7 @@ export default function AdminDashboardPage() {
                 <div className="space-y-2">
                   {methodChartData.map((row) => (
                     <div
-                      className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
+                      className="flex items-center justify-between rounded-xl border border-border bg-muted/30 px-3 py-2 text-sm"
                       key={row.paymentMethod}
                     >
                       <span className="font-semibold text-foreground">{row.label}</span>
@@ -229,6 +258,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Top doctors chart */}
       <div className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
         <h3 className="text-base font-bold text-foreground">Top bác sĩ theo doanh thu</h3>
         <div className="mt-4 h-72">
@@ -249,35 +279,38 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-1">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="text-base font-bold text-foreground">Danh sách top bác sĩ theo doanh thu</h3>
-          <div className="mt-4 space-y-2">
-            {(data?.topDoctorsByRevenue ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Chưa có dữ liệu doanh thu bác sĩ.</p>
-            ) : (
-              data?.topDoctorsByRevenue.map((row) => (
-                <div
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
-                  key={row.doctorUserId}
-                >
-                  <span className="font-semibold text-foreground">{row.doctorName}</span>
-                  <span className="text-muted-foreground">
-                    {row.paidBookings} lịch · <b className="text-foreground">{fmtCurrency(row.revenue)}</b>
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
+      {/* Top doctors list */}
+      <div className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
+        <h3 className="text-base font-bold text-foreground">Bảng xếp hạng bác sĩ theo doanh thu</h3>
+        <div className="mt-4 space-y-2">
+          {(data?.topDoctorsByRevenue ?? []).length === 0 ? (
+            <p className="text-sm text-muted-foreground">Chưa có dữ liệu doanh thu bác sĩ.</p>
+          ) : (
+            data?.topDoctorsByRevenue.map((row, idx) => (
+              <div
+                className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm"
+                key={row.doctorUserId}
+              >
+                <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${idx === 0 ? 'bg-amber-400/20 text-amber-700' : idx === 1 ? 'bg-slate-300/30 text-slate-600' : idx === 2 ? 'bg-orange-300/20 text-orange-700' : 'bg-muted text-muted-foreground'}`}>
+                  {idx + 1}
+                </span>
+                <span className="flex-1 font-semibold text-foreground">{row.doctorName}</span>
+                <span className="text-muted-foreground">
+                  {row.paidBookings} lịch · <b className="text-foreground">{fmtCurrency(row.revenue)}</b>
+                </span>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
+      {/* Quick nav */}
       <div className="mb-8">
-        <h3 className="mb-3 text-lg font-bold text-foreground">Chức năng & API</h3>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <h3 className="mb-3 text-lg font-bold text-foreground">Truy cập nhanh</h3>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {quickLinks.map((q) => (
             <Link
-              className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/5"
+              className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
               href={q.href}
               key={q.href}
             >

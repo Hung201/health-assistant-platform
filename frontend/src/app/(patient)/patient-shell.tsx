@@ -7,7 +7,7 @@ import { Menu } from '@base-ui/react/menu';
 import {
   AlignJustify, Bell, LogOut, User as UserIcon, UserCircle, X,
   LayoutDashboard, Bot, CalendarCheck, CalendarDays, UserCircle2,
-  BookOpen, Lock, Settings,
+  BookOpen, Lock, Settings, MessageCircleQuestion, Home,
 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -16,10 +16,12 @@ import { notificationsApi, type UserNotificationRow } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
 const NAV = [
+  { href: '/',                     Icon: Home,            label: 'Về trang chủ' },
   { href: '/patient',              Icon: LayoutDashboard, label: 'Tổng quan' },
   { href: '/patient/ai-assistant', Icon: Bot,             label: 'Trạm AI' },
   { href: '/patient/doctors',      Icon: CalendarCheck,   label: 'Đặt lịch' },
   { href: '/patient/bookings',     Icon: CalendarDays,    label: 'Lịch hẹn' },
+  { href: '/patient/qa',           Icon: MessageCircleQuestion, label: 'Hỏi đáp bác sĩ' },
   { href: '/patient/profile',      Icon: UserCircle2,     label: 'Hồ sơ cá nhân' },
   { href: '/blog',                 Icon: BookOpen,        label: 'Blog' },
   { href: '/patient/security',     Icon: Lock,            label: 'Bảo mật' },
@@ -35,6 +37,7 @@ function getPageTitle(pathname: string) {
   if (pathname.startsWith('/patient/ai-assistant')) return 'Trạm AI phân tích triệu chứng';
   if (pathname.startsWith('/patient/doctors')) return 'Đặt lịch khám';
   if (pathname.startsWith('/patient/bookings')) return 'Lịch hẹn của tôi';
+  if (pathname.startsWith('/patient/qa')) return 'Hỏi đáp bác sĩ';
   if (pathname.startsWith('/patient/profile')) return 'Hồ sơ cá nhân';
   if (pathname.startsWith('/blog')) return 'Blog sức khỏe';
   if (pathname.startsWith('/patient/security')) return 'Bảo mật tài khoản';
@@ -59,6 +62,21 @@ function priorityClass(p: UserNotificationRow['priority']): string {
   return 'bg-amber-100 text-amber-700';
 }
 
+const MOBILE_TABS = [
+  { href: '/patient',              Icon: LayoutDashboard, label: 'Tổng quan' },
+  { href: '/patient/ai-assistant', Icon: Bot,             label: 'Trạm AI' },
+  { href: '/patient/doctors',      Icon: CalendarCheck,   label: 'Đặt lịch' },
+  { href: '/patient/bookings',     Icon: CalendarDays,    label: 'Lịch hẹn' },
+];
+
+const MORE_NAV = [
+  { href: '/',                 Icon: Home,                  label: 'Về trang chủ' },
+  { href: '/patient/qa',       Icon: MessageCircleQuestion, label: 'Hỏi đáp bác sĩ' },
+  { href: '/patient/profile',  Icon: UserCircle2,           label: 'Hồ sơ cá nhân' },
+  { href: '/blog',             Icon: BookOpen,              label: 'Blog sức khỏe' },
+  { href: '/patient/security', Icon: Lock,                  label: 'Bảo mật' },
+];
+
 export function PatientShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -66,6 +84,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [noticeOpen, setNoticeOpen] = useState(false);
   const [noticeFilter, setNoticeFilter] = useState<'all' | 'unread'>('unread');
   const noticeRef = useRef<HTMLDivElement | null>(null);
@@ -91,7 +110,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ['patient', 'notifications'] }); },
   });
 
-  useEffect(() => { setMobileNavOpen(false); setNoticeOpen(false); }, [pathname]);
+  useEffect(() => { setMobileNavOpen(false); setNoticeOpen(false); setMoreSheetOpen(false); }, [pathname]);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -100,6 +119,14 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
     document.body.style.overflow = 'hidden';
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
   }, [mobileNavOpen]);
+
+  useEffect(() => {
+    if (!moreSheetOpen) return;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMoreSheetOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = ''; };
+  }, [moreSheetOpen]);
 
   useEffect(() => {
     if (!noticeOpen) return;
@@ -234,9 +261,10 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8EDF2]/80 bg-white/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3">
+            {/* Hamburger — desktop sidebar toggle (hidden on mobile since bottom nav is used) */}
             <button
               type="button"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all lg:hidden"
+              className="hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all"
               onClick={() => setMobileNavOpen(true)}
               aria-label="Mở menu"
             >
@@ -380,8 +408,96 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main key={pathname} className="flex-1 p-4 sm:p-6 lg:p-8 page-enter">{children}</main>
+        <main key={pathname} className="flex-1 p-4 pb-[5.5rem] sm:p-6 sm:pb-[5.5rem] lg:p-8 page-enter">{children}</main>
       </div>
+
+      {/* ── MOBILE BOTTOM TAB BAR ── */}
+      <nav className="mobile-bottom-nav lg:hidden" aria-label="Điều hướng chính">
+        {MOBILE_TABS.map(({ href, Icon, label }) => {
+          const active = navActive(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`mobile-tab-item ${active ? 'active' : ''}`}
+            >
+              <Icon size={21} strokeWidth={active ? 2.5 : 1.8} />
+              <span>{label}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className={`mobile-tab-item ${
+            moreSheetOpen || MORE_NAV.some((n) => navActive(pathname, n.href)) ? 'active' : ''
+          }`}
+          onClick={() => setMoreSheetOpen(true)}
+          aria-label="Xem thêm"
+        >
+          <AlignJustify size={21} strokeWidth={1.8} />
+          <span>Thêm</span>
+        </button>
+      </nav>
+
+      {/* ── MORE SHEET (mobile) ── */}
+      {moreSheetOpen && (
+        <>
+          <button
+            type="button"
+            aria-label="Đóng"
+            className="lg:hidden fixed inset-0 z-[50] bg-slate-900/50 backdrop-blur-[2px]"
+            onClick={() => setMoreSheetOpen(false)}
+          />
+          <div className="lg:hidden fixed inset-x-0 bottom-0 z-[60] rounded-t-3xl bg-white shadow-2xl bottom-sheet-slide-up">
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="h-1 w-10 rounded-full bg-slate-200" />
+            </div>
+            {/* User card */}
+            <div className="flex items-center gap-3 px-5 py-3 border-b border-slate-100">
+              <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#0D9E75]/10 flex items-center justify-center text-[#0D9E75] text-sm font-bold">
+                {user?.avatarUrl
+                  ? <img src={user.avatarUrl} alt={user.fullName ?? ''} className="h-full w-full object-cover" />
+                  : userInitials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold text-[#1a3353] truncate">{user?.fullName ?? 'Bệnh nhân'}</p>
+                <p className="text-[11px] text-slate-400 truncate">{user?.email ?? ''}</p>
+              </div>
+            </div>
+            {/* Nav items */}
+            <div className="p-3">
+              {MORE_NAV.map(({ href, Icon, label }) => {
+                const active = navActive(pathname, href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setMoreSheetOpen(false)}
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors',
+                      active ? 'bg-[#E8F8F2] text-[#0D9E75]' : 'text-slate-700 hover:bg-slate-50',
+                    )}
+                  >
+                    <Icon size={18} className={active ? 'text-[#0D9E75]' : 'text-slate-400'} />
+                    {label}
+                  </Link>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => { logout(); router.replace('/login'); }}
+                className="w-full flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors mt-1"
+              >
+                <LogOut size={18} />
+                Đăng xuất
+              </button>
+            </div>
+            {/* Safe area */}
+            <div style={{ height: 'env(safe-area-inset-bottom, 0px)' }} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -60,8 +60,7 @@ export default function AdminPendingPostsPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Bài viết chờ duyệt</h2>
           <p className="text-sm text-muted-foreground">
-            Trạng thái <code className="rounded bg-muted px-1 text-xs">pending_review</code> —{' '}
-            <code className="rounded bg-muted px-1 text-xs">GET /admin/posts/pending</code>
+            Kiểm duyệt nội dung y khoa — duyệt để xuất bản hoặc từ chối bài viết của bác sĩ.
           </p>
         </div>
         <Link className="text-sm font-medium text-primary hover:underline" href="/admin">
@@ -118,7 +117,11 @@ export default function AdminPendingPostsPage() {
                 <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Thông tin</p>
                 <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                   <p>
-                    <span className="font-semibold text-foreground">Trạng thái:</span> {selected?.status ?? '—'}
+                    <span className="font-semibold text-foreground">Trạng thái:</span>{' '}
+                    {selected?.status === 'pending_review' ? 'Chờ duyệt'
+                      : selected?.status === 'published' ? 'Xuất bản'
+                      : selected?.status === 'rejected' ? 'Từ chối'
+                      : selected?.status ?? '—'}
                   </p>
                   <p>
                     <span className="font-semibold text-foreground">Loại:</span> {selected?.postType ?? '—'}
@@ -189,7 +192,7 @@ export default function AdminPendingPostsPage() {
             {rows.length === 0 && !isLoading ? (
               <tr>
                 <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4}>
-                  Chưa có bài ở trạng thái chờ duyệt. (Bác sĩ cần gửi bài với status pending_review.)
+                  Chưa có bài viết nào đang chờ duyệt.
                 </td>
               </tr>
             ) : null}

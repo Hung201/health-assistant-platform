@@ -13,6 +13,7 @@ const ADMIN_AVATAR =
   'https://lh3.googleusercontent.com/aida-public/AB6AXuDUMP08rYqsRC6ewEBgMsxpA7wgUXnnD0_tJeg2dhExPM2ln1Ca3iMmxnPBUW0UmmB3DEYtdNbJB1xAim7gPzNrVJU53gmTfuzIBL3S7OOTR42zSB5a1iGavXy8d-cQAVKTTb_uPOC5OTogepdSKi45wCd3XyTYt09oA2yneo4gz5dtjmRBrEbPorEN6XXxH-RbO5clcwFIn_ntipfYZgFS5BOFmjCt8mgzaOg6IYm-z1xnAhgNTWClY6c52k0uZZOqQhbD2IMGrgBu';
 
 const NAV: { href: string; icon: string; label: string; badgeFrom?: 'pendingPosts' | 'pendingDoctors' }[] = [
+  { href: '/', icon: 'home', label: 'Về trang chủ' },
   { href: '/admin', icon: 'dashboard', label: 'Dashboard' },
   { href: '/admin/users', icon: 'group', label: 'Người dùng' },
   { href: '/admin/doctors/pending', icon: 'stethoscope', label: 'Duyệt bác sĩ', badgeFrom: 'pendingDoctors' },
@@ -144,6 +145,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             Menu
           </button>
           <span className="text-sm font-semibold text-foreground">Quản trị</span>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-muted"
+          >
+            <span className="material-symbols-outlined text-[14px]">home</span>
+            Trang chủ
+          </Link>
         </div>
         {children}
       </main>

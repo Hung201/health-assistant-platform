@@ -16,10 +16,72 @@ function statusBadgeClass(status: string) {
   return 'border-border bg-muted/80 text-foreground';
 }
 
+/** Confirmation dialog for ending a livestream */
+function EndStreamDialog({
+  open,
+  isPending,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  isPending: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50 transition-opacity"
+        onClick={onCancel}
+        aria-label="Huỷ"
+      />
+      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
+        <h3 className="text-base font-bold text-foreground">Kết thúc buổi phát trực tiếp?</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Bạn có chắc muốn kết thúc buổi phát trực tiếp này? Bệnh nhân đang xem sẽ bị ngắt kết nối.
+        </p>
+        <div className="mt-5 flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isPending}
+            className="rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="rounded-xl bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
+          >
+            {isPending ? 'Đang kết thúc…' : 'Kết thúc'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Truncate UUID to first 8 chars with tooltip showing full value */
+function TruncatedId({ id }: { id: string }) {
+  return (
+    <span
+      className="cursor-default font-mono text-xs text-muted-foreground"
+      title={id}
+    >
+      {id.slice(0, 8)}…
+    </span>
+  );
+}
+
 export default function DoctorLivePage() {
   const [draft, setDraft] = useState<LiveStreamRow | null>(null);
   const [liveKit, setLiveKit] = useState<{ url: string; token: string; streamId: string } | null>(null);
   const [title, setTitle] = useState('');
+  const [confirmEndId, setConfirmEndId] = useState<string | null>(null);
 
   const { data: mine, refetch: refetchMine } = useQuery({
     queryKey: ['doctor', 'livestreams', 'mine'],
@@ -47,6 +109,7 @@ export default function DoctorLivePage() {
     onSuccess: (_row, endedId) => {
       setLiveKit((lk) => (lk?.streamId === endedId ? null : lk));
       setDraft((d) => (d?.id === endedId ? null : d));
+      setConfirmEndId(null);
       void refetchMine();
     },
   });
@@ -79,11 +142,19 @@ export default function DoctorLivePage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-10">
+      {/* End stream confirmation dialog */}
+      <EndStreamDialog
+        open={Boolean(confirmEndId)}
+        isPending={endMutation.isPending}
+        onConfirm={() => confirmEndId && endMutation.mutate(confirmEndId)}
+        onCancel={() => !endMutation.isPending && setConfirmEndId(null)}
+      />
+
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="max-w-2xl space-y-2">
           <h2 className="text-2xl font-bold text-foreground">Phát trực tiếp</h2>
         </div>
-        <Link className="shrink-0 text-sm font-medium text-primary hover:underline" href="/doctor">
+        <Link className="shrink-0 text-sm font-medium text-primary transition-colors hover:underline" href="/doctor">
           ← Tổng quan
         </Link>
       </div>
@@ -96,7 +167,7 @@ export default function DoctorLivePage() {
         ].map((s, i) => (
           <li key={s.n} className="flex items-center gap-2 text-sm">
             <span
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${s.done
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold transition-colors ${s.done
                   ? 'border-primary bg-primary text-primary-foreground'
                   : s.active
                     ? 'border-primary text-primary'
@@ -114,7 +185,7 @@ export default function DoctorLivePage() {
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tiêu đề buổi live</p>
         <input
-          className="mb-4 w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+          className="mb-4 w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm outline-none ring-offset-background transition-colors focus-visible:ring-2 focus-visible:ring-ring"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Ví dụ: Tư vấn tim mạch tuần 12"
@@ -123,7 +194,7 @@ export default function DoctorLivePage() {
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
             disabled={createMutation.isPending || Boolean(liveKit) || Boolean(draft)}
             onClick={() => createMutation.mutate()}
           >
@@ -132,7 +203,7 @@ export default function DoctorLivePage() {
           {draft && draft.status === 'scheduled' ? (
             <button
               type="button"
-              className="rounded-lg border border-border bg-background px-4 py-2.5 text-sm font-semibold shadow-sm disabled:opacity-50"
+              className="rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors hover:bg-muted disabled:opacity-50"
               disabled={goLiveMutation.isPending || Boolean(liveKit)}
               onClick={() => goLiveMutation.mutate(draft.id)}
             >
@@ -142,9 +213,9 @@ export default function DoctorLivePage() {
           {activeId && liveKit ? (
             <button
               type="button"
-              className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm font-semibold text-destructive disabled:opacity-50"
+              className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-2.5 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
               disabled={endMutation.isPending}
-              onClick={() => endMutation.mutate(activeId)}
+              onClick={() => setConfirmEndId(activeId)}
             >
               {endMutation.isPending && endMutation.variables === activeId ? 'Đang kết thúc…' : 'Kết thúc phát'}
             </button>
@@ -160,11 +231,11 @@ export default function DoctorLivePage() {
           <p className="mt-3 text-sm text-destructive">{(endMutation.error as Error).message}</p>
         ) : null}
         {draft ? (
-          <div className="mt-4 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-semibold text-foreground">Phiên:</span>{' '}
-            <span className="font-mono text-foreground/90">{draft.id}</span>
-            <span className="mx-2 text-border">|</span>
-            <span className="font-semibold text-foreground">Trạng thái:</span>{' '}
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs">
+            <span className="font-semibold text-foreground">Phiên:</span>
+            <TruncatedId id={draft.id} />
+            <span className="text-border" aria-hidden>|</span>
+            <span className="font-semibold text-foreground">Trạng thái:</span>
             <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusBadgeClass(draft.status)}`}>
               {draft.status}
             </span>
@@ -183,7 +254,7 @@ export default function DoctorLivePage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <button
               type="button"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               disabled={goLiveMutation.isPending}
               onClick={() => rejoinLive(liveSessionElsewhere)}
             >
@@ -193,9 +264,9 @@ export default function DoctorLivePage() {
             </button>
             <button
               type="button"
-              className="rounded-lg border border-destructive/50 bg-destructive/15 px-4 py-2 text-sm font-semibold text-destructive disabled:opacity-50"
+              className="rounded-xl border border-destructive/50 bg-destructive/15 px-4 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/25 disabled:opacity-50"
               disabled={endMutation.isPending}
-              onClick={() => endMutation.mutate(liveSessionElsewhere.id)}
+              onClick={() => setConfirmEndId(liveSessionElsewhere.id)}
             >
               {endMutation.isPending && endMutation.variables === liveSessionElsewhere.id
                 ? 'Đang kết thúc…'
@@ -236,13 +307,13 @@ export default function DoctorLivePage() {
                   type="button"
                   disabled={s.status !== 'live' || Boolean(liveKit) || goLiveMutation.isPending}
                   onClick={() => s.status === 'live' && rejoinLive(s)}
-                  className={`min-w-0 flex-1 text-left ${s.status === 'live' && !liveKit ? 'rounded-lg transition-colors hover:bg-muted/60 disabled:opacity-50' : 'cursor-default'}`}
+                  className={`min-w-0 flex-1 text-left ${s.status === 'live' && !liveKit ? 'rounded-lg px-2 py-1 transition-colors hover:bg-muted/60 disabled:opacity-50' : 'cursor-default'}`}
                 >
                   <p className="truncate font-medium text-foreground">{s.title}</p>
                   {s.status === 'live' && !liveKit ? (
                     <p className="mt-0.5 text-xs font-medium text-primary">Bấm để vào phòng live →</p>
                   ) : (
-                    <p className="mt-0.5 font-mono text-[11px] text-muted-foreground">{s.id}</p>
+                    <TruncatedId id={s.id} />
                   )}
                 </button>
                 <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -254,7 +325,7 @@ export default function DoctorLivePage() {
                   {s.status === 'live' && !liveKit ? (
                     <button
                       type="button"
-                      className="rounded-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+                      className="rounded-xl bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                       disabled={goLiveMutation.isPending}
                       onClick={() => rejoinLive(s)}
                     >
@@ -264,9 +335,9 @@ export default function DoctorLivePage() {
                   {s.status === 'live' ? (
                     <button
                       type="button"
-                      className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive disabled:opacity-50"
+                      className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-50"
                       disabled={endMutation.isPending}
-                      onClick={() => endMutation.mutate(s.id)}
+                      onClick={() => setConfirmEndId(s.id)}
                     >
                       {endMutation.isPending && endMutation.variables === s.id ? 'Đang kết thúc…' : 'Kết thúc'}
                     </button>

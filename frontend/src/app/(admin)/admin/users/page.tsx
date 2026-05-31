@@ -157,9 +157,9 @@ export default function AdminUsersPage() {
               onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}
             >
               <option value="all">Tất cả</option>
-              <option value="admin">admin</option>
-              <option value="doctor">doctor</option>
-              <option value="patient">patient</option>
+              <option value="admin">Quản trị viên</option>
+              <option value="doctor">Bác sĩ</option>
+              <option value="patient">Bệnh nhân</option>
             </select>
           </div>
           <div>
@@ -170,8 +170,8 @@ export default function AdminUsersPage() {
               onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
             >
               <option value="all">Tất cả</option>
-              <option value="active">active</option>
-              <option value="disabled">disabled</option>
+              <option value="active">Hoạt động</option>
+              <option value="disabled">Vô hiệu</option>
             </select>
           </div>
           <div>
@@ -306,9 +306,9 @@ export default function AdminUsersPage() {
                 onChange={(e) => setCreateRole(e.target.value as 'patient' | 'doctor' | 'admin')}
                 value={createRole}
               >
-                <option value="patient">patient</option>
-                <option value="doctor">doctor</option>
-                <option value="admin">admin</option>
+                <option value="patient">Bệnh nhân</option>
+                <option value="doctor">Bác sĩ</option>
+                <option value="admin">Quản trị viên</option>
               </select>
             </div>
           </div>
@@ -380,18 +380,18 @@ export default function AdminUsersPage() {
                   }
                   type="button"
                 >
-                  {detail.status === 'active' ? 'Disable' : 'Activate'}
+                  {detail.status === 'active' ? 'Vô hiệu hoá' : 'Kích hoạt'}
                 </button>
               </div>
             </div>
           </div>
 
           <div className="mt-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Roles</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Vai trò</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {detail.roles.map((r) => (
                 <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${roleBadgeClass(r)}`} key={r}>
-                  {r}
+                  {r === 'admin' ? 'Quản trị viên' : r === 'doctor' ? 'Bác sĩ' : r === 'patient' ? 'Bệnh nhân' : r}
                 </span>
               ))}
             </div>
@@ -436,15 +436,19 @@ export default function AdminUsersPage() {
 
           {detail.doctorProfile ? (
             <div className="mt-6 rounded-lg border border-border bg-muted p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Doctor Profile</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Hồ sơ bác sĩ</p>
               <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">CCHN</p>
                   <p className="font-semibold text-foreground">{detail.doctorProfile.licenseNumber ?? '—'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Verification</p>
-                  <p className="font-semibold text-foreground">{detail.doctorProfile.verificationStatus}</p>
+                  <p className="text-xs text-muted-foreground">Xác minh hành nghề</p>
+                  <p className="font-semibold text-foreground">
+                    {detail.doctorProfile.verificationStatus === 'verified' ? 'Đã xác minh'
+                      : detail.doctorProfile.verificationStatus === 'pending' ? 'Đang chờ'
+                      : detail.doctorProfile.verificationStatus}
+                  </p>
                 </div>
               </div>
             </div>
@@ -452,7 +456,7 @@ export default function AdminUsersPage() {
 
           {detail.patientProfile ? (
             <div className="mt-6 rounded-lg border border-border bg-muted p-4">
-              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Patient Profile</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">Hồ sơ bệnh nhân</p>
               <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <p className="text-xs text-muted-foreground">Liên hệ khẩn cấp</p>
@@ -513,7 +517,7 @@ export default function AdminUsersPage() {
                           className={`rounded-full px-2 py-0.5 text-xs font-medium ${roleBadgeClass(r)}`}
                           key={r}
                         >
-                          {r}
+                          {r === 'admin' ? 'Quản trị' : r === 'doctor' ? 'Bác sĩ' : r === 'patient' ? 'Bệnh nhân' : r}
                         </span>
                       ))}
                     </div>
@@ -533,7 +537,9 @@ export default function AdminUsersPage() {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>{u.status}</td>
+                  <td className={`px-4 ${dense ? 'py-2' : 'py-3'}`}>
+                    {u.status === 'active' ? 'Hoạt động' : u.status === 'disabled' ? 'Vô hiệu' : u.status}
+                  </td>
                   {showPhone ? <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs text-muted-foreground`}>{u.phone ?? '—'}</td> : null}
                   {showCreatedAt ? (
                     <td className={`px-4 ${dense ? 'py-2' : 'py-3'} text-xs text-muted-foreground`}>
