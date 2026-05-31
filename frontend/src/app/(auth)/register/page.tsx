@@ -488,6 +488,13 @@ export default function RegisterPage() {
                 </button>
               </div>
             </form>
+
+            <p className="mt-6 text-center text-sm font-medium text-slate-500">
+              Bạn đã có tài khoản?{' '}
+              <Link className="font-bold text-teal-600 hover:text-teal-700 transition-colors" href="/login">
+                Đăng nhập ngay
+              </Link>
+            </p>
           </div>
         </div>
       </main>

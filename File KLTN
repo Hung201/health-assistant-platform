@@ -1,0 +1,430 @@
+# 🏥 Tài Liệu Bảo Vệ Khóa Luận
+## Clinical Precision — Nền Tảng Hỗ Trợ Y Tế Thông Minh
+
+---
+
+## I. TỔNG QUAN DỰ ÁN
+
+**Tên dự án:** Clinical Precision — Health Assistant Platform
+
+**Mô tả:** Nền tảng y tế số tích hợp AI, kết nối bệnh nhân – bác sĩ – quản trị viên theo mô hình 3 vai trò trên cùng một hệ thống. Cung cấp trải nghiệm từ phân tích triệu chứng sơ bộ bằng AI → gợi ý chuyên khoa → đặt lịch bác sĩ → tư vấn cộng đồng → livestream y tế.
+
+### Kiến trúc Hệ thống
+
+```
+┌─────────────────────────────────────────┐
+│              FRONTEND (Next.js 14)       │
+│  (marketing / patient / doctor / admin) │
+└──────────────┬──────────────────────────┘
+               │ REST API (JWT)
+┌──────────────▼──────────────────────────┐
+│           BACKEND (NestJS)               │
+│  auth · bookings · doctors · payments   │
+│  posts · qa · livestreams · admin       │
+└──────────────┬──────────────────────────┘
+               │ HTTP
+┌──────────────▼──────────────────────────┐
+│       AI SERVICE (Python FastAPI)        │
+│  LangChain Agent + RAG + GPT-4o-mini    │
+└─────────────────────────────────────────┘
+               │
+┌──────────────▼──────────────────────────┐
+│        PostgreSQL Database               │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## II. CHỨC NĂNG HỆ THỐNG
+
+### 🤖 Module AI — Trợ lý Sàng lọc Thông minh
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| **Chat triệu chứng tự nhiên** | Bệnh nhân nhập triệu chứng bằng ngôn ngữ tự nhiên (tiếng Việt), AI hiểu và phân tích |
+| **Follow-up questions** | AI tự động đặt câu hỏi bổ sung khi thông tin chưa đủ |
+| **Phân tích sơ bộ (RAG)** | Kết hợp LLM + cơ sở dữ liệu y khoa để suy luận bệnh lý có khả năng mắc phải |
+| **Top-3 bệnh lý gợi ý** | Trả về danh sách tối đa 3 bệnh kèm % dự đoán và mức độ nguy hiểm (Xanh/Vàng/Đỏ) |
+| **Gợi ý chuyên khoa** | Đề xuất chuyên khoa bác sĩ phù hợp để khám |
+| **Guardrails y tế** | Từ chối các câu hỏi ngoài lề y tế; cảnh báo khẩn cấp 115 với triệu chứng nguy hiểm |
+| **Disclaimer tự động** | Mọi phản hồi đều có tuyên bố "chỉ là sàng lọc sơ bộ, không thay thế bác sĩ" |
+
+---
+
+### 👤 Module Bệnh Nhân (Patient)
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| **Dashboard cá nhân** | Xem lịch hẹn sắp tới, tổng lượt khám, trạng thái hồ sơ |
+| **Hồ sơ y tế điện tử** | Lưu nhóm máu, bệnh nền, chiều cao, cân nặng, dị ứng |
+| **Tìm kiếm bác sĩ** | Lọc theo chuyên khoa, xem hồ sơ bác sĩ, đánh giá |
+| **Đặt lịch khám** | Chọn slot thời gian trống, đặt lịch trực tiếp/online |
+| **Quản lý lịch hẹn** | Xem, theo dõi trạng thái (chờ/đã duyệt/hoàn thành/hủy) |
+| **Hỏi bác sĩ miễn phí** | Gửi câu hỏi y tế, nhận trả lời từ bác sĩ trên hệ thống |
+| **Bảo mật tài khoản** | Đổi mật khẩu, xác thực email, đăng nhập Google OAuth |
+
+---
+
+### 👨‍⚕️ Module Bác Sĩ (Doctor)
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| **Dashboard doanh thu** | Biểu đồ xu hướng doanh thu theo ngày, tỷ lệ thanh toán, tăng trưởng so với kỳ trước |
+| **Quản lý slot khám** | Tạo, chỉnh sửa, xóa khung giờ trống để bệnh nhân đặt lịch |
+| **Quản lý lịch hẹn** | Duyệt/từ chối lịch hẹn, thêm ghi chú cho từng ca khám |
+| **Hồ sơ hành nghề** | Cập nhật chứng chỉ, chuyên khoa, nơi làm việc, giới thiệu bản thân |
+| **Hộp thư hỏi đáp** | Trả lời câu hỏi từ bệnh nhân, lọc theo trạng thái chờ/đã trả lời |
+| **Phát Livestream** | Phát video trực tiếp qua LiveKit (WebRTC), bệnh nhân xem và bình luận real-time |
+| **Quản lý bài viết** | Viết, chỉnh sửa bài blog y khoa để chia sẻ kiến thức cộng đồng |
+
+---
+
+### 🛡️ Module Quản Trị (Admin)
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| **Dashboard hệ thống** | Tổng quan người dùng, doanh thu, xu hướng toàn nền tảng |
+| **Duyệt hồ sơ bác sĩ** | Xét duyệt chứng chỉ hành nghề và thông tin bác sĩ trước khi kích hoạt |
+| **Duyệt bài viết** | Kiểm duyệt nội dung y khoa trước khi đăng lên blog công khai |
+| **Duyệt câu hỏi Q&A** | Duyệt câu hỏi của bệnh nhân trước khi hiển thị cho bác sĩ |
+| **Quản lý chuyên khoa** | Thêm, sửa, ẩn danh sách chuyên khoa y tế |
+| **Quản lý người dùng** | Xem, cấp/thu hồi quyền người dùng trên hệ thống |
+| **Top bác sĩ doanh thu** | Bảng xếp hạng bác sĩ theo doanh thu để phân tích hiệu suất |
+
+---
+
+### 🌐 Trang Chủ & Cộng Đồng (Public)
+
+| Chức năng | Mô tả |
+|-----------|-------|
+| **Landing page** | Giới thiệu tính năng, quy trình 4 bước, bác sĩ nổi bật, đánh giá người dùng |
+| **Tìm bác sĩ công khai** | Duyệt danh sách bác sĩ, lọc theo chuyên khoa, xem hồ sơ chi tiết |
+| **Blog y khoa** | Đọc bài viết từ bác sĩ, chia sẻ kiến thức sức khỏe |
+| **Q&A công khai** | Xem câu hỏi & trả lời từ cộng đồng và bác sĩ |
+| **Xem Livestream** | Bệnh nhân/khách có thể xem buổi phát trực tiếp của bác sĩ |
+
+---
+
+## III. VẤN ĐỀ ĐƯỢC GIẢI QUYẾT
+
+| # | Vấn đề thực tiễn | Giải pháp của dự án |
+|---|-------------------|---------------------|
+| 1 | Người dân không biết mình cần khám chuyên khoa nào | AI phân tích triệu chứng → gợi ý đúng chuyên khoa |
+| 2 | Phải xếp hàng chờ đợi lâu, gọi điện đặt lịch mất thời gian | Đặt lịch online 24/7 theo slot thời gian thực |
+| 3 | Thông tin bác sĩ không minh bạch, khó biết trình độ chuyên môn | Hồ sơ bác sĩ chi tiết, xác minh chứng chỉ qua admin |
+| 4 | Bệnh nhân sau khám không có nơi lưu trữ hồ sơ y tế | Hồ sơ y tế điện tử tập trung, bảo mật trên nền tảng |
+| 5 | Khó tiếp cận tư vấn y tế ban đầu với chi phí thấp | Hỏi bác sĩ miễn phí, AI tư vấn sơ bộ không mất phí |
+| 6 | Bác sĩ thiếu công cụ quản lý lịch hẹn và doanh thu | Dashboard bác sĩ đầy đủ: lịch hẹn, doanh thu, biểu đồ |
+| 7 | Không có nơi chia sẻ kiến thức y khoa dạng video thời gian thực | Tính năng Livestream cho phép bác sĩ phát trực tiếp |
+| 8 | Admin khó quản lý chất lượng nội dung trên nền tảng y tế | Luồng duyệt 3 cấp: bác sĩ → bài viết → câu hỏi |
+
+---
+
+## IV. CÂU HỎI PHẢN BIỆN CỦA GIÁM KHẢO & GỢI Ý TRẢ LỜI
+
+---
+
+### 📌 NHÓM 1: Lý Do Tồn Tại & Cạnh Tranh
+
+---
+
+**❓ Câu hỏi 1: Tại sao tôi phải dùng website của em thay vì tôi cứ tìm kiếm trên Google?**
+
+> **Gợi ý trả lời:**
+>
+> Google là công cụ tìm kiếm thông tin, không phải công cụ hành động. Khi bạn gõ "bị đau đầu khám ở đâu" trên Google, bạn nhận được hàng triệu kết quả lộn xộn, từ bài viết cũ, quảng cáo, diễn đàn không chuyên — bạn phải tự đọc, tự phán đoán và vẫn chưa biết mình nên đi đâu. Ngược lại, Clinical Precision:
+>
+> 1. **Lắng nghe bạn** (không phải để bạn lọc thông tin): bạn mô tả triệu chứng bằng tiếng Việt tự nhiên, AI phân tích và trả lời cụ thể ngay.
+> 2. **Khép kín quy trình** trong một nền tảng: AI gợi ý chuyên khoa → bạn xem danh sách bác sĩ đã xác minh → đặt lịch ngay lập tức → quản lý hồ sơ khám bệnh. Không cần chuyển sang 5-6 trang web khác nhau.
+> 3. **Bác sĩ đã được kiểm duyệt chứng chỉ** — Google không làm điều đó.
+>
+> Nói đơn giản: Google cho bạn thông tin, còn chúng tôi cho bạn hành động.
+
+---
+
+**❓ Câu hỏi 2: Thay vì dùng AI của em, tôi hỏi thẳng ChatGPT hoặc Gemini cho nhanh. Tại sao tôi cần AI của em?**
+
+> **Gợi ý trả lời:**
+>
+> ChatGPT và Gemini là các mô hình AI tổng quát, không được thiết kế cho bối cảnh y tế Việt Nam. Có 3 điểm khác biệt cốt lõi:
+>
+> 1. **Dữ liệu ngữ cảnh cá nhân hóa:** AI của chúng tôi đọc hồ sơ của bạn (nhóm máu, bệnh nền, BMI) trước khi phân tích. ChatGPT không biết bạn là ai.
+> 2. **Kết quả có hành động tiếp theo:** Sau khi AI đề xuất chuyên khoa, bạn được dẫn thẳng đến danh sách bác sĩ phù hợp và đặt lịch ngay — đây là điều ChatGPT không làm được.
+> 3. **An toàn y tế có kiểm soát:** Chúng tôi có cơ chế Guardrails — AI từ chối tư vấn ngoài lề y tế và tự động cảnh báo gọi 115 nếu phát hiện triệu chứng nguy hiểm. ChatGPT không có cơ chế này và có thể đưa ra câu trả lời sai lệch mà không cảnh báo.
+> 4. **Dữ liệu y khoa Việt Nam:** AI được bổ sung (RAG) từ kho bài viết chuẩn của bác sĩ trong hệ thống, phù hợp với bệnh cảnh, khí hậu và đặc điểm sức khỏe người Việt.
+>
+> Tóm lại: ChatGPT là trợ lý tổng quát, chúng tôi là chuyên gia y tế số của bạn.
+
+---
+
+**❓ Câu hỏi 3: Có rất nhiều ứng dụng y tế như Medprime, Doctor Anywhere, Doctorize... Điểm khác biệt của em là gì?**
+
+> **Gợi ý trả lời:**
+>
+> Hầu hết các ứng dụng y tế trên thị trường giải quyết bài toán **đặt lịch** — như một cuốn danh bạ bác sĩ điện tử. Clinical Precision giải quyết toàn bộ **hành trình y tế**:
+>
+> - **Trước khi khám:** AI hỗ trợ sàng lọc, bạn không còn lạc lõng không biết khám khoa nào.
+> - **Trong khi khám:** Lịch hẹn rõ ràng, bác sĩ có công cụ quản lý chuyên nghiệp.
+> - **Sau khi khám:** Hồ sơ y tế điện tử lưu trữ kết quả, tiếp tục theo dõi qua Q&A và blog.
+>
+> Đặc biệt, tính năng **Livestream y tế** (bác sĩ phát trực tiếp cho bệnh nhân) và **Hỏi bác sĩ miễn phí** là các điểm khác biệt mà phần lớn nền tảng trong nước chưa có.
+
+---
+
+### 📌 NHÓM 2: Tính Khả Thi & Kỹ Thuật
+
+---
+
+**❓ Câu hỏi 4: AI sàng lọc triệu chứng của em có thể gây nguy hiểm không nếu đưa ra chẩn đoán sai?**
+
+> **Gợi ý trả lời:**
+>
+> Đây là vấn đề chúng tôi rất coi trọng và đã giải quyết bằng 3 cơ chế:
+>
+> 1. **Định vị chính xác từ đầu:** Hệ thống không bao giờ gọi kết quả là "chẩn đoán" — chỉ là "sàng lọc sơ bộ". Tuyên bố từ chối trách nhiệm (Disclaimer) xuất hiện bắt buộc ở mọi phản hồi.
+> 2. **Cơ chế khẩn cấp:** Nếu bệnh nhân mô tả triệu chứng nguy hiểm (đau ngực trái, khó thở đột ngột, liệt mặt...), AI bypass toàn bộ quy trình phân tích và ngay lập tức hiển thị cảnh báo **"Gọi ngay cấp cứu 115"**.
+> 3. **Độ tự tin thấp = từ chối:** Khi AI không đủ dữ liệu để suy luận, nó trả lời "Tôi không chắc chắn — bạn nên đi khám trực tiếp" thay vì đoán mò.
+>
+> Mục tiêu của chúng tôi là **giảm thiểu rào cản tiếp cận y tế ban đầu** — không phải thay thế bác sĩ.
+
+---
+
+**❓ Câu hỏi 5: Tại sao em chọn kiến trúc microservice cho AI thay vì tích hợp vào backend chính?**
+
+> **Gợi ý trả lời:**
+>
+> Có 3 lý do kỹ thuật cụ thể:
+>
+> 1. **Ngôn ngữ tối ưu:** Python (với LangChain, FastAPI) có hệ sinh thái AI/ML vượt trội hơn Node.js. Tách biệt giúp mỗi service dùng ngôn ngữ phù hợp nhất.
+> 2. **Khả năng mở rộng độc lập:** Khi lượng request AI tăng cao, chúng tôi có thể scale riêng AI service mà không ảnh hưởng đến backend chính.
+> 3. **Bảo mật dữ liệu:** Trong tương lai, nếu chuyển sang LLM self-hosted (vì quy định y tế về dữ liệu nhạy cảm), chỉ cần thay thế AI service mà không đụng đến toàn bộ hệ thống.
+
+---
+
+**❓ Câu hỏi 6: Em dùng RAG (Retrieval-Augmented Generation) — cơ sở dữ liệu y khoa của em lấy từ đâu và chất lượng ra sao?**
+
+> **Gợi ý trả lời:**
+>
+> Dữ liệu cho RAG gồm 2 nguồn chính:
+>
+> 1. **Bài viết từ bác sĩ trong hệ thống:** Các bài blog y khoa được kiểm duyệt qua Admin trước khi đưa vào vector store — đảm bảo nội dung đã được người có chuyên môn xác nhận.
+> 2. **Dữ liệu bác sĩ crawl từ nguồn công khai** (file `data-crawl-doctor.json` — 500+ bác sĩ) để làm phong phú thêm ngữ cảnh.
+>
+> Hạn chế: Chúng tôi thừa nhận dữ liệu hiện tại còn hạn chế về độ phủ. Đây là MVP — trong production thực tế, cần hợp tác với cơ sở y tế để bổ sung cơ sở dữ liệu bệnh lý chuẩn (ICD-10, guidelines của Bộ Y Tế).
+
+---
+
+**❓ Câu hỏi 7: Hệ thống thanh toán của em hoạt động như thế nào? Có bảo mật không?**
+
+> **Gợi ý trả lời:**
+>
+> Hệ thống hỗ trợ 2 hình thức thanh toán:
+>
+> - **MoMo:** Tích hợp qua cổng thanh toán MoMo API — toàn bộ giao dịch được MoMo xử lý và mã hóa, chúng tôi chỉ nhận callback kết quả.
+> - **Thanh toán tại phòng khám (pay_at_clinic):** Bệnh nhân đặt lịch trước, thanh toán trực tiếp khi đến khám.
+>
+> Thông tin thẻ/ví điện tử **không bao giờ** đi qua server của chúng tôi. Toàn bộ session người dùng được xác thực qua JWT (có thời hạn) và refresh token riêng biệt.
+
+---
+
+**❓ Câu hỏi 8: Tính năng Livestream của em dùng công nghệ gì? Tại sao không dùng YouTube Live hay Zoom?**
+
+> **Gợi ý trả lời:**
+>
+> Chúng tôi dùng **LiveKit** — một nền tảng WebRTC mã nguồn mở. Lý do không dùng YouTube hay Zoom:
+>
+> 1. **Tích hợp sâu vào hệ thống:** LiveKit cho phép gắn stream vào tài khoản bác sĩ cụ thể, liên kết với lịch hẹn và bình luận real-time trực tiếp trong ứng dụng.
+> 2. **Kiểm soát dữ liệu y tế:** Buổi livestream y tế có thể chứa thông tin nhạy cảm — việc dùng YouTube đồng nghĩa với việc dữ liệu đi qua máy chủ bên thứ ba không kiểm soát được.
+> 3. **Trải nghiệm liền mạch:** Bệnh nhân không cần rời khỏi nền tảng để sang app khác.
+
+---
+
+### 📌 NHÓM 3: Giá Trị Thực Tiễn & Tác Động
+
+---
+
+**❓ Câu hỏi 9: Bác sĩ có lợi ích gì khi tham gia nền tảng này? Tại sao họ muốn dùng?**
+
+> **Gợi ý trả lời:**
+>
+> Chúng tôi thiết kế nền tảng với lợi ích cụ thể cho bác sĩ:
+>
+> 1. **Mở rộng tệp bệnh nhân:** Bác sĩ tiếp cận được bệnh nhân online — không giới hạn địa lý.
+> 2. **Quản lý lịch hẹn tự động:** Không cần thư ký hay ghi tay — hệ thống tự quản lý slot, nhắc lịch, theo dõi trạng thái.
+> 3. **Báo cáo doanh thu minh bạch:** Dashboard với biểu đồ xu hướng, so sánh kỳ trước, tỷ lệ thanh toán.
+> 4. **Xây dựng thương hiệu cá nhân:** Hồ sơ bác sĩ công khai, bài viết blog, Q&A cộng đồng và livestream giúp bác sĩ nổi bật trong chuyên khoa của mình.
+
+---
+
+**❓ Câu hỏi 10: Làm sao em đảm bảo chỉ có bác sĩ thật, có chứng chỉ hành nghề mới được dùng hệ thống?**
+
+> **Gợi ý trả lời:**
+>
+> Chúng tôi có luồng xác minh 2 bước:
+>
+> 1. **Đăng ký:** Bác sĩ phải cung cấp số chứng chỉ hành nghề (CCHN) và tải lên file chứng chỉ/bằng cấp khi đăng ký.
+> 2. **Admin duyệt thủ công:** Tất cả hồ sơ bác sĩ đều nằm trong trạng thái `pending` — chỉ sau khi Admin kiểm tra và phê duyệt, tài khoản bác sĩ mới được kích hoạt và hiển thị công khai.
+>
+> Hạn chế thừa nhận: Hiện tại việc xác minh vẫn là thủ công. Trong tương lai, có thể tích hợp API của Bộ Y Tế (nếu có) để tự động tra cứu số CCHN.
+
+---
+
+**❓ Câu hỏi 11: Em có dữ liệu thực tế nào để chứng minh người dùng cần sản phẩm này không?**
+
+> **Gợi ý trả lời:**
+>
+> Một số thống kê bối cảnh thực tiễn:
+>
+> - Theo Bộ Y Tế Việt Nam, bệnh viện tuyến trung ương luôn trong tình trạng quá tải — nhiều bệnh nhân khám sai chuyên khoa vì không biết cần khám ở đâu.
+> - 70%+ người Việt tra cứu thông tin y tế trên mạng trước khi quyết định đi khám — nhưng nguồn thông tin không được kiểm chứng.
+> - Đây là dự án học thuật (MVP) — chúng tôi đã seed dữ liệu 500+ bác sĩ thực tế (crawl từ nguồn công khai) để demo tính thực tiễn của hệ thống.
+
+---
+
+### 📌 NHÓM 4: Hạn Chế & Hướng Phát Triển
+
+---
+
+**❓ Câu hỏi 12: Hạn chế lớn nhất của dự án hiện tại là gì? Em có nhận ra không?**
+
+> **Gợi ý trả lời:**
+>
+> Chúng tôi nhận thức rõ 4 hạn chế chính:
+>
+> 1. **AI phụ thuộc API bên ngoài:** Hiện dùng GPT-4o-mini (OpenAI) — chi phí theo usage và có rủi ro nếu API thay đổi chính sách. Giải pháp tương lai: Self-hosted LLM (Llama, Mistral).
+> 2. **Cơ sở dữ liệu y khoa còn hạn chế:** RAG cần nhiều dữ liệu y khoa chuẩn Việt Nam hơn để tăng độ chính xác.
+> 3. **Chưa có ứng dụng di động:** Hiện chỉ là web — cần React Native app để tăng tiếp cận.
+> 4. **Chưa tích hợp thanh toán hoàn tiền (refund):** Logic hoàn tiền khi hủy lịch chưa được triển khai đầy đủ.
+
+---
+
+**❓ Câu hỏi 13: Dự án của em có vi phạm quy định pháp lý về y tế hay dữ liệu cá nhân không?**
+
+> **Gợi ý trả lời:**
+>
+> Chúng tôi đã chủ động tuân thủ một số nguyên tắc:
+>
+> 1. **Không chẩn đoán chính thức:** AI chỉ được định vị là "công cụ sàng lọc sơ bộ" — không thay thế bác sĩ, không kê đơn thuốc.
+> 2. **Bảo mật dữ liệu:** Mật khẩu được hash (bcrypt), dữ liệu truyền qua HTTPS, JWT có thời hạn.
+> 3. **Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân:** Dữ liệu y tế người dùng không được chia sẻ với bên thứ ba.
+>
+> Để triển khai production thực tế, cần tư vấn pháp lý chuyên sâu và đăng ký với Bộ Y Tế theo Nghị định 87/2011/NĐ-CP về ứng dụng công nghệ thông tin trong y tế.
+
+---
+
+**❓ Câu hỏi 14: Nếu em muốn mở rộng dự án này thành sản phẩm thương mại thật, em sẽ làm gì tiếp theo?**
+
+> **Gợi ý trả lời:**
+>
+> Roadmap 3 giai đoạn:
+>
+> **Giai đoạn 1 (0-6 tháng):**
+> - Xin giấy phép hoạt động với Bộ Y Tế
+> - Hợp tác với 10-20 phòng khám/bác sĩ để pilot thực tế
+> - Phát triển ứng dụng mobile (React Native)
+>
+> **Giai đoạn 2 (6-18 tháng):**
+> - Mở rộng cơ sở dữ liệu RAG, hợp tác với bệnh viện
+> - Tích hợp khám telemedicine video call
+> - Thêm module nhắc uống thuốc, theo dõi sức khỏe định kỳ
+>
+> **Giai đoạn 3 (18 tháng+):**
+> - Mô hình kinh doanh: phí hoa hồng % từ mỗi lịch hẹn, gói subscription bác sĩ premium
+> - Mở rộng sang các nước Đông Nam Á tương tự Việt Nam
+
+---
+
+### 📌 NHÓM 5: Câu Hỏi Sâu Về Kỹ Thuật
+
+---
+
+**❓ Câu hỏi 15: Tại sao em chọn Next.js cho frontend thay vì Vue hoặc Angular?**
+
+> **Gợi ý trả lời:**
+>
+> Next.js 14 với App Router cho phép kết hợp Server Components và Client Components trong cùng một ứng dụng:
+> - **SEO tốt hơn** cho trang chủ và blog y khoa (SSR/SSG) — quan trọng với nội dung y tế cần được Google index.
+> - **Code splitting tự động** giúp trang tải nhanh ngay cả khi codebase lớn.
+> - **Hệ sinh thái React lớn** — dễ tìm thư viện (TanStack Query, Recharts, LiveKit SDK...).
+>
+> Vue và Angular đều là lựa chọn tốt, nhưng Next.js phù hợp hơn cho bài toán cần cả performance và SEO.
+
+---
+
+**❓ Câu hỏi 16: Em xử lý vấn đề bảo mật phân quyền (Authorization) như thế nào? Làm sao ngăn bệnh nhân truy cập route của bác sĩ?**
+
+> **Gợi ý trả lời:**
+>
+> Hệ thống có 2 lớp bảo vệ:
+>
+> 1. **Backend (NestJS Guards):** Mỗi API endpoint đều có decorator `@Roles('doctor')` hoặc `@Roles('admin')` — JWT được decode và role được kiểm tra trước khi xử lý request. Nếu role không khớp → trả về 403 Forbidden.
+> 2. **Frontend (Route Groups + Middleware):** Next.js middleware kiểm tra JWT và role trong cookie/localStorage trước khi cho phép render page. Route group `(doctor)`, `(patient)`, `(admin)` được bảo vệ riêng biệt — bệnh nhân không thể truy cập `/doctor/*` dù biết URL.
+
+---
+
+**❓ Câu hỏi 17: Em có viết test cho dự án không? Làm sao em biết code của em đúng?**
+
+> **Gợi ý trả lời:**
+>
+> Trong phạm vi khóa luận tốt nghiệp (MVP), chúng tôi tập trung vào functional testing thủ công và một số unit test cơ bản cho NestJS backend (thư mục `test/`). Đây là hạn chế thừa nhận — một production system cần:
+> - Unit tests cho business logic (booking flow, payment calculation)
+> - Integration tests cho API endpoints
+> - E2E tests cho critical user flows (đặt lịch, thanh toán)
+>
+> Hiện tại chúng tôi đảm bảo chất lượng qua TypeScript strict mode (type safety) và review thủ công.
+
+---
+
+**❓ Câu hỏi 18: Hệ thống của em xử lý được bao nhiêu người dùng đồng thời? Có kế hoạch scaling không?**
+
+> **Gợi ý trả lời:**
+>
+> Đây là MVP phục vụ mục đích học thuật, chưa được benchmark performance thực tế. Tuy nhiên về mặt kiến trúc, hệ thống được thiết kế để dễ scale:
+>
+> - **Backend NestJS:** Stateless — có thể chạy nhiều instance sau load balancer
+> - **Database PostgreSQL:** Có thể thêm read replicas khi cần
+> - **AI Service:** Tách biệt hoàn toàn — scale độc lập theo demand
+> - **LiveKit:** Dùng distributed architecture sẵn có của LiveKit Cloud
+>
+> Để production thực tế, cần thêm Redis (cache + session), CDN cho media, và load testing.
+
+---
+
+**❓ Câu hỏi 19: Tại sao em crawl dữ liệu bác sĩ từ bên ngoài? Điều đó có hợp pháp không?**
+
+> **Gợi ý trả lời:**
+>
+> Dữ liệu crawl (file `data-crawl-doctor.json`) được thu thập từ nguồn thông tin công khai về bác sĩ — thông tin này đã được công bố công khai, không bao gồm dữ liệu cá nhân nhạy cảm. Mục đích sử dụng là học thuật (demo) — không phục vụ mục đích thương mại.
+>
+> Trong production thực tế, chúng tôi sẽ thay thế hoàn toàn bằng dữ liệu từ bác sĩ tự đăng ký và xác minh qua hệ thống, không sử dụng dữ liệu crawl.
+
+---
+
+**❓ Câu hỏi 20: Điều gì làm em tự hào nhất về dự án này?**
+
+> **Gợi ý trả lời:**
+>
+> Điều tôi tự hào nhất là sự **tích hợp toàn diện** — từ AI Agent tự xây dựng bằng LangChain, backend NestJS đầy đủ tính năng, đến frontend Next.js với animation GSAP, biểu đồ Recharts thời gian thực và Livestream WebRTC.
+>
+> Đây không phải hệ thống demo đơn giản — mỗi tính năng đều có quy trình đầy đủ, từ giao diện người dùng đến API đến cơ sở dữ liệu. Và quan trọng hơn, chúng tôi đã giải quyết được bài toán thực tiễn: người Việt không biết khám bệnh ở đâu, không biết cần khám chuyên khoa nào — và chúng tôi đã tạo ra một hành trình y tế số liền mạch để giải quyết đúng vấn đề đó.
+
+---
+
+## V. BẢNG TÓM TẮT CÔNG NGHỆ
+
+| Layer | Công nghệ | Lý do chọn |
+|-------|-----------|------------|
+| Frontend | Next.js 14, TypeScript, TailwindCSS, GSAP | SSR/SEO, type safety, animation |
+| UI Components | Recharts, LiveKit SDK, Lucide Icons | Biểu đồ, video, icons |
+| State Management | TanStack Query, Zustand | Server state, client state |
+| Backend | NestJS, TypeScript | Modular, enterprise-grade Node.js |
+| Database | PostgreSQL | Relational, ACID-compliant cho y tế |
+| Authentication | JWT, bcrypt, Google OAuth | Bảo mật tiêu chuẩn |
+| AI Service | Python, FastAPI, LangChain, GPT-4o-mini | Ecosystem AI/ML tốt nhất |
+| Vector Store | Qdrant/ChromaDB | RAG embedding storage |
+| Video | LiveKit (WebRTC) | Self-hosted, bảo mật |
+| Payment | MoMo, Pay-at-clinic | Phổ biến tại Việt Nam |
+
+---
+
+*Tài liệu này được tổng hợp từ codebase thực tế của dự án. Các câu trả lời mang tính gợi ý — hãy điều chỉnh theo hiểu biết và trải nghiệm thực tế của bạn trong quá trình phát triển.*
