@@ -41,13 +41,28 @@ export function AIAssistantShared() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const userMessageCount = messages.filter(m => m.role === 'user').length;
+  const isGuestLimitReached = !user && userMessageCount >= 3;
+
   useEffect(() => {
-    // Only fetch sessions if logged in
+    // Only fetch sessions if logged in, otherwise reset to ensure a fresh session for guests
     if (user) {
       fetchSessions();
+    } else {
+      resetChat();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Clean up guest session when leaving the page
+  useEffect(() => {
+    return () => {
+      const currentUser = useAuthStore.getState().user;
+      if (!currentUser) {
+        useChatStore.getState().resetChat();
+      }
+    };
+  }, []);
 
   /* Auto-scroll only when user is near bottom */
   useEffect(() => {
@@ -74,7 +89,7 @@ export function AIAssistantShared() {
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || isGuestLimitReached) return;
     const text = input;
     setInput('');
     setAtBottom(true);
@@ -82,13 +97,13 @@ export function AIAssistantShared() {
   };
 
   const handleQuickChip = async (label: string) => {
-    if (isLoading) return;
+    if (isLoading || isGuestLimitReached) return;
     setAtBottom(true);
     await sendMessage(label, location);
   };
 
   const handleRecommendationOptionClick = async (option: RecommendationOption) => {
-    if (isLoading) return;
+    if (isLoading || isGuestLimitReached) return;
     setAtBottom(true);
     await sendMessage(option.message, location);
   };
@@ -494,24 +509,30 @@ export function AIAssistantShared() {
         <div className="shrink-0 border-t border-[#E8EDF2] bg-white px-3 py-3 sm:px-4 sm:py-3.5"
           style={{ paddingBottom: 'max(0.875rem, env(safe-area-inset-bottom, 0px))' }}
         >
-          <form onSubmit={handleSend} className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Mô tả triệu chứng của bạn..."
-              className="flex-1 rounded-2xl border border-[#E8EDF2] bg-[#F7FAFB] px-4 py-3 text-sm outline-none transition-all focus:border-[#0D9E75] focus:bg-white focus:ring-2 focus:ring-[#0D9E75]/12 placeholder:text-slate-400"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              autoComplete="off"
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0D9E75] to-[#0B8A65] text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:scale-100 disabled:shadow-sm active:scale-95"
-              aria-label="Gửi"
-            >
-              <Send size={16} strokeWidth={2.5} />
-            </button>
-          </form>
+          {isGuestLimitReached ? (
+            <div className="flex-1 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-sm text-amber-700 shadow-sm">
+              Bạn đã trải nghiệm tối đa 3 câu hỏi cho người dùng ẩn danh. <br className="sm:hidden" /> Vui lòng <Link href="/login" className="font-bold underline text-[#0D9E75] hover:text-[#0B8A65]">Đăng nhập</Link> để tiếp tục hỏi và lưu lịch sử nhé!
+            </div>
+          ) : (
+            <form onSubmit={handleSend} className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Mô tả triệu chứng của bạn..."
+                className="flex-1 rounded-2xl border border-[#E8EDF2] bg-[#F7FAFB] px-4 py-3 text-sm outline-none transition-all focus:border-[#0D9E75] focus:bg-white focus:ring-2 focus:ring-[#0D9E75]/12 placeholder:text-slate-400"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                autoComplete="off"
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[#0D9E75] to-[#0B8A65] text-white shadow-md transition-all hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:scale-100 disabled:shadow-sm active:scale-95"
+                aria-label="Gửi"
+              >
+                <Send size={16} strokeWidth={2.5} />
+              </button>
+            </form>
+          )}
         </div>
       </div>
 

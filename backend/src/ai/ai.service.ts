@@ -62,22 +62,21 @@ export class AiService {
     private readonly messageRepo: Repository<ChatMessage>,
   ) {}
 
-  async chat(currentUser: User, dto: AiChatDto) {
+  async chat(currentUser: User | undefined, dto: AiChatDto) {
     const traceId = randomUUID();
     const aiBaseUrl = (this.config.get<string>('AI_SERVICE_URL') || 'http://localhost:8000').replace(/\/$/, '');
     const provider = this.resolveProviderMode();
-    const patientContext = await this.buildPatientContext(currentUser);
+    const patientContext = currentUser ? await this.buildPatientContext(currentUser) : null;
 
     const session = await this.getOrCreateSession(currentUser, dto.session_id, dto.message);
     await this.saveMessage(session.id, 'user', dto.message);
     const persistedLocationHint = this.normalizeHint(session.metadata?.last_location_hint);
-
     const requestPayload = {
       session_id: session.id,
       message: dto.message,
       history: [],
       user_location: dto.user_location ?? persistedLocationHint ?? null,
-      user_id: currentUser.id,
+      user_id: currentUser?.id ?? null,
       patient_context: patientContext,
     };
 
@@ -154,15 +153,15 @@ export class AiService {
     return 'legacy';
   }
 
-  private async getOrCreateSession(user: User, sessionId: string | undefined, firstMessage: string): Promise<ChatSession> {
+  private async getOrCreateSession(user: User | undefined, sessionId: string | undefined, firstMessage: string): Promise<ChatSession> {
     if (sessionId) {
       const existing = await this.sessionRepo.findOne({ where: { id: sessionId } });
       if (existing) {
         if (existing.userId == null) {
-          existing.userId = user.id;
+          existing.userId = user?.id ?? null;
           return this.sessionRepo.save(existing);
         }
-        if (existing.userId === user.id) {
+        if (existing.userId === (user?.id ?? null)) {
           return existing;
         }
       }
@@ -171,7 +170,7 @@ export class AiService {
     const titleRaw = (firstMessage || '').trim();
     const title = titleRaw.length > 0 ? (titleRaw.length > 80 ? `${titleRaw.slice(0, 80)}...` : titleRaw) : 'Cuoc tro chuyen moi';
     const created = this.sessionRepo.create({
-      userId: user.id,
+      userId: user?.id ?? null,
       title,
       isActive: true,
       totalTokens: 0,
@@ -488,7 +487,8 @@ export class AiService {
     return null;
   }
 
-  async getSessions(userId: string) {
+  async getSessions(userId: string | undefined) {
+    if (!userId) return [];
     return this.sessionRepo.find({
       where: [{ userId }, { userId: IsNull() }],
       order: { updatedAt: 'DESC' },
