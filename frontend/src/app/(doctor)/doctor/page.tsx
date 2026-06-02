@@ -117,10 +117,10 @@ export default function DoctorDashboardPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* ── Greeting banner ── */}
       <div
-        className="relative overflow-hidden rounded-2xl p-6 text-white"
+        className="relative overflow-hidden rounded-2xl p-5 sm:p-6 text-white"
         style={{ background: 'linear-gradient(135deg, #0D9E75 0%, #0a7a5c 100%)' }}
       >
         <div
@@ -132,10 +132,10 @@ export default function DoctorDashboardPage() {
             ].join(', '),
           }}
         />
-        <div className="relative flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-white/70">{greeting()},</p>
-            <h2 className="text-2xl font-bold mt-0.5">
+            <h2 className="text-xl sm:text-2xl font-bold mt-0.5">
               BS {user?.fullName ?? 'Bác sĩ'} 👋
             </h2>
             <p className="mt-1 text-sm text-white/70">
@@ -143,7 +143,7 @@ export default function DoctorDashboardPage() {
             </p>
           </div>
           {/* Period selector */}
-          <div className="flex items-center gap-2 mt-3 sm:mt-0">
+          <div className="flex items-center gap-2">
             {([7, 30, 90] as const).map((d) => (
               <button
                 key={d}
@@ -170,7 +170,7 @@ export default function DoctorDashboardPage() {
       )}
 
       {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <StatCard
           label={`Doanh thu ${periodDays} ngày`}
           value={isLoading ? '…' : fmtCurrency(data?.payment.periodPaidRevenue ?? 0)}
@@ -200,27 +200,25 @@ export default function DoctorDashboardPage() {
       </div>
 
       {/* ── Revenue Trend Chart ── */}
-      <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <div>
-            <h3 className="text-base font-bold text-foreground">Xu hướng doanh thu</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">Doanh thu và lịch đã thanh toán theo ngày</p>
-          </div>
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+        <div className="mb-3">
+          <h3 className="text-sm sm:text-base font-bold text-foreground">Xu hướng doanh thu</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Doanh thu và lịch đã thanh toán theo ngày</p>
         </div>
-        <div className="h-64">
+        <div className="h-56 sm:h-64" style={{ touchAction: 'pan-y', userSelect: 'none' }}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#94A3B8' }} tickFormatter={fmtCompact} axisLine={false} tickLine={false} />
-              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="day" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+              <YAxis yAxisId="left" tick={{ fontSize: 10, fill: '#94A3B8' }} tickFormatter={fmtCompact} axisLine={false} tickLine={false} width={40} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} width={30} />
               <Tooltip
-                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}
+                contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: '12px' }}
                 formatter={(value, name) => name === 'Doanh thu' ? fmtCurrency(Number(value ?? 0)) : value}
               />
-              <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '8px' }} />
-              <Line yAxisId="left" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#0D9E75" strokeWidth={2.5} dot={false} />
-              <Line yAxisId="right" type="monotone" dataKey="paidBookings" name="Lịch đã thanh toán" stroke="#6366F1" strokeWidth={2} dot={false} />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+              <Line yAxisId="left" type="monotone" dataKey="revenue" name="Doanh thu" stroke="#0D9E75" strokeWidth={2} dot={false} />
+              <Line yAxisId="right" type="monotone" dataKey="paidBookings" name="Lịch đã TT" stroke="#6366F1" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -228,46 +226,46 @@ export default function DoctorDashboardPage() {
 
       {/* ── Method Charts ── */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="text-base font-bold text-foreground mb-4">Thanh toán theo phương thức</h3>
-          <div className="h-56">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+          <h3 className="text-sm sm:text-base font-bold text-foreground mb-3">Thanh toán theo phương thức</h3>
+          <div className="h-48 sm:h-56" style={{ touchAction: 'pan-y', userSelect: 'none' }}>
             {methodData.length === 0 ? (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-slate-400">Chưa có dữ liệu thanh toán thành công.</p>
+                <p className="text-sm text-slate-400">Chưa có dữ liệu.</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={methodData} dataKey="revenue" nameKey="label" cx="50%" cy="50%" outerRadius={80} innerRadius={40}>
+                  <Pie data={methodData} dataKey="revenue" nameKey="label" cx="50%" cy="50%" outerRadius={70} innerRadius={35}>
                     {methodData.map((row, idx) => (
                       <Cell key={row.paymentMethod} fill={pieColors[idx % pieColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2' }}
+                    contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2', fontSize: '12px' }}
                     formatter={(value) => fmtCurrency(Number(value ?? 0))}
                   />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="text-base font-bold text-foreground mb-4">Số lịch theo phương thức</h3>
-          <div className="h-56">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+          <h3 className="text-sm sm:text-base font-bold text-foreground mb-3">Số lịch theo phương thức</h3>
+          <div className="h-48 sm:h-56" style={{ touchAction: 'pan-y', userSelect: 'none' }}>
             {methodData.length === 0 ? (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-slate-400">Chưa có dữ liệu thanh toán thành công.</p>
+                <p className="text-sm text-slate-400">Chưa có dữ liệu.</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={methodData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2' }} />
-                  <Bar dataKey="paidBookings" name="Lịch đã thanh toán" fill="#0D9E75" radius={[6, 6, 0, 0]} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94A3B8' }} axisLine={false} tickLine={false} width={30} />
+                  <Tooltip contentStyle={{ borderRadius: '0.75rem', border: '1px solid #E8EDF2', fontSize: '12px' }} />
+                  <Bar dataKey="paidBookings" name="Lịch đã TT" fill="#0D9E75" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -277,8 +275,8 @@ export default function DoctorDashboardPage() {
 
       {/* ── Quick access shortcuts ── */}
       <div>
-        <h3 className="text-base font-bold text-foreground mb-3">Truy cập nhanh</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <h3 className="text-sm sm:text-base font-bold text-foreground mb-3">Truy cập nhanh</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {SHORTCUTS.map((c) => {
             const Icon = c.Icon;
             return (

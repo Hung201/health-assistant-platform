@@ -99,8 +99,7 @@ export default function AdminSpecialtiesPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Chuyên khoa</h2>
           <p className="text-sm text-muted-foreground">
-            CRUD — <code className="rounded bg-muted px-1 text-xs">/admin/specialties</code> (bảng{' '}
-            <code className="text-xs">specialties</code>).
+            Quản lý và cập nhật danh sách các chuyên khoa khám chữa bệnh trên hệ thống.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -279,7 +278,7 @@ export default function AdminSpecialtiesPage() {
             {rows.length === 0 && !isLoading ? (
               <tr>
                 <td className="px-4 py-8 text-center text-muted-foreground" colSpan={4}>
-                  Chưa có chuyên khoa trong DB. Thêm dữ liệu vào bảng <code className="text-xs">specialties</code>.
+                  Chưa có chuyên khoa nào được tạo.
                 </td>
               </tr>
             ) : null}

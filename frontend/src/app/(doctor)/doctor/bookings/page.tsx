@@ -204,87 +204,92 @@ export default function DoctorBookingsPage() {
     };
   };
 
+  const formatTime = (iso: string) =>
+    new Date(iso).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
   return (
-    <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div className="space-y-5">
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold text-foreground">Lịch hẹn</h1>
+          <h1 className="text-xl font-extrabold text-foreground sm:text-2xl">Lịch hẹn</h1>
           <p className="text-sm text-slate-500">Danh sách lịch hẹn bệnh nhân đã đặt.</p>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-600">Tổng: {stats.total}</span>
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-bold text-amber-700 border border-amber-200">
-              Chờ duyệt: {stats.pending ?? 0}
+          {/* Stats badges */}
+          <div className="mt-3 flex flex-wrap gap-1.5 text-xs">
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 font-bold text-slate-600">Tổng: {stats.total}</span>
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 font-bold text-amber-700 border border-amber-200">
+              Chờ: {stats.pending}
             </span>
-            <span className="rounded-full bg-[#E8F8F2] px-2.5 py-0.5 font-bold text-[#0D9E75] border border-[#0D9E75]/20">
-              Đã duyệt: {stats.approved ?? 0}
+            <span className="rounded-full bg-[#E8F8F2] px-2.5 py-1 font-bold text-[#0D9E75] border border-[#0D9E75]/20">
+              Duyệt: {stats.approved}
             </span>
-            <span className="rounded-full bg-red-100 px-2.5 py-0.5 font-bold text-red-700 border border-red-200">
-              Từ chối: {stats.rejected ?? 0}
+            <span className="rounded-full bg-red-100 px-2.5 py-1 font-bold text-red-700 border border-red-200">
+              Từ chối: {stats.rejected}
             </span>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 font-bold text-slate-500">
-              Huỷ: {stats.cancelled ?? 0}
+            <span className="rounded-full bg-blue-100 px-2.5 py-1 font-bold text-blue-700 border border-blue-200">
+              Hoàn thành: {stats.completed}
             </span>
-            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 font-bold text-blue-700 border border-blue-200">
-              Đã hoàn thành: {stats.completed ?? 0}
+            <span className="rounded-full bg-[#E8F8F2] px-2.5 py-1 font-bold text-[#0D9E75] border border-[#0D9E75]/20">
+              Đã TT: {paymentStats.paid}
             </span>
-            <span className="rounded-full bg-[#E8F8F2] px-2.5 py-0.5 font-bold text-[#0D9E75] border border-[#0D9E75]/20">
-              Đã thanh toán: {paymentStats.paid}
-            </span>
-            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-bold text-amber-700 border border-amber-200">
+            <span className="rounded-full bg-amber-100 px-2.5 py-1 font-bold text-amber-700 border border-amber-200">
               Chờ TT: {paymentStats.awaiting}
             </span>
           </div>
         </div>
+      </div>
 
-        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-3">
-          <div className="relative">
-            <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground">
-              search
-            </span>
-            <input
-              className="w-full rounded-xl border border-border bg-card py-2 pl-10 pr-10 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
-              placeholder="Tìm theo mã / chuyên khoa / BN…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {query.trim() ? (
-              <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Xoá tìm kiếm"
-              >
-                <span className="material-symbols-outlined text-[18px]">close</span>
-              </button>
-            ) : null}
-          </div>
-
-          <select
-            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as typeof status)}
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="pending">Chờ duyệt</option>
-            <option value="approved">Đã duyệt</option>
-            <option value="rejected">Đã từ chối</option>
-            <option value="cancelled">Đã huỷ</option>
-            <option value="completed">Đã hoàn thành</option>
-          </select>
-          <select
-            className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value as PaymentFilterValue)}
-          >
-            <option value="all">Tất cả thanh toán</option>
-            <option value="paid">Đã thanh toán</option>
-            <option value="awaiting_gateway">Chờ thanh toán</option>
-            <option value="pay_at_clinic">Thu tại viện</option>
-            <option value="failed">Thanh toán lỗi</option>
-            <option value="unpaid_group">Nhóm chưa thanh toán</option>
-          </select>
+      {/* ── Filters ── */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+        <div className="relative">
+          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[20px] text-muted-foreground">
+            search
+          </span>
+          <input
+            className="w-full rounded-xl border border-border bg-card py-2.5 pl-10 pr-10 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+            placeholder="Tìm theo mã / chuyên khoa / BN…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          {query.trim() ? (
+            <button
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Xoá tìm kiếm"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          ) : null}
         </div>
-      </header>
+
+        <select
+          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as typeof status)}
+        >
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ duyệt</option>
+          <option value="approved">Đã duyệt</option>
+          <option value="rejected">Đã từ chối</option>
+          <option value="cancelled">Đã huỷ</option>
+          <option value="completed">Đã hoàn thành</option>
+        </select>
+        <select
+          className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm outline-none transition-all focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+          value={paymentFilter}
+          onChange={(e) => setPaymentFilter(e.target.value as PaymentFilterValue)}
+        >
+          <option value="all">Tất cả thanh toán</option>
+          <option value="paid">Đã thanh toán</option>
+          <option value="awaiting_gateway">Chờ thanh toán</option>
+          <option value="pay_at_clinic">Thu tại viện</option>
+          <option value="failed">Thanh toán lỗi</option>
+          <option value="unpaid_group">Nhóm chưa thanh toán</option>
+        </select>
+      </div>
 
       {isError ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -292,73 +297,67 @@ export default function DoctorBookingsPage() {
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="grid grid-cols-12 border-b border-border bg-muted/50 px-5 py-3 text-xs font-bold uppercase tracking-wide text-muted-foreground">
-          <div className="col-span-3">Mã</div>
-          <div className="col-span-3">Chuyên khoa</div>
-          <div className="col-span-3">Thời gian</div>
-          <div className="col-span-1">Ghi chú</div>
-          <div className="col-span-2 text-right">Trạng thái</div>
+      {/* ── Booking Cards (mobile-friendly) ── */}
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="animate-pulse rounded-2xl border border-border bg-card p-4 h-28" />
+          ))}
         </div>
-
-        {isLoading ? (
-          <div className="p-5 text-sm text-muted-foreground">Đang tải…</div>
-        ) : filtered.length > 0 ? (
-          <div className="divide-y divide-border">
-            {filtered.map((b) => (
+      ) : filtered.length > 0 ? (
+        <div className="space-y-2">
+          {filtered.map((b) => {
+            const p = patientDisplay(b);
+            return (
               <button
-                className="grid w-full grid-cols-12 gap-2 px-5 py-4 text-left text-sm transition-colors hover:bg-muted group"
                 key={b.id}
                 type="button"
                 onClick={() => setSelectedId(b.id)}
+                className="w-full rounded-2xl border border-border bg-card p-4 text-left transition-all hover:border-[#0D9E75]/40 hover:bg-muted/30 hover:shadow-sm active:scale-[.99] group"
               >
-                <div className="col-span-3">
-                  <p className="font-bold text-foreground group-hover:text-[#0D9E75] transition-colors">{b.bookingCode}</p>
-                  {(() => {
-                    const p = patientDisplay(b);
-                    return (
-                      <p className="text-xs text-muted-foreground">
-                        BN: {p.name}
-                        {p.phone ? ` · ${p.phone}` : ''}
-                      </p>
-                    );
-                  })()}
-                </div>
-                <div className="col-span-3">
-                  <p className="font-semibold text-foreground">{b.specialtyName}</p>
-                </div>
-                <div className="col-span-3">
-                  <p className="font-semibold text-foreground">
-                    {new Date(b.appointmentStartAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit' })}{' '}
-                    {new Date(b.appointmentStartAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    đến {new Date(b.appointmentEndAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div className="col-span-1">
-                  <p className="line-clamp-2 text-sm text-muted-foreground">{b.patientNote ?? '—'}</p>
-                </div>
-                <div className="col-span-2 flex items-start justify-end">
-                  <div className="flex flex-col items-end gap-1">
-                    <span className={`inline-flex whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-semibold ${statusBadgeClass(b.status)}`}>
+                {/* Top row: code + badges */}
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-foreground group-hover:text-[#0D9E75] transition-colors truncate">
+                      {b.bookingCode}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      BN: {p.name}{p.phone ? ` · ${p.phone}` : ''}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className={`inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold ${statusBadgeClass(b.status)}`}>
                       {statusLabel(b.status)}
                     </span>
-                    <span className={`inline-flex whitespace-nowrap rounded-md px-2.5 py-1 text-[11px] font-semibold ${paymentBadgeClass(b.paymentStatus, b.paymentMethod)}`}>
+                    <span className={`inline-flex whitespace-nowrap rounded-md px-2 py-0.5 text-[10px] font-semibold ${paymentBadgeClass(b.paymentStatus, b.paymentMethod)}`}>
                       {paymentMethodLabel(b.paymentMethod)} · {paymentStatusLabel(b.paymentStatus)}
                     </span>
                   </div>
                 </div>
+                {/* Bottom row: specialty + time */}
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="material-symbols-outlined text-[14px] text-[#0D9E75] shrink-0">stethoscope</span>
+                    <span className="truncate font-medium text-foreground/80">{b.specialtyName}</span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <span className="material-symbols-outlined text-[14px] shrink-0">schedule</span>
+                    <span>
+                      {formatDate(b.appointmentStartAt)} · {formatTime(b.appointmentStartAt)}–{formatTime(b.appointmentEndAt)}
+                    </span>
+                  </div>
+                </div>
               </button>
-            ))}
-          </div>
-        ) : (
-          <div className="p-5 text-sm text-muted-foreground">
-            {data && data.length > 0 ? 'Không có lịch hẹn phù hợp bộ lọc.' : 'Chưa có lịch hẹn nào.'}
-          </div>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
+          {data && data.length > 0 ? 'Không có lịch hẹn phù hợp bộ lọc.' : 'Chưa có lịch hẹn nào.'}
+        </div>
+      )}
 
+      {/* ── Detail Modal ── */}
       {isMounted && selected && selectedId
         ? createPortal(
             <div className="fixed inset-0 z-[1000]" aria-modal="true" role="dialog">
@@ -368,156 +367,156 @@ export default function DoctorBookingsPage() {
                 aria-label="Đóng"
                 onClick={() => setSelectedId(null)}
               />
-              <div className="absolute left-1/2 top-1/2 w-[calc(100vw-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Chi tiết lịch hẹn</p>
-                <h3 className="mt-1 text-lg font-extrabold text-foreground">{selected.bookingCode}</h3>
-              </div>
-              <button
-                className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
-                type="button"
-                onClick={() => setSelectedId(null)}
-                aria-label="Đóng"
-              >
-                <span className="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
+              <div className="absolute left-1/2 top-1/2 w-[calc(100vw-1.5rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-2xl overflow-y-auto max-h-[90dvh]">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Chi tiết lịch hẹn</p>
+                    <h3 className="mt-1 text-lg font-extrabold text-foreground">{selected.bookingCode}</h3>
+                  </div>
+                  <button
+                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    aria-label="Đóng"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                </div>
 
-            <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/50 p-4 sm:grid-cols-2">
-              <div>
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bệnh nhân</div>
-                {(() => {
-                  const p = patientDisplay(selected);
-                  return (
+                <div className="mt-4 grid grid-cols-1 gap-3 rounded-xl border border-border bg-muted/50 p-4 sm:grid-cols-2">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Bệnh nhân</div>
+                    {(() => {
+                      const p = patientDisplay(selected);
+                      return (
+                        <>
+                          <div className="mt-1 font-semibold text-foreground">{p.name}</div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {p.phone ? `SĐT: ${p.phone}` : 'SĐT: —'}
+                            {p.email ? ` · Email: ${p.email}` : ''}
+                          </p>
+                        </>
+                      );
+                    })()}
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Chuyên khoa</div>
+                    <div className="mt-1 font-semibold text-foreground">{selected.specialtyName}</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Thời gian</div>
+                    <div className="mt-1 font-semibold text-foreground">
+                      {formatDate(selected.appointmentStartAt)}{' '}
+                      {formatTime(selected.appointmentStartAt)}{' '}
+                      - {formatTime(selected.appointmentEndAt)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</div>
+                    <div className="mt-1">
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${statusBadgeClass(selected.status)}`}>
+                        {statusLabel(selected.status)}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phí</div>
+                    <div className="mt-1 font-semibold text-foreground">{Number(selected.totalFee).toLocaleString()}₫</div>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Thanh toán</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                        Phương thức: {paymentMethodLabel(selected.paymentMethod)}
+                      </span>
+                      <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${paymentBadgeClass(selected.paymentStatus, selected.paymentMethod)}`}>
+                        {paymentStatusLabel(selected.paymentStatus)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {selected.paymentStatus === 'paid'
+                          ? 'Bệnh nhân đã thanh toán thành công.'
+                          : selected.paymentMethod === 'pay_at_clinic'
+                            ? 'Bệnh nhân thanh toán trực tiếp tại viện.'
+                            : 'Bệnh nhân chưa hoàn tất thanh toán.'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-3">
+                  <div className="rounded-lg border border-border bg-card p-4">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ghi chú bệnh nhân</div>
+                    <div className="mt-1 text-sm text-foreground">{selected.patientNote ?? '—'}</div>
+                  </div>
+                </div>
+
+                {selected.status === 'pending' ? (
+                  <div className="mt-4 space-y-2">
+                    <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Lý do từ chối (tuỳ chọn)
+                    </label>
+                    <textarea
+                      className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
+                      rows={2}
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      placeholder="Nhập lý do nếu từ chối…"
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
+                    type="button"
+                    onClick={() => {
+                      setRejectReason('');
+                      setSelectedId(null);
+                    }}
+                  >
+                    Đóng
+                  </button>
+                  <button
+                    className="inline-flex items-center justify-center rounded-xl bg-[#0D9E75] px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-[#0D9E75]/20 hover:bg-[#0B8A65] transition-all"
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(selected.bookingCode);
+                      toast.show({ variant: 'info', title: 'Đã sao chép', message: 'Đã sao chép mã lịch hẹn.' });
+                    }}
+                  >
+                    Copy mã
+                  </button>
+                  {selected.status === 'pending' ? (
                     <>
-                      <div className="mt-1 font-semibold text-foreground">{p.name}</div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {p.phone ? `SĐT: ${p.phone}` : 'SĐT: —'}
-                        {p.email ? ` · Email: ${p.email}` : ''}
-                      </p>
+                      <button
+                        className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition-colors hover:bg-red-100 disabled:opacity-50"
+                        type="button"
+                        disabled={rejectMutation.isPending}
+                        onClick={() => rejectMutation.mutate({ id: selected.id, reason: rejectReason })}
+                      >
+                        Từ chối
+                      </button>
+                      <button
+                        className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+                        type="button"
+                        disabled={approveMutation.isPending}
+                        onClick={() => approveMutation.mutate(selected.id)}
+                      >
+                        Duyệt &amp; gửi thanh toán
+                      </button>
                     </>
-                  );
-                })()}
-              </div>
-              <div>
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Chuyên khoa</div>
-                <div className="mt-1 font-semibold text-foreground">{selected.specialtyName}</div>
-              </div>
-              <div className="sm:col-span-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Thời gian</div>
-                <div className="mt-1 font-semibold text-foreground">
-                  {new Date(selected.appointmentStartAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit' })}{' '}
-                  {new Date(selected.appointmentStartAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}{' '}
-                  - {new Date(selected.appointmentEndAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  ) : null}
+                  {selected.status === 'approved' ? (
+                    <button
+                      className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                      type="button"
+                      disabled={completeMutation.isPending}
+                      onClick={() => completeMutation.mutate(selected.id)}
+                    >
+                      Đánh dấu đã hoàn thành
+                    </button>
+                  ) : null}
                 </div>
-              </div>
-              <div>
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trạng thái</div>
-                <div className="mt-1">
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-bold ${statusBadgeClass(selected.status)}`}>
-                    {statusLabel(selected.status)}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Phí</div>
-                <div className="mt-1 font-semibold text-foreground">{Number(selected.totalFee).toLocaleString()}₫</div>
-              </div>
-              <div className="sm:col-span-2">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Thanh toán</div>
-                <div className="mt-1 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700">
-                    Phương thức: {paymentMethodLabel(selected.paymentMethod)}
-                  </span>
-                  <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${paymentBadgeClass(selected.paymentStatus, selected.paymentMethod)}`}>
-                    {paymentStatusLabel(selected.paymentStatus)}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {selected.paymentStatus === 'paid'
-                      ? 'Bệnh nhân đã thanh toán thành công.'
-                      : selected.paymentMethod === 'pay_at_clinic'
-                        ? 'Bệnh nhân thanh toán trực tiếp tại viện.'
-                        : 'Bệnh nhân chưa hoàn tất thanh toán.'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="rounded-lg border border-border bg-card p-4">
-                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ghi chú bệnh nhân</div>
-                <div className="mt-1 text-sm text-foreground">{selected.patientNote ?? '—'}</div>
-              </div>
-            </div>
-
-            {selected.status === 'pending' ? (
-              <div className="mt-4 space-y-2">
-                <label className="block text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Lý do từ chối (tuỳ chọn)
-                </label>
-                <textarea
-                  className="w-full rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-[#0D9E75] focus:ring-2 focus:ring-[#0D9E75]/15"
-                  rows={2}
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Nhập lý do nếu từ chối…"
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-5 flex flex-col-reverse flex-wrap gap-2 sm:flex-row sm:justify-end">
-              <button
-                className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground hover:bg-muted transition-colors"
-                type="button"
-                onClick={() => {
-                  setRejectReason('');
-                  setSelectedId(null);
-                }}
-              >
-                Đóng
-              </button>
-              <button
-                className="inline-flex items-center justify-center rounded-xl bg-[#0D9E75] px-4 py-2.5 text-sm font-bold text-white shadow-sm shadow-[#0D9E75]/20 hover:bg-[#0B8A65] transition-all"
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(selected.bookingCode);
-                  toast.show({ variant: 'info', title: 'Đã sao chép', message: 'Đã sao chép mã lịch hẹn.' });
-                }}
-              >
-                Copy mã
-              </button>
-              {selected.status === 'pending' ? (
-                <>
-                  <button
-                    className="inline-flex items-center justify-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-800 transition-colors hover:bg-red-100 disabled:opacity-50"
-                    type="button"
-                    disabled={rejectMutation.isPending}
-                    onClick={() => rejectMutation.mutate({ id: selected.id, reason: rejectReason })}
-                  >
-                    Từ chối
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
-                    type="button"
-                    disabled={approveMutation.isPending}
-                    onClick={() => approveMutation.mutate(selected.id)}
-                  >
-                    Duyệt & gửi thanh toán
-                  </button>
-                </>
-              ) : null}
-              {selected.status === 'approved' ? (
-                <button
-                  className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-                  type="button"
-                  disabled={completeMutation.isPending}
-                  onClick={() => completeMutation.mutate(selected.id)}
-                >
-                  Đánh dấu đã hoàn thành
-                </button>
-              ) : null}
-            </div>
               </div>
             </div>,
             document.body,
@@ -526,4 +525,3 @@ export default function DoctorBookingsPage() {
     </div>
   );
 }
-

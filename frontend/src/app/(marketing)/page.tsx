@@ -142,19 +142,37 @@ export default function Home() {
   }, { scope: heroRef });
 
   useEffect(() => {
-    const els = document.querySelectorAll('.animate-on-scroll');
+    const els = document.querySelectorAll('.animate-on-scroll, [data-reveal]');
+    
+    // Set initial styles for clean fade-in
+    els.forEach(el => {
+      if (el instanceof HTMLElement) {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(20px)';
+        el.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
+        el.style.willChange = 'opacity, transform';
+      }
+    });
+
     const obs = new IntersectionObserver(
-      (entries) => entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } }),
-      { threshold: 0.12 }
+      (entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            if (e.target instanceof HTMLElement) {
+              e.target.style.opacity = '1';
+              e.target.style.transform = 'translateY(0)';
+            }
+            e.target.classList.add('visible');
+            obs.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
     els.forEach(el => obs.observe(el));
     return () => obs.disconnect();
   }, []);
 
-  // Scroll reveal for QA, How-it-works, and Testimonials sections
-  useScrollReveal(qaRef, { y: 24, stagger: 0.12 });
-  useScrollReveal(howItWorksRef, { y: 30, stagger: 0.15 });
-  useScrollReveal(testimonialsRef, { y: 24, stagger: 0.12 });
 
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
@@ -629,7 +647,7 @@ export default function Home() {
                       </div>
 
                       {/* Hover Overlay Panel */}
-                      <div className="absolute inset-x-0 bottom-0 h-auto bg-white/95 backdrop-blur-sm border-t border-[#1BAF7C]/20 p-4 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex flex-col gap-3">
+                      <div className="absolute inset-x-0 bottom-0 h-auto bg-white border-t border-[#1BAF7C]/20 p-4 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 ease-out flex flex-col gap-3">
                         {/* TODO: Integrate real experience/patient count from backend */}
                         <div className="grid grid-cols-2 gap-2 text-center">
                           <div>
@@ -722,7 +740,7 @@ export default function Home() {
               {blogsData?.items?.length ? (
                 blogsData.items.map((article, idx) => (
                   <article
-                    className="group flex flex-col h-full overflow-hidden rounded-2xl border border-white/60 bg-white/40 backdrop-blur-[20px] shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both"
+                    className="group flex flex-col h-full overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:scale-[1.02] animate-in fade-in slide-in-from-bottom-4 zoom-in-95 fill-mode-both"
                     style={{ animationDelay: `${idx * 100}ms` }}
                     key={article.id}
                   >

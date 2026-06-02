@@ -50,7 +50,7 @@ export default function AdminPendingQuestionsPage() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Câu hỏi chờ admin duyệt</h2>
           <p className="text-sm text-muted-foreground">
-            Trạng thái <code className="rounded bg-muted px-1 text-xs">pending_review</code> sẽ không hiển thị ngoài trang chủ.
+            Kiểm duyệt các câu hỏi từ bệnh nhân trước khi hiển thị công khai trên nền tảng.
           </p>
         </div>
         <Link className="text-sm font-medium text-primary hover:underline" href="/admin">
