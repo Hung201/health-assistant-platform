@@ -261,19 +261,18 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
         {/* Top Header */}
         <header className="sticky top-0 z-10 flex h-16 w-full items-center justify-between gap-3 border-b border-[#E8EDF2]/80 bg-white/95 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {/* Hamburger — desktop sidebar toggle (hidden on mobile since bottom nav is used) */}
-            <button
-              type="button"
-              className="hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 ring-1 ring-slate-200 hover:bg-[#E8F8F2] hover:text-[#0D9E75] hover:ring-[#0D9E75]/30 transition-all"
-              onClick={() => setMobileNavOpen(true)}
-              aria-label="Mở menu"
-            >
-              <AlignJustify size={20} />
-            </button>
-            {/* Breadcrumb accent line + title */}
-            <div className="flex min-w-0 items-center gap-0">
+            {/* Mobile Logo */}
+            <Link href="/" className="flex items-center gap-2.5 lg:hidden">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
+                <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
+              </div>
+              <span className="text-[16px] font-bold text-[#1a3353] truncate">Clinical Precision</span>
+            </Link>
+
+            {/* Desktop Title */}
+            <div className="hidden lg:flex min-w-0 items-center gap-0">
               <span className="breadcrumb-accent hidden sm:inline-block" aria-hidden />
-              <h1 className="text-[18px] sm:text-[20px] font-bold text-[#1a3353] truncate">{pageTitle}</h1>
+              <h1 className="text-[20px] font-bold text-[#1a3353] truncate">{pageTitle}</h1>
             </div>
           </div>
 

@@ -345,7 +345,7 @@ export default function PatientDoctorDetailPage() {
               <div className="flex gap-2 overflow-x-auto pb-4 snap-x hide-scrollbar">
                 {availableDates.map(dateStr => {
                    const d = new Date(dateStr);
-                   const dayOfWeek = d.toLocaleDateString('vi-VN', { weekday: 'short' }).replace('T', 'Thứ ');
+                   const dayOfWeek = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][d.getDay()];
                    const dayMonth = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
                    const isSelected = selectedDate === dateStr;
 

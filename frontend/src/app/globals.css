@@ -209,3 +209,31 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   MOBILE SCROLL & PERFORMANCE OPTIMIZATIONS
+   ============================================================ */
+
+/* Disable touch events on Recharts charts on mobile so native page scrolling works perfectly */
+@media (pointer: coarse), (max-width: 768px) {
+  .recharts-responsive-container,
+  .recharts-wrapper,
+  .recharts-surface {
+    pointer-events: none !important;
+    user-select: none !important;
+  }
+}
+
+/* Bottom sheet slide-up animation (used by admin/doctor/patient shells) */
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); opacity: 0.8; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+/* Reduce page enter animation duration on touch devices to prevent layout jank */
+@media (pointer: coarse) {
+  .doctor-page-enter,
+  .page-enter {
+    animation-duration: 0.3s !important;
+  }
+}

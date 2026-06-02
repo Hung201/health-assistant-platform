@@ -115,7 +115,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {/* Stat cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         {baseSummaryCards.map((card) => (
           <div
             className="rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md"
@@ -142,7 +142,7 @@ export default function AdminDashboardPage() {
       {/* Payment stats */}
       <div className="mb-8">
         <h3 className="mb-3 text-lg font-bold text-foreground">Thống kê thanh toán</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {[
             {
               label: 'Doanh thu đã thu',
@@ -188,24 +188,24 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Charts row */}
-      <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <h3 className="text-base font-bold text-foreground">Xu hướng doanh thu theo ngày</h3>
-          <p className="mt-1 text-xs text-muted-foreground">Doanh thu thành công trong {periodDays} ngày gần nhất.</p>
-          <div className="mt-4 h-72">
+      <div className="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+          <h3 className="text-sm font-bold text-foreground">Xu hướng doanh thu</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">Doanh thu trong {periodDays} ngày gần nhất.</p>
+          <div className="mt-4 h-56 sm:h-72" style={{ touchAction: 'pan-y', userSelect: 'none' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtCompactCurrency} />
+                <XAxis dataKey="day" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtCompactCurrency} width={40} />
                 <Tooltip formatter={(value) => fmtCurrency(Number(value ?? 0))} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Line
                   type="monotone"
                   dataKey="revenue"
                   name="Doanh thu"
                   stroke="#2563eb"
-                  strokeWidth={2.5}
+                  strokeWidth={2}
                   dot={false}
                   activeDot={{ r: 4 }}
                 />
@@ -259,19 +259,19 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Top doctors chart */}
-      <div className="mb-8 rounded-xl border border-border bg-card p-5 shadow-sm">
-        <h3 className="text-base font-bold text-foreground">Top bác sĩ theo doanh thu</h3>
-        <div className="mt-4 h-72">
+      <div className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
+        <h3 className="text-sm font-bold text-foreground">Top bác sĩ theo doanh thu</h3>
+        <div className="mt-4 h-56 sm:h-72" style={{ touchAction: 'pan-y', userSelect: 'none' }}>
           {topDoctorChartData.length === 0 ? (
             <p className="text-sm text-muted-foreground">Chưa có dữ liệu doanh thu bác sĩ.</p>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={topDoctorChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="shortName" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={fmtCompactCurrency} />
+                <XAxis dataKey="shortName" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={fmtCompactCurrency} width={45} />
                 <Tooltip formatter={(value) => fmtCurrency(Number(value ?? 0))} />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: '11px' }} />
                 <Bar dataKey="revenue" name="Doanh thu" fill="#2563eb" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -305,9 +305,9 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Quick nav */}
-      <div className="mb-8">
-        <h3 className="mb-3 text-lg font-bold text-foreground">Truy cập nhanh</h3>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mb-6">
+        <h3 className="mb-3 text-base font-bold text-foreground">Truy cập nhanh</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {quickLinks.map((q) => (
             <Link
               className="flex items-start gap-3 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
