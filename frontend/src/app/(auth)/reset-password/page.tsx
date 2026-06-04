@@ -62,11 +62,8 @@ function ResetPasswordContent() {
         </div>
 
         <div className="mb-8 flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500 text-white">
-            <Activity size={24} />
-          </div>
-          <Link className="text-xl font-bold tracking-tight text-slate-800" href="/">
-            Clinical Precision
+          <Link href="/" className="flex items-center">
+            <img src="/images/logo-full.png" alt="MedAI Logo" className="h-10 w-auto object-contain" />
           </Link>
         </div>
 

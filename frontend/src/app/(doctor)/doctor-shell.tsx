@@ -105,19 +105,12 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
     >
       {/* Logo */}
       <div className="flex h-[72px] shrink-0 items-center gap-[10px] px-5 border-b border-border">
-        <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
-          <span className="material-symbols-outlined text-[20px]">clinical_notes</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <Link
-            href="/"
-            onClick={closeMobile}
-            className="block text-[16px] font-bold leading-tight text-foreground truncate"
-          >
-            Clinical Precision
-          </Link>
+        <Link href="/" onClick={closeMobile} className="flex items-center">
+          <img src="/images/logo-full.png" alt="MedAI Logo" className="h-9 w-auto object-contain" />
+        </Link>
+        <div className="min-w-0 flex-1 flex flex-col justify-end h-full py-3">
           <p className="text-[10px] font-medium tracking-widest text-[#0D9E75] uppercase mt-0.5">
-            BÁC SĨ PORTAL
+            DOCTOR
           </p>
         </div>
         <button
@@ -211,10 +204,7 @@ export function DoctorShell({ children }: { children: React.ReactNode }) {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Mobile Logo */}
             <Link href="/" className="flex items-center gap-2.5 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">clinical_notes</span>
-              </div>
-              <span className="text-[16px] font-bold text-foreground truncate">Clinical Precision</span>
+              <img src="/images/logo-full.png" alt="MedAI Logo" className="h-8 w-auto object-contain" />
             </Link>
 
             {/* Desktop Title */}

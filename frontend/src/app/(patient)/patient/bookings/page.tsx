@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+
 import {
   Calendar,
   User as UserIcon,
@@ -193,8 +193,7 @@ export default function PatientBookingsPage() {
     { key: 'cancelled', label: 'Đã hủy' },
   ];
 
-  const cardsRef = useRef<HTMLDivElement>(null);
-  useScrollReveal(cardsRef, { y: 18, stagger: 0.07, start: 'top 90%' });
+
 
   return (
     <div className="space-y-6 pb-12">
@@ -225,7 +224,7 @@ export default function PatientBookingsPage() {
         </div>
       )}
 
-      <div ref={cardsRef} className="overflow-hidden rounded-[20px] border border-[#E8EDF2] bg-white shadow-sm">
+      <div className="overflow-hidden rounded-[20px] border border-[#E8EDF2] bg-white shadow-sm">
         {isLoading ? (
           <div className="p-12 text-center text-slate-400">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-solid border-[#0D9E75] border-r-transparent" />
@@ -236,7 +235,6 @@ export default function PatientBookingsPage() {
             {filteredData.map((b) => (
               <button
                 key={b.id}
-                data-reveal
                 className="group flex w-full flex-col gap-4 p-5 text-left transition-all duration-200 hover:bg-[#0D9E75]/5 hover:-translate-y-[1px] hover:shadow-sm md:flex-row md:items-center md:justify-between"
                 type="button"
                 onClick={() => setSelectedId(b.id)}

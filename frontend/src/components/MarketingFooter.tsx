@@ -9,8 +9,7 @@ export function MarketingFooter() {
           {/* Brand */}
           <div className="md:col-span-1">
             <Link className="flex items-center gap-2 mb-4" href="/">
-              <div className="rounded-[10px] bg-[#0D9E75] p-1.5 text-white"><Activity size={18} /></div>
-              <span className="text-lg font-bold text-white">Clinical Precision</span>
+              <img src="/images/logo-full.png" alt="MedAI Logo" className="h-10 w-auto object-contain brightness-0 invert" />
             </Link>
             <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.5)' }}>
               Nền tảng y tế số thông minh, ứng dụng AI phân tích triệu chứng và kết nối người bệnh với chuyên gia y tế uy tín.

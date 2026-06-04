@@ -47,10 +47,7 @@ export function MarketingHeader() {
       <div className="mx-auto flex h-[72px] w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link className="flex items-center gap-2" href="/" onClick={() => setIsOpen(false)}>
-          <div className="rounded-[10px] bg-[#0D9E75] p-1.5 text-white">
-            <Activity size={20} />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">Clinical Precision</span>
+          <img src="/images/logo-full.png" alt="MedAI Logo" className="h-10 w-auto object-contain" />
         </Link>
 
         {/* Desktop Navigation */}

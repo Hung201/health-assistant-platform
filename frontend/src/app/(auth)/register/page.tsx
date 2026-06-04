@@ -57,14 +57,9 @@ function SelectWithIcon({ icon: Icon, children, ...props }: any) {
 function RegisterSiteHeader() {
   return (
     <header className="fixed top-0 z-50 flex w-full items-center justify-between px-6 py-4">
-      <div className="flex shrink-0 items-center gap-2">
-        <div className="flex items-center justify-center w-8 h-8 rounded-md bg-teal-500 text-white">
-          <Activity size={18} />
-        </div>
-        <Link className="text-xl font-bold tracking-tight text-slate-800" href="/">
-          Clinical Precision
-        </Link>
-      </div>
+      <Link href="/" className="flex shrink-0 items-center">
+        <img src="/images/logo-full.png" alt="MedAI Logo" className="h-8 w-auto object-contain" />
+      </Link>
     </header>
   );
 }
