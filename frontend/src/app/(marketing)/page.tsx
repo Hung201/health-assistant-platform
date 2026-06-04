@@ -5,9 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import gsap from 'gsap';
-import { useGSAP } from '@gsap/react';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
 import {
   Activity, Brain,
   Stethoscope, CalendarCheck, FileBadge,
@@ -17,7 +15,7 @@ import {
 
 import { StatCounter } from '@/components/ui/StatCounter';
 import { FaqAccordion } from '@/components/sections/FaqAccordion';
-import { useScrollReveal } from '@/hooks/useScrollReveal';
+
 
 import { authApi, doctorsApi, livestreamsApi, publicPostsApi, qaApi } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
@@ -66,7 +64,7 @@ const FAQS = [
   { question: "Chi phí sử dụng nền tảng là bao nhiêu?", answer: "Việc sử dụng Trợ lý AI và đặt lịch hoàn toàn miễn phí. Bạn chỉ thanh toán phí khám bệnh cho bác sĩ theo bảng giá được niêm yết công khai trên hồ sơ của họ." },
 ];
 
-gsap.registerPlugin(ScrollTrigger);
+
 
 export default function Home() {
   const router = useRouter();
@@ -113,33 +111,25 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  useGSAP(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out', duration: 0.7 } });
-    tl.fromTo(heroEyebrowRef.current,
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1 }
-    )
-    .fromTo(heroHeadingRef.current,
-      { y: 30, opacity: 0 },
-      { y: 0, opacity: 1 },
-      '-=0.55'
-    )
-    .fromTo(heroDescRef.current,
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1 },
-      '-=0.55'
-    )
-    .fromTo(heroCTARef.current,
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1 },
-      '-=0.55'
-    )
-    .fromTo(heroCardRef.current,
-      { scale: 0.92, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 0.9 },
-      0.3
-    );
-  }, { scope: heroRef });
+  useEffect(() => {
+    // Fallback simple reveal for hero elements without GSAP
+    const heroEls = [heroEyebrowRef.current, heroHeadingRef.current, heroDescRef.current, heroCTARef.current, heroCardRef.current];
+    heroEls.forEach((el, i) => {
+      if (el) {
+        el.style.opacity = '0';
+        el.style.transform = i === 4 ? 'scale(0.92)' : 'translateY(20px)';
+        el.style.transition = `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.15}s, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${i * 0.15}s`;
+        
+        // Trigger reflow then animate
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            el.style.opacity = '1';
+            el.style.transform = i === 4 ? 'scale(1)' : 'translateY(0)';
+          });
+        });
+      }
+    });
+  }, []);
 
   useEffect(() => {
     const els = document.querySelectorAll('.animate-on-scroll, [data-reveal]');

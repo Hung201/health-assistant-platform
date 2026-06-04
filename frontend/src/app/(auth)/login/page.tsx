@@ -109,13 +109,10 @@ function LoginPageContent() {
         </div>
         
         {/* Form Side */}
-        <div className="w-full p-6 sm:p-8 md:p-12 lg:w-[55%] xl:w-1/2 flex flex-col justify-center bg-white">
+        <div className="w-full p-6 pt-16 sm:p-8 sm:pt-16 md:p-12 md:pt-20 lg:p-12 lg:w-[55%] xl:w-1/2 flex flex-col justify-center bg-white">
           <div className="mb-6 flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-teal-600 text-white shadow-lg shadow-teal-500/30">
-              <Activity size={22} strokeWidth={2.5} />
-            </div>
-            <Link className="text-2xl font-extrabold tracking-tight text-slate-900" href="/">
-              Clinical Precision
+            <Link href="/" className="flex items-center">
+              <img src="/images/logo-full.png" alt="MedAI Logo" className="h-10 w-auto object-contain" />
             </Link>
           </div>
 

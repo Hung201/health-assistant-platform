@@ -116,14 +116,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-full w-64 flex-col bg-white dark:bg-[hsl(222_20%_14%)] border-r border-[#E8EDF2] dark:border-white/10">
       {/* Logo */}
       <div className="flex h-[72px] shrink-0 items-center gap-3 px-5 border-b border-[#E8EDF2] dark:border-white/10">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-          <span className="material-symbols-outlined text-[20px]">health_and_safety</span>
-        </div>
-        <div className="min-w-0 flex-1">
-          <Link href="/" onClick={() => setMobileOpen(false)} className="block text-[16px] font-bold text-foreground truncate leading-tight">
-            Clinical Precision
-          </Link>
-          <p className="text-[10px] font-medium tracking-widest text-primary uppercase mt-0.5">ADMIN PORTAL</p>
+        <Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center">
+          <img src="/images/logo-full.png" alt="MedAI Logo" className="h-9 w-auto object-contain" />
+        </Link>
+        <div className="min-w-0 flex-1 flex flex-col justify-end h-full py-3">
+          <p className="text-[10px] font-medium tracking-widest text-primary uppercase mt-0.5">ADMIN</p>
         </div>
         <button
           type="button"
@@ -227,10 +224,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Mobile Logo */}
             <Link href="/" className="flex items-center gap-2.5 md:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">health_and_safety</span>
-              </div>
-              <span className="text-[16px] font-bold text-foreground truncate">Clinical Precision</span>
+              <img src="/images/logo-full.png" alt="MedAI Logo" className="h-8 w-auto object-contain" />
             </Link>
 
             {/* Desktop Title */}

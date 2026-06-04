@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -318,7 +318,7 @@ export default function PatientFindDoctorsPage() {
                   <span>
                     {doctor.workplaceAddress ||
                       [doctor.workplaceName, doctor.districtCode, doctor.provinceCode].filter(Boolean).join(', ') ||
-                      'Phòng khám Clinical Precision'}
+                      'Phòng khám MedAI'}
                   </span>
                 </div>
 

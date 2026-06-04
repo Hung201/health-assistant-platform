@@ -176,19 +176,12 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
       >
         {/* Logo area */}
         <div className="flex h-[72px] shrink-0 items-center gap-[10px] px-5 border-b border-[#E8EDF2]">
-          <div className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
-            <span className="material-symbols-outlined text-[20px]">medical_services</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <Link
-              href="/"
-              onClick={closeMobileNav}
-              className="block text-[16px] font-bold leading-tight text-[#1a3353] truncate"
-            >
-              Clinical Precision
-            </Link>
+          <Link href="/" onClick={closeMobileNav} className="flex items-center">
+            <img src="/images/logo-full.png" alt="MedAI Logo" className="h-9 w-auto object-contain" />
+          </Link>
+          <div className="min-w-0 flex-1 flex flex-col justify-end h-full py-3">
             <p className="text-[10px] font-medium tracking-widest text-[#0D9E75] uppercase mt-0.5">
-              AI DIAGNOSTIC HUB
+              PATIENT
             </p>
           </div>
           <button
@@ -213,6 +206,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={true}
                 onClick={closeMobileNav}
                 className={cn(
                   'mx-2 my-0.5 flex h-11 items-center gap-[10px] rounded-[10px] px-3 text-[14px] font-medium transition-all duration-150',
@@ -263,10 +257,7 @@ export function PatientShell({ children }: { children: React.ReactNode }) {
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {/* Mobile Logo */}
             <Link href="/" className="flex items-center gap-2.5 lg:hidden">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#0D9E75] text-white shadow-sm">
-                <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
-              </div>
-              <span className="text-[16px] font-bold text-[#1a3353] truncate">Clinical Precision</span>
+              <img src="/images/logo-full.png" alt="MedAI Logo" className="h-8 w-auto object-contain" />
             </Link>
 
             {/* Desktop Title */}
