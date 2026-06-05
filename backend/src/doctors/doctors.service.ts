@@ -316,7 +316,8 @@ export class DoctorsService {
       .createQueryBuilder('d')
       .innerJoinAndSelect('d.user', 'u')
       .where('d.isVerified = TRUE')
-      .andWhere('d.verificationStatus = :status', { status: 'approved' });
+      .andWhere('d.verificationStatus = :status', { status: 'approved' })
+      .andWhere('u.status = :userStatus', { userStatus: 'active' });
 
     if (specialtyId != null) {
       qb.innerJoin(
@@ -460,7 +461,7 @@ export class DoctorsService {
       where: { userId: doctorUserId, isVerified: true, verificationStatus: 'approved' },
       relations: ['user'],
     });
-    if (!d) throw new NotFoundException('Không tìm thấy bác sĩ');
+    if (!d || d.user?.status !== 'active') throw new NotFoundException('Không tìm thấy bác sĩ');
 
     const primaryLink = await this.getPrimarySpecialtyLink(doctorUserId);
     const specIds = primaryLink ? [Number(primaryLink.specialtyId)] : [];
@@ -646,6 +647,14 @@ export class DoctorsService {
     from?: Date;
     to?: Date;
   }): Promise<PublicDoctorSlot[]> {
+    const doctor = await this.doctorRepo.findOne({
+      where: { userId: params.doctorUserId, isVerified: true, verificationStatus: 'approved' },
+      relations: ['user'],
+    });
+    if (!doctor || doctor.user?.status !== 'active') {
+      throw new NotFoundException('Không tìm thấy bác sĩ');
+    }
+
     const qb = this.slotRepo
       .createQueryBuilder('s')
       .where('s.doctor_user_id = :doctorUserId', { doctorUserId: params.doctorUserId })

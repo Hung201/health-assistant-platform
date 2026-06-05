@@ -141,6 +141,9 @@ export class BookingsService {
     if (!doctorProfile.isVerified || doctorProfile.verificationStatus !== 'approved') {
       throw new BadRequestException('Bác sĩ chưa được duyệt');
     }
+    if (doctorProfile.user?.status !== 'active') {
+      throw new BadRequestException('Bác sĩ không khả dụng');
+    }
 
     const specialtyId = slot.specialtyId ?? dto.specialtyId;
     if (specialtyId == null) throw new BadRequestException('Thiếu specialtyId');

@@ -82,9 +82,12 @@ export class LivestreamsService {
   private async assertDoctorMayLivestream(doctorUserId: string): Promise<void> {
     const u = await this.userRepo.findOne({
       where: { id: doctorUserId },
-      select: ['id', 'featurePermissions'],
+      select: ['id', 'status', 'featurePermissions'],
     });
     if (!u) throw new ForbiddenException('Không tìm thấy người dùng');
+    if (u.status !== 'active') {
+      throw new ForbiddenException('Tài khoản đã bị vô hiệu hoá.');
+    }
     if (!userMayLivestream(u)) {
       throw new ForbiddenException(
         'Tài khoản chưa được cấp quyền phát trực tiếp. Vui lòng liên hệ quản trị viên để bật quyền Livestream.',
@@ -245,11 +248,13 @@ export class LivestreamsService {
       commentCount: number;
     }>
   > {
-    const rows = await this.liveStreamRepo.find({
-      where: { status: 'live' },
-      relations: ['doctor'],
-      order: { startedAt: 'DESC' },
-    });
+    const rows = await this.liveStreamRepo
+      .createQueryBuilder('s')
+      .innerJoinAndSelect('s.doctor', 'doctor')
+      .where('s.status = :status', { status: 'live' })
+      .andWhere('doctor.status = :userStatus', { userStatus: 'active' })
+      .orderBy('s.started_at', 'DESC')
+      .getMany();
     const counts =
       rows.length > 0
         ? await this.liveCommentRepo
@@ -329,6 +334,9 @@ export class LivestreamsService {
       relations: ['doctor'],
     });
     if (!stream) throw new NotFoundException('Phiên phát không tồn tại hoặc đã kết thúc');
+    if (stream.doctor?.status !== 'active') {
+      throw new NotFoundException('Phiên phát không tồn tại hoặc đã kết thúc');
+    }
     const token = await this.mintViewerToken(lk, stream.roomName);
     return {
       id: stream.id,
