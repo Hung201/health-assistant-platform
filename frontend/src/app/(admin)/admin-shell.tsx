@@ -28,7 +28,9 @@ const NAV: NavItem[] = [
   { href: '/admin/users',               Icon: Users,         label: 'Người dùng' },
   { href: '/admin/doctors/pending',     Icon: Stethoscope,   label: 'Duyệt bác sĩ',    badgeFrom: 'pendingDoctors' },
   { href: '/admin/posts/pending',       Icon: FileText,      label: 'Duyệt bài viết',  badgeFrom: 'pendingPosts' },
+  { href: '/admin/posts',               Icon: FileText,      label: 'Quản lý blog' },
   { href: '/admin/questions/pending',   Icon: MessageSquare, label: 'Duyệt hỏi đáp' },
+  { href: '/admin/questions',           Icon: MessageSquare, label: 'Quản lý hỏi đáp' },
   { href: '/admin/specialties',         Icon: Tag,           label: 'Chuyên khoa' },
   { href: '/blog',                      Icon: BookOpen,      label: 'Kiến thức y khoa' },
   { href: '/admin/settings',            Icon: Settings,      label: 'Cài đặt' },
@@ -44,6 +46,8 @@ const MOBILE_TABS: NavItem[] = [
 
 function navActive(pathname: string, href: string) {
   if (href === '/admin') return pathname === '/admin';
+  if (href === '/admin/posts') return pathname === '/admin/posts';
+  if (href === '/admin/questions') return pathname === '/admin/questions';
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -52,7 +56,9 @@ function getPageTitle(pathname: string) {
   if (pathname.startsWith('/admin/users')) return 'Người dùng';
   if (pathname.startsWith('/admin/doctors/pending')) return 'Duyệt bác sĩ';
   if (pathname.startsWith('/admin/posts/pending')) return 'Duyệt bài viết';
+  if (pathname.startsWith('/admin/posts')) return 'Quản lý blog';
   if (pathname.startsWith('/admin/questions/pending')) return 'Duyệt hỏi đáp';
+  if (pathname.startsWith('/admin/questions')) return 'Quản lý hỏi đáp';
   if (pathname.startsWith('/admin/specialties')) return 'Chuyên khoa';
   if (pathname.startsWith('/admin/settings')) return 'Cài đặt';
   if (pathname.startsWith('/blog')) return 'Kiến thức y khoa';
@@ -331,6 +337,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <div className="p-3 space-y-0.5">
               {[
                 { href: '/', Icon: Home, label: 'Về trang chủ' },
+                { href: '/admin/posts', Icon: FileText, label: 'Quản lý blog' },
+                { href: '/admin/questions', Icon: MessageSquare, label: 'Quản lý hỏi đáp' },
                 { href: '/admin/questions/pending', Icon: MessageSquare, label: 'Duyệt hỏi đáp' },
                 { href: '/admin/specialties', Icon: Tag, label: 'Chuyên khoa' },
                 { href: '/blog', Icon: BookOpen, label: 'Kiến thức y khoa' },

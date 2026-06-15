@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { User } from '../entities/user.entity';
 import { PatientProfile } from '../entities/patient-profile.entity';
@@ -17,6 +17,8 @@ import { UserRole } from '../entities/user-role.entity';
 import { DoctorQuestion } from '../entities/doctor-question.entity';
 import { mergeFeaturePermissions, normalizeFeaturePermissions } from '../common/user-feature-permissions';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { AdminUpdatePostDto } from './dto/admin-update-post.dto';
+import { AdminUpdateQuestionDto } from './dto/admin-update-question.dto';
 import {
   bookingPeriodBetweenPrevious,
   bookingPeriodSince,
@@ -27,10 +29,13 @@ import {
 
 /** Bài viết chờ admin duyệt (bác sĩ gửi từ luồng soạn thảo). */
 export const POST_STATUS_PENDING_REVIEW = 'pending_review';
+export const POST_STATUS_PUBLISHED = 'published';
+export const POST_STATUS_HIDDEN = 'hidden';
 export const QA_STATUS_PENDING_REVIEW = 'pending_review';
 export const QA_STATUS_APPROVED = 'approved';
 export const QA_STATUS_ANSWERED = 'answered';
 export const QA_STATUS_REJECTED = 'rejected';
+export const QA_STATUS_HIDDEN = 'hidden';
 
 @Injectable()
 export class AdminService {
@@ -536,6 +541,90 @@ export class AdminService {
     return { ok: true, id: postId, status: post.status };
   }
 
+  async listPosts(page = 1, limit = 20, status?: string) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const allowed = [POST_STATUS_PUBLISHED, POST_STATUS_HIDDEN];
+    const filterStatus = status && allowed.includes(status) ? status : undefined;
+
+    const where = filterStatus
+      ? { status: filterStatus }
+      : { status: In(allowed) };
+
+    const [posts, total] = await this.postRepo.findAndCount({
+      where,
+      relations: ['author', 'author.user'],
+      order: { publishedAt: 'DESC', createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    });
+    return {
+      items: posts.map((p) => ({
+        id: String(p.id),
+        title: p.title,
+        slug: p.slug,
+        excerpt: p.excerpt,
+        postType: p.postType,
+        status: p.status,
+        viewCount: p.viewCount,
+        publishedAt: p.publishedAt,
+        createdAt: p.createdAt,
+        authorUserId: p.authorUserId,
+        authorName: p.author?.user?.fullName ?? null,
+        authorEmail: p.author?.user?.email ?? null,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
+  async updatePost(postId: number, dto: AdminUpdatePostDto) {
+    const post = await this.postRepo.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+    if (![POST_STATUS_PUBLISHED, POST_STATUS_HIDDEN].includes(post.status)) {
+      throw new BadRequestException('Chỉ có thể sửa bài viết đã xuất bản hoặc đang ẩn');
+    }
+    if (dto.title != null) {
+      const title = dto.title.trim();
+      if (!title) throw new BadRequestException('Tiêu đề không hợp lệ');
+      post.title = title;
+    }
+    if (dto.excerpt !== undefined) post.excerpt = dto.excerpt?.trim() || null;
+    if (dto.content !== undefined) {
+      const content = dto.content.trim();
+      if (!content) throw new BadRequestException('Nội dung không được để trống');
+      post.content = content;
+    }
+    if (dto.thumbnailUrl !== undefined) post.thumbnailUrl = dto.thumbnailUrl?.trim() || null;
+    if (dto.postType != null) post.postType = dto.postType;
+    await this.postRepo.save(post);
+    return { ok: true, id: String(post.id) };
+  }
+
+  async hidePost(postId: number) {
+    const post = await this.postRepo.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+    if (post.status !== POST_STATUS_PUBLISHED) {
+      throw new BadRequestException('Chỉ có thể ẩn bài viết đang xuất bản');
+    }
+    post.status = POST_STATUS_HIDDEN;
+    await this.postRepo.save(post);
+    return { ok: true, id: postId, status: post.status };
+  }
+
+  async publishPost(postId: number) {
+    const post = await this.postRepo.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+    if (post.status !== POST_STATUS_HIDDEN) {
+      throw new BadRequestException('Chỉ có thể hiện lại bài viết đang ẩn');
+    }
+    post.status = POST_STATUS_PUBLISHED;
+    if (!post.publishedAt) post.publishedAt = new Date();
+    await this.postRepo.save(post);
+    return { ok: true, id: postId, status: post.status };
+  }
+
   async listPendingQuestions(page = 1, limit = 20) {
     const safeLimit = Math.min(Math.max(limit, 1), 100);
     const safePage = Math.max(page, 1);
@@ -587,6 +676,134 @@ export class AdminService {
     if (reason && reason.trim()) {
       q.answerContent = `Câu hỏi chưa được duyệt: ${reason.trim()}`;
     }
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
+  }
+
+  async listQuestions(page = 1, limit = 20, status?: string) {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safePage = Math.max(page, 1);
+    const allowed = [QA_STATUS_APPROVED, QA_STATUS_ANSWERED, QA_STATUS_HIDDEN];
+    const filterStatus = status && allowed.includes(status) ? status : undefined;
+
+    const where = filterStatus
+      ? { status: filterStatus }
+      : { status: In(allowed) };
+
+    const [rows, total] = await this.questionRepo.findAndCount({
+      where,
+      relations: ['patientUser', 'doctorUser'],
+      order: { createdAt: 'DESC' },
+      skip: (safePage - 1) * safeLimit,
+      take: safeLimit,
+    });
+    return {
+      items: rows.map((q) => ({
+        id: q.id,
+        title: q.title,
+        content: q.questionContent,
+        answerContent: q.answerContent,
+        category: q.category,
+        status: q.status,
+        answeredAt: q.answeredAt,
+        createdAt: q.createdAt,
+        patient: {
+          id: q.patientUserId,
+          fullName: q.patientUser?.fullName ?? 'Bệnh nhân',
+          email: q.patientUser?.email ?? null,
+        },
+        doctor: q.doctorUserId
+          ? {
+            id: q.doctorUserId,
+            fullName: q.doctorUser?.fullName ?? 'Bác sĩ',
+          }
+          : null,
+      })),
+      total,
+      page: safePage,
+      limit: safeLimit,
+    };
+  }
+
+  async getQuestionDetail(questionId: string) {
+    const q = await this.questionRepo.findOne({
+      where: { id: questionId },
+      relations: ['patientUser', 'doctorUser'],
+    });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    return {
+      id: q.id,
+      title: q.title,
+      content: q.questionContent,
+      answerContent: q.answerContent,
+      category: q.category,
+      status: q.status,
+      answeredAt: q.answeredAt,
+      createdAt: q.createdAt,
+      patient: {
+        id: q.patientUserId,
+        fullName: q.patientUser?.fullName ?? 'Bệnh nhân',
+        email: q.patientUser?.email ?? null,
+      },
+      doctor: q.doctorUserId
+        ? {
+          id: q.doctorUserId,
+          fullName: q.doctorUser?.fullName ?? 'Bác sĩ',
+        }
+        : null,
+    };
+  }
+
+  async updateQuestion(questionId: string, dto: AdminUpdateQuestionDto) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (![QA_STATUS_APPROVED, QA_STATUS_ANSWERED, QA_STATUS_HIDDEN].includes(q.status)) {
+      throw new BadRequestException('Chỉ có thể sửa câu hỏi đã duyệt, đã trả lời hoặc đang ẩn');
+    }
+    if (dto.title != null) {
+      const title = dto.title.trim();
+      if (!title) throw new BadRequestException('Tiêu đề không hợp lệ');
+      q.title = title;
+    }
+    if (dto.content !== undefined) {
+      const content = dto.content.trim();
+      if (!content) throw new BadRequestException('Nội dung câu hỏi không được để trống');
+      q.questionContent = content;
+    }
+    if (dto.category !== undefined) q.category = dto.category?.trim() || null;
+    if (dto.answerContent !== undefined) {
+      q.answerContent = dto.answerContent?.trim() || null;
+      if (q.answerContent && q.status === QA_STATUS_APPROVED) {
+        q.status = QA_STATUS_ANSWERED;
+        q.answeredAt = q.answeredAt ?? new Date();
+      }
+      if (!q.answerContent && q.status === QA_STATUS_ANSWERED) {
+        q.status = QA_STATUS_APPROVED;
+        q.answeredAt = null;
+      }
+    }
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id };
+  }
+
+  async hideQuestion(questionId: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (![QA_STATUS_APPROVED, QA_STATUS_ANSWERED].includes(q.status)) {
+      throw new BadRequestException('Chỉ có thể ẩn câu hỏi đã duyệt hoặc đã trả lời');
+    }
+    q.status = QA_STATUS_HIDDEN;
+    await this.questionRepo.save(q);
+    return { ok: true, id: q.id, status: q.status };
+  }
+
+  async publishQuestion(questionId: string) {
+    const q = await this.questionRepo.findOne({ where: { id: questionId } });
+    if (!q) throw new NotFoundException('Không tìm thấy câu hỏi');
+    if (q.status !== QA_STATUS_HIDDEN) {
+      throw new BadRequestException('Chỉ có thể hiện lại câu hỏi đang ẩn');
+    }
+    q.status = q.answerContent?.trim() ? QA_STATUS_ANSWERED : QA_STATUS_APPROVED;
     await this.questionRepo.save(q);
     return { ok: true, id: q.id, status: q.status };
   }

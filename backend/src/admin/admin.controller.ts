@@ -21,6 +21,8 @@ import { AdminService } from './admin.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../entities/user.entity';
 import { RejectPostDto } from './dto/reject-post.dto';
+import { AdminUpdatePostDto } from './dto/admin-update-post.dto';
+import { AdminUpdateQuestionDto } from './dto/admin-update-question.dto';
 import { CreateSpecialtyDto } from './dto/create-specialty.dto';
 import { UpdateSpecialtyDto } from './dto/update-specialty.dto';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -97,6 +99,15 @@ export class AdminController {
     return this.adminService.listPendingPosts(page, limit);
   }
 
+  @Get('posts')
+  listPosts(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.listPosts(page, limit, status);
+  }
+
   @Get('posts/:id')
   getPost(@Param('id', ParseIntPipe) id: number) {
     return this.adminService.getPostDetail(id);
@@ -116,12 +127,41 @@ export class AdminController {
     return this.adminService.rejectPost(id, admin.id, dto.reason);
   }
 
+  @Patch('posts/:id')
+  updatePost(@Param('id', ParseIntPipe) id: number, @Body() dto: AdminUpdatePostDto) {
+    return this.adminService.updatePost(id, dto);
+  }
+
+  @Patch('posts/:id/hide')
+  hidePost(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.hidePost(id);
+  }
+
+  @Patch('posts/:id/publish')
+  publishPost(@Param('id', ParseIntPipe) id: number) {
+    return this.adminService.publishPost(id);
+  }
+
   @Get('questions/pending')
   listPendingQuestions(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.adminService.listPendingQuestions(page, limit);
+  }
+
+  @Get('questions')
+  listQuestions(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
+    @Query('status') status?: string,
+  ) {
+    return this.adminService.listQuestions(page, limit, status);
+  }
+
+  @Get('questions/:id')
+  getQuestion(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.adminService.getQuestionDetail(id);
   }
 
   @Patch('questions/:id/approve')
@@ -132,6 +172,21 @@ export class AdminController {
   @Patch('questions/:id/reject')
   rejectQuestion(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: RejectPostDto) {
     return this.adminService.rejectQuestion(id, dto.reason);
+  }
+
+  @Patch('questions/:id')
+  updateQuestion(@Param('id', new ParseUUIDPipe()) id: string, @Body() dto: AdminUpdateQuestionDto) {
+    return this.adminService.updateQuestion(id, dto);
+  }
+
+  @Patch('questions/:id/hide')
+  hideQuestion(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.adminService.hideQuestion(id);
+  }
+
+  @Patch('questions/:id/publish')
+  publishQuestion(@Param('id', new ParseUUIDPipe()) id: string) {
+    return this.adminService.publishQuestion(id);
   }
 
   @Get('specialties')

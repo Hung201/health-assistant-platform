@@ -785,6 +785,20 @@ export type AdminPostDetail = AdminPendingPost & {
   rejectionReason: string | null;
 };
 
+export type AdminManagedPost = AdminPendingPost & {
+  status: string;
+  viewCount: string;
+  publishedAt: string | null;
+};
+
+export type AdminManagedQuestion = AdminPendingQuestion & {
+  answerContent: string | null;
+  answeredAt: string | null;
+  doctor: { id: string; fullName: string } | null;
+};
+
+export type AdminQuestionDetail = AdminManagedQuestion;
+
 export type AdminSpecialtyRow = {
   id: string;
   slug: string;
@@ -900,6 +914,39 @@ export const adminApi = {
       body: JSON.stringify({ reason: reason ?? undefined }),
     }),
 
+  listPosts: (page = 1, limit = 20, status?: 'published' | 'hidden') => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.set('status', status);
+    return api<Paginated<AdminManagedPost>>(`/admin/posts?${params}`);
+  },
+
+  updatePost: (
+    id: number,
+    data: {
+      title?: string;
+      excerpt?: string;
+      content?: string;
+      thumbnailUrl?: string;
+      postType?: string;
+    },
+  ) =>
+    api<{ ok: boolean; id: string }>(`/admin/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  hidePost: (id: number) =>
+    api<{ ok: boolean; status: string }>(`/admin/posts/${id}/hide`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+
+  publishPost: (id: number) =>
+    api<{ ok: boolean; status: string }>(`/admin/posts/${id}/publish`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+
   listPendingQuestions: (page = 1, limit = 20) =>
     api<Paginated<AdminPendingQuestion>>(`/admin/questions/pending?page=${page}&limit=${limit}`),
 
@@ -913,6 +960,41 @@ export const adminApi = {
     api<{ ok: boolean }>(`/admin/questions/${encodeURIComponent(id)}/reject`, {
       method: 'PATCH',
       body: JSON.stringify({ reason: reason ?? undefined }),
+    }),
+
+  listQuestions: (page = 1, limit = 20, status?: 'approved' | 'answered' | 'hidden') => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (status) params.set('status', status);
+    return api<Paginated<AdminManagedQuestion>>(`/admin/questions?${params}`);
+  },
+
+  getQuestion: (id: string) =>
+    api<AdminQuestionDetail>(`/admin/questions/${encodeURIComponent(id)}`),
+
+  updateQuestion: (
+    id: string,
+    data: {
+      title?: string;
+      content?: string;
+      category?: string;
+      answerContent?: string;
+    },
+  ) =>
+    api<{ ok: boolean; id: string }>(`/admin/questions/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  hideQuestion: (id: string) =>
+    api<{ ok: boolean; status: string }>(`/admin/questions/${encodeURIComponent(id)}/hide`, {
+      method: 'PATCH',
+      body: '{}',
+    }),
+
+  publishQuestion: (id: string) =>
+    api<{ ok: boolean; status: string }>(`/admin/questions/${encodeURIComponent(id)}/publish`, {
+      method: 'PATCH',
+      body: '{}',
     }),
 
   listSpecialties: (page = 1, limit = 50) =>
