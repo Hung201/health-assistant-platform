@@ -8,6 +8,7 @@ import '@livekit/components-styles';
 import { doctorLivestreamsApi, type LiveStreamRow } from '@/lib/api';
 
 import { DoctorLiveStudio } from './doctor-live-studio';
+import { LiveCenterModal } from './live-center-modal';
 
 function statusBadgeClass(status: string) {
   if (status === 'live') return 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-100';
@@ -28,19 +29,14 @@ function EndStreamDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
-  if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/50 transition-opacity"
-        onClick={onCancel}
-        aria-label="Huỷ"
-      />
-      <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl">
-        <h3 className="text-base font-bold text-foreground">Kết thúc buổi phát trực tiếp?</h3>
+    <LiveCenterModal open={open} onClose={onCancel} labelledBy="end-stream-title">
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <h3 id="end-stream-title" className="text-base font-bold text-foreground">
+          Kết thúc buổi phát trực tiếp?
+        </h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Bạn có chắc muốn kết thúc buổi phát trực tiếp này? Bệnh nhân đang xem sẽ bị ngắt kết nối.
+          Bạn có chắc muốn kết thúc buổi phát trực tiếp này?
         </p>
         <div className="mt-5 flex justify-end gap-3">
           <button
@@ -61,7 +57,7 @@ function EndStreamDialog({
           </button>
         </div>
       </div>
-    </div>
+    </LiveCenterModal>
   );
 }
 
@@ -248,8 +244,7 @@ export default function DoctorLivePage() {
           <p className="font-semibold">Đang có phiên live trên hệ thống</p>
           <p className="mt-1 text-amber-900/90 dark:text-amber-100/90">
             Phiên &quot;{liveSessionElsewhere.title}&quot; vẫn đang phát (ví dụ sau khi tải lại trang). Bấm{' '}
-            <strong>Vào lại phòng live</strong> để xem video, QR và bình luận; hoặc <strong>Kết thúc</strong> để đóng
-            với bệnh nhân.
+            <strong>Vào lại phòng live</strong> để tiếp tục phát, hoặc <strong>Kết thúc</strong> để đóng phiên.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -291,7 +286,7 @@ export default function DoctorLivePage() {
         <div className="rounded-xl border border-dashed border-border bg-muted/20 px-6 py-16 text-center">
           <p className="text-sm font-medium text-foreground">Chưa vào phòng live</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sau khi bấm &quot;Bắt đầu phát&quot; hoặc &quot;Vào lại phòng live&quot;, khung video và bình luận hiển thị tại
+            Sau khi bấm &quot;Bắt đầu phát&quot; hoặc &quot;Vào lại phòng live&quot;, màn hình phát trực tiếp hiển thị tại
             đây.
           </p>
         </div>
