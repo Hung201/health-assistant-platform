@@ -32,7 +32,7 @@ export function DoctorBroadcasterStage() {
   const tracks = useTracks(
     [
       { source: Track.Source.ScreenShare, withPlaceholder: false },
-      { source: Track.Source.Camera, withPlaceholder: true },
+      { source: Track.Source.Camera, withPlaceholder: false },
     ],
     { onlySubscribed: false },
   );
@@ -40,7 +40,7 @@ export function DoctorBroadcasterStage() {
   const localTracks = tracks.filter((ref) => ref.participant.isLocal);
   const primary =
     localTracks.find((t) => t.source === Track.Source.ScreenShare && t.publication) ??
-    localTracks.find((t) => t.source === Track.Source.Camera);
+    localTracks.find((t) => t.source === Track.Source.Camera && t.publication);
 
   const displayName =
     localParticipant?.name?.trim() ||
@@ -51,7 +51,7 @@ export function DoctorBroadcasterStage() {
     <LayoutContextProvider>
       <div className="relative flex min-h-0 flex-1 flex-col bg-black">
         <div className="relative min-h-[min(50vh,520px)] flex-1">
-          {primary ? (
+          {primary?.publication ? (
             <VideoTrack trackRef={primary} className="h-full w-full object-contain" />
           ) : (
             <div className="flex h-full min-h-[400px] flex-col items-center justify-center gap-3 px-6 text-center">
