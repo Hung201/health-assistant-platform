@@ -5,10 +5,11 @@ import { ConnectionState, Track } from 'livekit-client';
 import {
   LiveKitRoom,
   useConnectionState,
+  useParticipants,
   useTrackToggle,
 } from '@livekit/components-react';
 
-import { Mic, MicOff, QrCode, Video, VideoOff } from 'lucide-react';
+import { Mic, MicOff, QrCode, Users, Video, VideoOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 import { DoctorBroadcasterStage } from '@/components/live/doctor-broadcaster-stage';
@@ -175,6 +176,8 @@ function LiveSessionMain({
   streamTitle: string;
 }) {
   const conn = useConnectionState();
+  const participants = useParticipants();
+  const viewerCount = participants.filter((p) => !p.isLocal).length;
   const [elapsedMs, setElapsedMs] = useState(0);
   const [qrOpen, setQrOpen] = useState(false);
   const startedAtRef = useRef<number | null>(null);
@@ -238,17 +241,21 @@ function LiveSessionMain({
               {formatElapsed(elapsedMs)}
             </span>
           ) : null}
+          {conn === ConnectionState.Connected ? (
+            <span
+              className="inline-flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-0.5 text-xs font-semibold text-sky-900"
+              title="Số người đang xem live"
+            >
+              <Users className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              {viewerCount} đang xem
+            </span>
+          ) : null}
         </div>
       </header>
 
-      <div className="relative flex min-h-0 w-full flex-1 flex-col bg-black/[0.04] dark:bg-black/50">
+      <div className="relative flex min-h-0 w-full flex-1 flex-col">
         <DoctorBroadcasterStage />
       </div>
-
-      <footer className="border-t border-border bg-card px-3 py-2 text-xs text-muted-foreground">
-        Kiểm tra mic/camera trước khi phát. Nếu video không lên, xem quyền trình duyệt và chọn thiết bị trong thanh
-        điều khiển LiveKit.
-      </footer>
     </div>
     </>
   );
