@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from 'react';
 import { ConnectionState, Track } from 'livekit-client';
 import {
   LiveKitRoom,
-  VideoConference,
   useConnectionState,
   useTrackToggle,
 } from '@livekit/components-react';
@@ -12,6 +11,8 @@ import {
 import { Mic, MicOff, QrCode, Video, VideoOff } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
+import { DoctorBroadcasterStage } from '@/components/live/doctor-broadcaster-stage';
+import { LiveCommentPanel } from '@/components/live/live-comment-panel';
 import { useToast } from '@/components/ui/toast';
 import { LiveCenterModal } from './live-center-modal';
 
@@ -241,7 +242,7 @@ function LiveSessionMain({
       </header>
 
       <div className="relative flex min-h-0 w-full flex-1 flex-col bg-black/[0.04] dark:bg-black/50">
-        <VideoConference className="h-full min-h-0 w-full flex-1" />
+        <DoctorBroadcasterStage />
       </div>
 
       <footer className="border-t border-border bg-card px-3 py-2 text-xs text-muted-foreground">
@@ -280,7 +281,14 @@ export function DoctorLiveStudio({
       }}
       className="flex w-full min-h-[min(72vh,680px)] flex-col"
     >
-      <LiveSessionMain streamId={streamId} streamTitle={streamTitle} />
+      <div className="flex min-h-0 flex-1 flex-col gap-4 xl:flex-row xl:items-stretch">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+          <LiveSessionMain streamId={streamId} streamTitle={streamTitle} />
+        </div>
+        <aside className="flex w-full min-h-0 shrink-0 flex-col xl:w-[340px]">
+          <LiveCommentPanel streamId={streamId} />
+        </aside>
+      </div>
     </LiveKitRoom>
   );
 }
